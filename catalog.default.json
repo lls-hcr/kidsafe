@@ -1,0 +1,148 @@
+{
+  "allowlist" : [
+
+  ],
+  "categories" : [
+    {
+      "enabled" : true,
+      "id" : "adult",
+      "name" : "Contenus pour adultes",
+      "sources" : [
+        {
+          "license" : "GPL-3.0 (HaGeZi)",
+          "url" : "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/nsfw-onlydomains.txt"
+        }
+      ]
+    },
+    {
+      "enabled" : false,
+      "id" : "adult-ut1",
+      "name" : "Contenus pour adultes, liste UT1 complète",
+      "sources" : [
+        {
+          "archiveMember" : "adult/domains",
+          "license" : "CC BY-SA 4.0 (UT1 Toulouse Capitole)",
+          "url" : "https://dsi.ut-capitole.fr/blacklists/download/adult.tar.gz"
+        }
+      ],
+      "warning" : "Liste très lourde (environ 4,6 millions de domaines) : Privoxy utilisera près de 800 Mo de mémoire, chaque page peut s'afficher un peu plus lentement et chaque mise à jour fige le filtrage quelques secondes. La liste « Contenus pour adultes » (HaGeZi) suffit dans la plupart des cas."
+    },
+    {
+      "enabled" : false,
+      "id" : "bypass",
+      "name" : "Contournement : VPN, proxys, DNS chiffré",
+      "sources" : [
+        {
+          "license" : "GPL-3.0 (HaGeZi)",
+          "url" : "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/doh-vpn-proxy-bypass-onlydomains.txt"
+        },
+        {
+          "archiveMember" : "vpn/domains",
+          "license" : "CC BY-SA 4.0 (UT1 Toulouse Capitole)",
+          "url" : "https://dsi.ut-capitole.fr/blacklists/download/vpn.tar.gz"
+        },
+        {
+          "archiveMember" : "doh/domains",
+          "license" : "CC BY-SA 4.0 (UT1 Toulouse Capitole)",
+          "url" : "https://dsi.ut-capitole.fr/blacklists/download/doh.tar.gz"
+        }
+      ]
+    },
+    {
+      "enabled" : false,
+      "id" : "security",
+      "name" : "Arnaques, hameçonnage, logiciels malveillants",
+      "sources" : [
+        {
+          "license" : "GPL-3.0 (HaGeZi)",
+          "url" : "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/tif.mini-onlydomains.txt"
+        }
+      ]
+    },
+    {
+      "enabled" : false,
+      "id" : "gambling",
+      "name" : "Jeux d'argent",
+      "sources" : [
+        {
+          "archiveMember" : "gambling/domains",
+          "license" : "CC BY-SA 4.0 (UT1 Toulouse Capitole)",
+          "url" : "https://dsi.ut-capitole.fr/blacklists/download/gambling.tar.gz"
+        }
+      ]
+    },
+    {
+      "enabled" : false,
+      "id" : "violence",
+      "name" : "Violence, haine",
+      "sources" : [
+        {
+          "archiveMember" : "agressif/domains",
+          "license" : "CC BY-SA 4.0 (UT1 Toulouse Capitole)",
+          "url" : "https://dsi.ut-capitole.fr/blacklists/download/agressif.tar.gz"
+        }
+      ]
+    },
+    {
+      "enabled" : false,
+      "id" : "drugs",
+      "name" : "Drogues",
+      "sources" : [
+        {
+          "archiveMember" : "drogue/domains",
+          "license" : "CC BY-SA 4.0 (UT1 Toulouse Capitole)",
+          "url" : "https://dsi.ut-capitole.fr/blacklists/download/drogue.tar.gz"
+        }
+      ]
+    },
+    {
+      "enabled" : false,
+      "id" : "dating",
+      "name" : "Sites de rencontre",
+      "sources" : [
+        {
+          "archiveMember" : "dating/domains",
+          "license" : "CC BY-SA 4.0 (UT1 Toulouse Capitole)",
+          "url" : "https://dsi.ut-capitole.fr/blacklists/download/dating.tar.gz"
+        }
+      ]
+    },
+    {
+      "enabled" : false,
+      "id" : "social",
+      "name" : "Réseaux sociaux",
+      "sources" : [
+        {
+          "archiveMember" : "social_networks/domains",
+          "license" : "CC BY-SA 4.0 (UT1 Toulouse Capitole)",
+          "url" : "https://dsi.ut-capitole.fr/blacklists/download/social_networks.tar.gz"
+        }
+      ]
+    },
+    {
+      "enabled" : false,
+      "id" : "games",
+      "name" : "Jeux en ligne",
+      "sources" : [
+        {
+          "archiveMember" : "games/domains",
+          "license" : "CC BY-SA 4.0 (UT1 Toulouse Capitole)",
+          "url" : "https://dsi.ut-capitole.fr/blacklists/download/games.tar.gz"
+        }
+      ]
+    },
+    {
+      "enabled" : false,
+      "id" : "ads",
+      "name" : "Publicité et pistage",
+      "sources" : [
+        {
+          "license" : "GPL-3.0 (HaGeZi)",
+          "url" : "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/pro.mini-onlydomains.txt"
+        }
+      ]
+    }
+  ],
+  "hardenPrivoxy" : true,
+  "strictMode" : false
+}

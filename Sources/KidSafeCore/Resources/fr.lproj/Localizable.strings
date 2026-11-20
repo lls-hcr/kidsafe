@@ -1,0 +1,254 @@
+/* Erreurs */
+"error.insecureURL" = "Adresse refusée (seules https:// et file:// sont acceptées) : %@";
+"error.download" = "Échec du téléchargement de %@ : %@";
+"error.tooLarge" = "Liste trop volumineuse : %@";
+"error.archive" = "Archive illisible %@ : %@";
+"error.configTest" = "Privoxy refuse la nouvelle configuration :\n%@";
+"error.emptyFile" = "fichier vide";
+"error.archiveMember" = "chemin dans l'archive manquant ou invalide";
+"error.writeDir" = "Impossible d'écrire dans %@ (droits insuffisants ?)";
+"error.replace" = "Impossible de remplacer %@ : %@";
+"error.duplicateID" = "Une liste « %@ » existe déjà.";
+"error.unknownID" = "Liste inconnue : %@";
+"error.notCustom" = "« %@ » fait partie du catalogue par défaut : on peut la désactiver, pas la supprimer.";
+"error.localUnreadable" = "Lecture impossible : %@";
+"error.localNoDomains" = "Le fichier « %@ » ne contient aucun domaine reconnu (formats acceptés : Adblock, hosts, un domaine par ligne).";
+
+/* Avertissements */
+"warning.cacheUsed" = "%@ — copie en cache utilisée";
+"warning.previousKept" = "fichier précédent conservé";
+"warning.noDomains" = "aucun domaine trouvé";
+"warning.heavy.generic" = "Liste très lourde (%@ domaines) : Privoxy consommera beaucoup de mémoire et la navigation pourra ralentir.";
+"warning.heavy.ut1" = "Liste très lourde (environ 4,6 millions de domaines) : Privoxy utilisera près de 800 Mo de mémoire, les pages peuvent s'afficher un peu plus lentement et chaque mise à jour interrompt le filtrage quelques secondes. La liste « Contenus pour adultes » (HaGeZi) suffit dans la plupart des cas.";
+
+/* Catégories du catalogue par défaut */
+"category.adult" = "Contenus pour adultes";
+"category.adult-ut1" = "Contenus pour adultes, liste UT1 complète";
+"category.bypass" = "Contournement : VPN, proxys, DNS chiffré";
+"category.security" = "Arnaques, hameçonnage, logiciels malveillants";
+"category.gambling" = "Jeux d'argent";
+"category.violence" = "Violence, haine";
+"category.drugs" = "Drogues";
+"category.dating" = "Sites de rencontre";
+"category.social" = "Réseaux sociaux";
+"category.games" = "Jeux en ligne";
+"category.ads" = "Publicité et pistage";
+
+/* Bibliothèque de listes gratuites */
+"library.easylist" = "EasyList (publicité, règles de domaine seulement)";
+"library.easyprivacy" = "EasyPrivacy (pistage)";
+"library.liste-fr" = "Liste FR (publicité, sites francophones)";
+"library.stevenblack" = "StevenBlack Unified hosts (publicité + malware)";
+"library.stevenblack-porn" = "StevenBlack : contenus pour adultes";
+"library.stevenblack-gambling" = "StevenBlack : jeux d'argent";
+"library.hagezi-gambling" = "HaGeZi : jeux d'argent (complète)";
+"library.blp-drugs" = "Block List Project : drogues";
+"library.blp-scam" = "Block List Project : arnaques";
+"library.blp-tiktok" = "Block List Project : TikTok";
+"library.ut1-warez" = "UT1 : téléchargement illégal";
+"library.ut1-shortener" = "UT1 : raccourcisseurs d'adresses";
+
+/* Fichiers Privoxy générés */
+"action.header.category" = "catégorie « %@ » (%@)";
+"action.header.generated" = "Fichier généré automatiquement le %@. Ne pas modifier : il sera écrasé.";
+"action.header.counts" = "%d motifs de blocage, %d exceptions";
+"action.header.source" = "source : %@";
+"action.header.strict" = "mode strict : tout est bloqué sauf la liste blanche";
+"action.header.allow" = "liste blanche";
+"action.header.allowCount" = "%d domaines autorisés";
+"action.reason.strict" = "mode strict, site non autorisé";
+
+/* CLI */
+"cli.usage" = "Utilisation :
+  kidsafe-blocklist convert [--id ID] [--name NOM] [-o SORTIE] FICHIER...
+      Convertit des listes locales (Adblock, hosts, domaines) en fichier .action Privoxy.
+  kidsafe-blocklist update [--catalog CATALOGUE.json] [--conf-dir DOSSIER] [--privoxy BINAIRE]
+                           [--cache-dir DOSSIER] [--dry-run] [--remove-legacy]
+      Télécharge les listes cochées, les installe dans Privoxy, teste la configuration
+      et revient en arrière en cas d'erreur.
+  kidsafe-blocklist uninstall [--conf-dir DOSSIER]
+      Retire tout ce que KidSafe a ajouté à Privoxy.
+  kidsafe-blocklist lists [--catalog CATALOGUE.json]
+  kidsafe-blocklist enable|disable ID [--catalog CATALOGUE.json] [--yes]
+      Coche ou décoche une liste (--yes : accepte l'avertissement d'une liste lourde).
+  kidsafe-blocklist library
+      Listes gratuites supplémentaires que l'on peut ajouter.
+  kidsafe-blocklist add-list [--catalog CATALOGUE.json] --from-library ID
+  kidsafe-blocklist add-list [--catalog CATALOGUE.json] --name NOM --url https://… [--member CHEMIN] [--id ID]
+  kidsafe-blocklist add-list [--catalog CATALOGUE.json] --file FICHIER [--name NOM] [--id ID]
+  kidsafe-blocklist remove-list ID [--catalog CATALOGUE.json]
+      Ajoute ou supprime une liste personnelle ; elle est installée au prochain « update ».
+  kidsafe-blocklist default-catalog
+  kidsafe-blocklist pause | resume
+      Met le filtrage en pause (sans rien supprimer) ou le reprend.
+  kidsafe-blocklist block DOMAINE | allow DOMAINE
+      Bloque ou autorise un domaine (pris en compte au prochain « update »).
+
+Sans --catalog, le catalogue de l'app est utilisé (~/Library/Application Support/KidSafe/catalog.json).
+Sans --conf-dir, Privoxy est cherché dans /usr/local/etc/privoxy puis /opt/homebrew/etc/privoxy.
+Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
+"cli.missingValue" = "Option %@ : valeur manquante.";
+"cli.privoxyNotFound" = "Configuration Privoxy introuvable. Indiquez-la avec --conf-dir.";
+"cli.catalogUnreadable" = "Catalogue illisible : %@";
+"cli.catalogSaved" = "Catalogue enregistré (%@). Lancez « update » pour télécharger et installer.";
+"cli.convert.stats" = "%@ lignes : %@ domaines bloqués, %@ exceptions, %@ règles ignorées (non filtrables par domaine), %@ invalides, %@ commentaires.";
+"cli.update.category" = "✓ %@ : %@ domaines (%@ règles ignorées) → %@";
+"cli.update.dryRun" = "Simulation : rien n'est écrit. Fichiers prévus dans %@ :";
+"cli.update.installed" = "Installé dans %@ : %@";
+"cli.update.removed" = "Supprimés (listes décochées) : %@";
+"cli.update.tested" = "Configuration validée par Privoxy.";
+"cli.update.notTested" = "⚠︎ Binaire Privoxy introuvable : configuration non testée.";
+"cli.update.failed" = "Échec, configuration d'origine restaurée : %@";
+"cli.uninstall.done" = "KidSafe retiré. Fichiers supprimés : %@";
+"cli.confirmWithYes" = "Relancez avec --yes pour l'activer quand même.";
+"cli.addList.imported" = "%@ domaines importés.";
+"cli.tag.custom" = "(perso)";
+"cli.tag.heavy" = "lourde";
+
+/* App */
+"app.cancel" = "Annuler";
+"app.add" = "Ajouter";
+"app.yes" = "Oui";
+"app.no" = "Non";
+"app.settings" = "Réglages KidSafe";
+"app.quit" = "Quitter KidSafe";
+"app.checkUpdates" = "Rechercher des mises à jour…";
+"app.updates.message" = "KidSafe %@.\n\nLa recherche automatique de nouvelles versions de l'app arrivera avec l'installeur .pkg. Les listes de blocage, elles, se mettent déjà à jour automatiquement chaque jour.";
+"app.updateNow" = "Mettre à jour les listes";
+"app.status.protected" = "Protection active";
+"app.status.notProtected" = "Protection incomplète";
+"app.status.lastUpdate" = "Listes mises à jour : %@";
+"app.problem.noPrivoxy" = "Privoxy n'est pas installé.";
+"app.problem.notRunning" = "Privoxy ne répond pas (service arrêté ?).";
+"app.problem.noProxy" = "Le proxy du Mac n'utilise pas Privoxy.";
+"app.proxy.configure" = "Configurer";
+"app.proxy.remove" = "Retirer le proxy";
+"app.proxy.adminPrompt" = "KidSafe veut régler le proxy du Mac pour activer le filtrage.";
+"app.error.noPrivoxy" = "Privoxy est introuvable : installez-le d'abord.";
+"app.error.proxy" = "Le proxy n'a pas pu être réglé : %@";
+"app.strict.active" = "Mode strict : seuls les %d sites de la liste blanche sont autorisés.";
+"app.lists.title" = "Listes de blocage";
+"app.lists.domains" = "%@ domaines";
+"app.lists.localFile" = "Fichier local : %@";
+"app.lists.remove" = "Supprimer cette liste";
+"app.lists.help" = "Cochez les catégories à bloquer. Les changements sont appliqués automatiquement ; les listes sont remises à jour selon l'intervalle choisi dans Général.";
+"app.lists.builtin" = "Catégories";
+"app.lists.custom" = "Listes ajoutées";
+"app.lists.noCustom" = "Aucune pour l'instant.";
+"app.add.title" = "Ajouter une liste";
+"app.add.library" = "Listes gratuites";
+"app.add.url" = "Depuis une adresse web…";
+"app.add.file" = "Depuis un fichier du Mac…";
+"app.add.name" = "Nom de la liste";
+"app.add.urlField" = "Adresse (https://…)";
+"app.add.formats" = "Formats reconnus : Adblock (||domaine^), fichier hosts, un domaine par ligne, archive UT1 .tar.gz.";
+"app.addFile.panelTitle" = "Ajouter une liste depuis un fichier";
+"app.addFile.panelMessage" = "Choisissez un fichier texte : Adblock, hosts ou un domaine par ligne.";
+"app.addFile.choose" = "Choisir";
+"app.addFile.nameTitle" = "Nom de la liste";
+"app.addFile.nameMessage" = "Ce nom sera affiché dans KidSafe.";
+"app.addFile.done" = "%@ domaines importés dans « %@ ». La liste est activée.";
+"app.alert.heavy.title" = "Activer « %@ » ?";
+"app.alert.heavy.enable" = "Activer quand même";
+"app.alert.strict.title" = "Activer le mode strict ?";
+"app.alert.strict.message" = "La liste blanche est vide : tous les sites seront bloqués. Ajoutez d'abord les sites autorisés dans l'onglet Liste blanche.";
+"app.alert.strict.enable" = "Activer";
+"app.alert.remove.title" = "Supprimer « %@ » ?";
+"app.alert.remove.message" = "La liste ne sera plus utilisée. Vous pourrez l'ajouter à nouveau plus tard.";
+"app.alert.remove.ok" = "Supprimer";
+"app.alert.proxyOff.title" = "Retirer le proxy ?";
+"app.alert.proxyOff.message" = "Le filtrage sera désactivé pour tout le Mac jusqu'à ce que vous le configuriez à nouveau.";
+"app.alert.proxyOff.ok" = "Retirer";
+"app.tab.lists" = "Listes";
+"app.tab.allow" = "Liste blanche";
+"app.tab.general" = "Général";
+"app.allow.help" = "Toujours autorisés, même s'ils figurent dans une liste de blocage. En mode strict, ce sont les seuls sites autorisés. Ajouter un domaine ici le retire des domaines bloqués.";
+"app.allow.placeholder" = "exemple.org";
+"app.allow.empty" = "Aucun site autorisé.";
+"app.allow.invalid" = "« %@ » n'est pas un nom de domaine valide.";
+"app.general.protection" = "Protection";
+"app.general.strict" = "Mode strict (liste blanche uniquement)";
+"app.general.strictHelp" = "Tout est bloqué, sauf les sites de la liste blanche. Idéal pour les plus jeunes.";
+"app.general.proxy" = "Privoxy et proxy";
+"app.general.privoxy" = "Configuration Privoxy";
+"app.general.notFound" = "introuvable";
+"app.general.address" = "Adresse";
+"app.general.running" = "Privoxy répond";
+"app.general.systemProxy" = "Proxy du Mac configuré";
+"app.general.refresh" = "Mise à jour automatique des listes";
+"app.general.language" = "Langue";
+"app.general.langSystem" = "Langue du système";
+"action.header.custom" = "domaines bloqués par le parent";
+"action.header.customCount" = "%d domaines";
+"action.reason.custom" = "site bloqué par le parent";
+"action.header.services" = "réseaux sociaux bloqués en ce moment";
+"action.header.servicesNote" = "Réécrit par l'app KidSafe à chaque changement de plage horaire. Ne pas modifier.";
+"app.lock.title" = "Mot de passe parent";
+"app.lock.message" = "Saisissez le mot de passe parent pour modifier KidSafe.";
+"app.lock.unlock" = "Déverrouiller";
+"app.lock.lockNow" = "Verrouiller maintenant";
+"app.lock.banner" = "Réglages verrouillés : toute modification demande le mot de passe parent.";
+"app.password.section" = "Mot de passe parent";
+"app.password.help" = "Facultatif. S'il est défini, il est demandé pour modifier les réglages, mettre le filtrage en pause ou quitter l'app. Il reste déverrouillé 5 minutes.";
+"app.password.set" = "Définir un mot de passe…";
+"app.password.change" = "Changer le mot de passe…";
+"app.password.remove" = "Supprimer le mot de passe";
+"app.password.newTitle" = "Nouveau mot de passe parent";
+"app.password.newMessage" = "Choisissez un mot de passe que votre enfant ne connaît pas.";
+"app.password.confirmTitle" = "Confirmez le mot de passe";
+"app.password.save" = "Enregistrer";
+"app.password.mismatch" = "Les deux mots de passe ne correspondent pas. Rien n'a été changé.";
+"app.menu.filtering" = "Filtrage";
+"app.menu.settings" = "Réglages…";
+"app.menu.paused" = "Filtrage en pause : tout est autorisé.";
+"app.menu.categories" = "%d catégorie(s) de listes";
+"app.menu.noSocial" = "Aucun réseau social bloqué en ce moment";
+"app.menu.social" = "Bloqués en ce moment : %@";
+"app.menu.customDomains" = "%d domaine(s) bloqué(s) à la main";
+"app.donate" = "Soutenir KidSafe (don)";
+"app.donate.section" = "Soutenir le projet";
+"app.donate.help" = "KidSafe est gratuit. Si l'app vous est utile, vous pouvez aider à son développement par un don.";
+"app.tab.social" = "Réseaux sociaux";
+"app.tab.domains" = "Domaines";
+"app.social.help" = "Pour chaque réseau : autorisé, toujours bloqué, bloqué pendant certaines plages (par ex. la nuit), ou autorisé seulement pendant certaines plages (par ex. le mercredi après-midi).";
+"app.social.note" = "Les plages horaires sont appliquées par l'app : elle doit rester ouverte (le helper système s'en chargera plus tard). Facebook, Instagram et WhatsApp partagent une partie de leurs serveurs : bloquer Facebook peut gêner l'affichage d'Instagram.";
+"app.social.blockedNow" = "bloqué maintenant";
+"app.social.allowedNow" = "autorisé maintenant";
+"app.social.mode.allowed" = "Autorisé";
+"app.social.mode.blocked" = "Toujours bloqué";
+"app.social.mode.blockedDuring" = "Bloqué pendant les plages";
+"app.social.mode.allowedOnlyDuring" = "Autorisé seulement pendant les plages";
+"app.social.addWindow" = "Ajouter une plage";
+"app.social.from" = "de";
+"app.social.to" = "à";
+"app.social.nextDay" = "(lendemain)";
+"app.domains.blocked" = "Domaines bloqués";
+"app.domains.blockedHelp" = "Toujours bloqués, avec leurs sous-domaines. Ajouter un domaine ici le retire de la liste blanche.";
+"app.domains.empty" = "Aucun domaine.";
+"app.general.check" = "Vérifier";
+"app.general.lastUpdate" = "Dernière mise à jour";
+"app.refresh.0" = "Jamais";
+"app.refresh.1" = "Toutes les heures";
+"app.refresh.6" = "Toutes les 6 heures";
+"app.refresh.12" = "Toutes les 12 heures";
+"app.refresh.24" = "Tous les jours";
+"app.refresh.72" = "Tous les 3 jours";
+"app.refresh.168" = "Toutes les semaines";
+"cli.badPassword" = "Mot de passe incorrect.";
+"cli.paused" = "Filtrage en pause.";
+"cli.resumed" = "Filtrage repris.";
+"app.login.toggle" = "Ouvrir KidSafe au démarrage du Mac";
+"app.login.help" = "KidSafe s'ouvre à chaque ouverture de session, pour que les plages horaires restent appliquées. Privoxy démarrera avec le Mac grâce au service installé par le .pkg.";
+"app.login.approvalTitle" = "Autorisation de macOS nécessaire";
+"app.login.approvalMessage" = "macOS demande votre accord : dans Réglages Système → Général → Ouverture, autorisez KidSafe.";
+"app.login.openSettings" = "Ouvrir les Réglages Système";
+"app.login.error" = "Impossible de régler l'ouverture au démarrage : %@";
+"app.hint.menuBar" = "KidSafe tourne dans la barre de menus (bouclier). Cette fenêtre peut être fermée ; un double-clic sur l’app la rouvre.";
+"app.menu.on" = "Activé";
+"app.menu.off" = "En pause";
+"app.menu.testPrivoxy" = "Tester Privoxy (http://p.p)";
+"app.feedback" = "Envoyer un avis…";
+"app.feedback.email" = "Par e-mail";
+"app.feedback.github" = "Sur GitHub (problème ou idée)";
+"app.feedback.subject" = "KidSafe %@ : mon avis";
+"app.feedback.body" = "Bonjour,\n\n(Votre message : ce qui marche, ce qui ne marche pas, vos idées…)\n\n\n---\nKidSafe %@ · macOS %@";

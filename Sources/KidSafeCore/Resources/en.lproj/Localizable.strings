@@ -1,0 +1,254 @@
+/* Errors */
+"error.insecureURL" = "Address rejected (only https:// and file:// are accepted): %@";
+"error.download" = "Download of %@ failed: %@";
+"error.tooLarge" = "List too large: %@";
+"error.archive" = "Unreadable archive %@: %@";
+"error.configTest" = "Privoxy rejected the new configuration:\n%@";
+"error.emptyFile" = "empty file";
+"error.archiveMember" = "missing or invalid path inside the archive";
+"error.writeDir" = "Cannot write to %@ (insufficient permissions?)";
+"error.replace" = "Cannot replace %@: %@";
+"error.duplicateID" = "A list named “%@” already exists.";
+"error.unknownID" = "Unknown list: %@";
+"error.notCustom" = "“%@” is part of the default catalog: it can be turned off, not removed.";
+"error.localUnreadable" = "Cannot read: %@";
+"error.localNoDomains" = "The file “%@” contains no recognized domain (accepted formats: Adblock, hosts, one domain per line).";
+
+/* Warnings */
+"warning.cacheUsed" = "%@ — using the cached copy";
+"warning.previousKept" = "previous file kept";
+"warning.noDomains" = "no domain found";
+"warning.heavy.generic" = "Very large list (%@ domains): Privoxy will use a lot of memory and browsing may slow down.";
+"warning.heavy.ut1" = "Very large list (about 4.6 million domains): Privoxy will use nearly 800 MB of memory, pages may load a little slower and each update pauses filtering for a few seconds. The “Adult content” list (HaGeZi) is enough in most cases.";
+
+/* Default catalog categories */
+"category.adult" = "Adult content";
+"category.adult-ut1" = "Adult content, full UT1 list";
+"category.bypass" = "Bypass tools: VPNs, proxies, encrypted DNS";
+"category.security" = "Scams, phishing, malware";
+"category.gambling" = "Gambling";
+"category.violence" = "Violence, hate";
+"category.drugs" = "Drugs";
+"category.dating" = "Dating sites";
+"category.social" = "Social networks";
+"category.games" = "Online games";
+"category.ads" = "Ads and tracking";
+
+/* Free list library */
+"library.easylist" = "EasyList (ads, domain rules only)";
+"library.easyprivacy" = "EasyPrivacy (tracking)";
+"library.liste-fr" = "Liste FR (ads, French-language sites)";
+"library.stevenblack" = "StevenBlack Unified hosts (ads + malware)";
+"library.stevenblack-porn" = "StevenBlack: adult content";
+"library.stevenblack-gambling" = "StevenBlack: gambling";
+"library.hagezi-gambling" = "HaGeZi: gambling (full)";
+"library.blp-drugs" = "Block List Project: drugs";
+"library.blp-scam" = "Block List Project: scams";
+"library.blp-tiktok" = "Block List Project: TikTok";
+"library.ut1-warez" = "UT1: illegal downloads";
+"library.ut1-shortener" = "UT1: URL shorteners";
+
+/* Generated Privoxy files */
+"action.header.category" = "category “%@” (%@)";
+"action.header.generated" = "Generated automatically on %@. Do not edit: it will be overwritten.";
+"action.header.counts" = "%d block patterns, %d exceptions";
+"action.header.source" = "source: %@";
+"action.header.strict" = "strict mode: everything is blocked except the allowlist";
+"action.header.allow" = "allowlist";
+"action.header.allowCount" = "%d allowed domains";
+"action.reason.strict" = "strict mode, site not allowed";
+
+/* CLI */
+"cli.usage" = "Usage:
+  kidsafe-blocklist convert [--id ID] [--name NAME] [-o OUTPUT] FILE...
+      Converts local lists (Adblock, hosts, domains) into a Privoxy .action file.
+  kidsafe-blocklist update [--catalog CATALOG.json] [--conf-dir DIR] [--privoxy BINARY]
+                           [--cache-dir DIR] [--dry-run] [--remove-legacy]
+      Downloads the enabled lists, installs them into Privoxy, tests the configuration
+      and rolls back on error.
+  kidsafe-blocklist uninstall [--conf-dir DIR]
+      Removes everything KidSafe added to Privoxy.
+  kidsafe-blocklist lists [--catalog CATALOG.json]
+  kidsafe-blocklist enable|disable ID [--catalog CATALOG.json] [--yes]
+      Turns a list on or off (--yes: accept the warning for a large list).
+  kidsafe-blocklist library
+      Extra free lists that can be added.
+  kidsafe-blocklist add-list [--catalog CATALOG.json] --from-library ID
+  kidsafe-blocklist add-list [--catalog CATALOG.json] --name NAME --url https://… [--member PATH] [--id ID]
+  kidsafe-blocklist add-list [--catalog CATALOG.json] --file FILE [--name NAME] [--id ID]
+  kidsafe-blocklist remove-list ID [--catalog CATALOG.json]
+      Adds or removes a custom list; it is installed on the next “update”.
+  kidsafe-blocklist default-catalog
+  kidsafe-blocklist pause | resume
+      Pauses filtering (without deleting anything) or resumes it.
+  kidsafe-blocklist block DOMAIN | allow DOMAIN
+      Blocks or allows a domain (applied on the next “update”).
+
+Without --catalog, the app's catalog is used (~/Library/Application Support/KidSafe/catalog.json).
+Without --conf-dir, Privoxy is looked up in /usr/local/etc/privoxy, then /opt/homebrew/etc/privoxy.
+Language: the system's, or KIDSAFE_LANG=fr|en.";
+"cli.missingValue" = "Option %@: missing value.";
+"cli.privoxyNotFound" = "Privoxy configuration not found. Specify it with --conf-dir.";
+"cli.catalogUnreadable" = "Unreadable catalog: %@";
+"cli.catalogSaved" = "Catalog saved (%@). Run “update” to download and install.";
+"cli.convert.stats" = "%@ lines: %@ domains blocked, %@ exceptions, %@ rules skipped (not domain-filterable), %@ invalid, %@ comments.";
+"cli.update.category" = "✓ %@: %@ domains (%@ rules skipped) → %@";
+"cli.update.dryRun" = "Dry run: nothing is written. Planned files in %@:";
+"cli.update.installed" = "Installed in %@: %@";
+"cli.update.removed" = "Removed (lists turned off): %@";
+"cli.update.tested" = "Configuration validated by Privoxy.";
+"cli.update.notTested" = "⚠︎ Privoxy binary not found: configuration not tested.";
+"cli.update.failed" = "Failed, original configuration restored: %@";
+"cli.uninstall.done" = "KidSafe removed. Deleted files: %@";
+"cli.confirmWithYes" = "Run again with --yes to enable it anyway.";
+"cli.addList.imported" = "%@ domains imported.";
+"cli.tag.custom" = "(custom)";
+"cli.tag.heavy" = "large";
+
+/* App */
+"app.cancel" = "Cancel";
+"app.add" = "Add";
+"app.yes" = "Yes";
+"app.no" = "No";
+"app.settings" = "KidSafe Settings";
+"app.quit" = "Quit KidSafe";
+"app.checkUpdates" = "Check for Updates…";
+"app.updates.message" = "KidSafe %@.\n\nAutomatic checks for new app versions will come with the .pkg installer. Blocklists already update automatically every day.";
+"app.updateNow" = "Update lists";
+"app.status.protected" = "Protection on";
+"app.status.notProtected" = "Protection incomplete";
+"app.status.lastUpdate" = "Lists updated: %@";
+"app.problem.noPrivoxy" = "Privoxy is not installed.";
+"app.problem.notRunning" = "Privoxy is not responding (service stopped?).";
+"app.problem.noProxy" = "The Mac's proxy does not use Privoxy.";
+"app.proxy.configure" = "Set up";
+"app.proxy.remove" = "Remove proxy";
+"app.proxy.adminPrompt" = "KidSafe wants to set the Mac's proxy to turn on filtering.";
+"app.error.noPrivoxy" = "Privoxy not found: install it first.";
+"app.error.proxy" = "The proxy could not be set: %@";
+"app.strict.active" = "Strict mode: only the %d allowlisted sites are allowed.";
+"app.lists.title" = "Blocklists";
+"app.lists.domains" = "%@ domains";
+"app.lists.localFile" = "Local file: %@";
+"app.lists.remove" = "Remove this list";
+"app.lists.help" = "Tick the categories to block. Changes apply automatically; lists are refreshed at the interval chosen in General.";
+"app.lists.builtin" = "Categories";
+"app.lists.custom" = "Added lists";
+"app.lists.noCustom" = "None yet.";
+"app.add.title" = "Add a list";
+"app.add.library" = "Free lists";
+"app.add.url" = "From a web address…";
+"app.add.file" = "From a file on this Mac…";
+"app.add.name" = "List name";
+"app.add.urlField" = "Address (https://…)";
+"app.add.formats" = "Recognized formats: Adblock (||domain^), hosts file, one domain per line, UT1 .tar.gz archive.";
+"app.addFile.panelTitle" = "Add a list from a file";
+"app.addFile.panelMessage" = "Choose a text file: Adblock, hosts or one domain per line.";
+"app.addFile.choose" = "Choose";
+"app.addFile.nameTitle" = "List name";
+"app.addFile.nameMessage" = "This name is shown in KidSafe.";
+"app.addFile.done" = "%@ domains imported into “%@”. The list is on.";
+"app.alert.heavy.title" = "Turn on “%@”?";
+"app.alert.heavy.enable" = "Turn On Anyway";
+"app.alert.strict.title" = "Turn on strict mode?";
+"app.alert.strict.message" = "The allowlist is empty: every site will be blocked. Add the allowed sites in the Allowlist tab first.";
+"app.alert.strict.enable" = "Turn On";
+"app.alert.remove.title" = "Remove “%@”?";
+"app.alert.remove.message" = "The list will no longer be used. You can add it again later.";
+"app.alert.remove.ok" = "Remove";
+"app.alert.proxyOff.title" = "Remove the proxy?";
+"app.alert.proxyOff.message" = "Filtering will be off for the whole Mac until you set it up again.";
+"app.alert.proxyOff.ok" = "Remove";
+"app.tab.lists" = "Lists";
+"app.tab.allow" = "Allowlist";
+"app.tab.general" = "General";
+"app.allow.help" = "Always allowed, even if a blocklist contains them. In strict mode, they are the only allowed sites. Adding a domain here removes it from the blocked domains.";
+"app.allow.placeholder" = "example.org";
+"app.allow.empty" = "No allowed site.";
+"app.allow.invalid" = "“%@” is not a valid domain name.";
+"app.general.protection" = "Protection";
+"app.general.strict" = "Strict mode (allowlist only)";
+"app.general.strictHelp" = "Everything is blocked except allowlisted sites. Ideal for younger children.";
+"app.general.proxy" = "Privoxy and proxy";
+"app.general.privoxy" = "Privoxy configuration";
+"app.general.notFound" = "not found";
+"app.general.address" = "Address";
+"app.general.running" = "Privoxy responding";
+"app.general.systemProxy" = "Mac proxy set up";
+"app.general.refresh" = "Automatic list updates";
+"app.general.language" = "Language";
+"app.general.langSystem" = "System language";
+"action.header.custom" = "domains blocked by the parent";
+"action.header.customCount" = "%d domains";
+"action.reason.custom" = "site blocked by the parent";
+"action.header.services" = "social networks blocked right now";
+"action.header.servicesNote" = "Rewritten by the KidSafe app whenever a time slot changes. Do not edit.";
+"app.lock.title" = "Parent password";
+"app.lock.message" = "Enter the parent password to change KidSafe.";
+"app.lock.unlock" = "Unlock";
+"app.lock.lockNow" = "Lock now";
+"app.lock.banner" = "Settings locked: every change asks for the parent password.";
+"app.password.section" = "Parent password";
+"app.password.help" = "Optional. When set, it is required to change settings, pause filtering or quit the app. It stays unlocked for 5 minutes.";
+"app.password.set" = "Set a Password…";
+"app.password.change" = "Change Password…";
+"app.password.remove" = "Remove Password";
+"app.password.newTitle" = "New parent password";
+"app.password.newMessage" = "Choose a password your child doesn't know.";
+"app.password.confirmTitle" = "Confirm the password";
+"app.password.save" = "Save";
+"app.password.mismatch" = "The two passwords don't match. Nothing was changed.";
+"app.menu.filtering" = "Filtering";
+"app.menu.settings" = "Settings…";
+"app.menu.paused" = "Filtering paused: everything is allowed.";
+"app.menu.categories" = "%d list category(ies)";
+"app.menu.noSocial" = "No social network blocked right now";
+"app.menu.social" = "Blocked right now: %@";
+"app.menu.customDomains" = "%d domain(s) blocked manually";
+"app.donate" = "Support KidSafe (donate)";
+"app.donate.section" = "Support the project";
+"app.donate.help" = "KidSafe is free. If it helps you, you can support its development with a donation.";
+"app.tab.social" = "Social networks";
+"app.tab.domains" = "Domains";
+"app.social.help" = "For each network: allowed, always blocked, blocked during some time slots (e.g. at night), or allowed only during some time slots (e.g. Wednesday afternoon).";
+"app.social.note" = "Time slots are applied by the app, so it must stay open (the system helper will take over later). Facebook, Instagram and WhatsApp share part of their servers: blocking Facebook may affect how Instagram displays.";
+"app.social.blockedNow" = "blocked now";
+"app.social.allowedNow" = "allowed now";
+"app.social.mode.allowed" = "Allowed";
+"app.social.mode.blocked" = "Always blocked";
+"app.social.mode.blockedDuring" = "Blocked during time slots";
+"app.social.mode.allowedOnlyDuring" = "Allowed only during time slots";
+"app.social.addWindow" = "Add a time slot";
+"app.social.from" = "from";
+"app.social.to" = "to";
+"app.social.nextDay" = "(next day)";
+"app.domains.blocked" = "Blocked domains";
+"app.domains.blockedHelp" = "Always blocked, including subdomains. Adding a domain here removes it from the allowlist.";
+"app.domains.empty" = "No domain.";
+"app.general.check" = "Check";
+"app.general.lastUpdate" = "Last update";
+"app.refresh.0" = "Never";
+"app.refresh.1" = "Every hour";
+"app.refresh.6" = "Every 6 hours";
+"app.refresh.12" = "Every 12 hours";
+"app.refresh.24" = "Every day";
+"app.refresh.72" = "Every 3 days";
+"app.refresh.168" = "Every week";
+"cli.badPassword" = "Wrong password.";
+"cli.paused" = "Filtering paused.";
+"cli.resumed" = "Filtering resumed.";
+"app.login.toggle" = "Open KidSafe when the Mac starts";
+"app.login.help" = "KidSafe opens at every login so time slots keep applying. Privoxy will start with the Mac through the service installed by the .pkg.";
+"app.login.approvalTitle" = "macOS approval needed";
+"app.login.approvalMessage" = "macOS needs your approval: in System Settings → General → Login Items, allow KidSafe.";
+"app.login.openSettings" = "Open System Settings";
+"app.login.error" = "Cannot set opening at startup: %@";
+"app.hint.menuBar" = "KidSafe runs in the menu bar (shield). You can close this window; double-clicking the app reopens it.";
+"app.menu.on" = "On";
+"app.menu.off" = "Paused";
+"app.menu.testPrivoxy" = "Test Privoxy (http://p.p)";
+"app.feedback" = "Send Feedback…";
+"app.feedback.email" = "By email";
+"app.feedback.github" = "On GitHub (issue or idea)";
+"app.feedback.subject" = "KidSafe %@: feedback";
+"app.feedback.body" = "Hello,\n\n(Your message: what works, what doesn't, your ideas…)\n\n\n---\nKidSafe %@ · macOS %@";
