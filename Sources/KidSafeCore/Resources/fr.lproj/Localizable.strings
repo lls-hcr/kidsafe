@@ -252,3 +252,5 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "app.feedback.github" = "Sur GitHub (problème ou idée)";
 "app.feedback.subject" = "KidSafe %@ : mon avis";
 "app.feedback.body" = "Bonjour,\n\n(Votre message : ce qui marche, ce qui ne marche pas, vos idées…)\n\n\n---\nKidSafe %@ · macOS %@";
+"app.menu.website" = "Site du projet (mizuki.ch)";
+"app.menu.source" = "Code source (GitHub)";

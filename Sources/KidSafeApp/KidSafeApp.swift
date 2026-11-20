@@ -100,6 +100,12 @@ struct MenuView: View {
                 MenuRow(title: L("app.menu.settings"), symbol: "gearshape") { panel.close(); model.openSettings() }
                 MenuRow(title: L("app.menu.testPrivoxy"), symbol: "stethoscope") { panel.close(); model.openPrivoxyTestPage() }
                 if model.canSendFeedback { FeedbackRow(panel: panel) }
+                if model.websiteURL != nil {
+                    MenuRow(title: L("app.menu.website"), symbol: "globe") { panel.close(); model.open(model.websiteURL) }
+                }
+                if model.sourceURL != nil {
+                    MenuRow(title: L("app.menu.source"), symbol: "chevron.left.forwardslash.chevron.right") { panel.close(); model.open(model.sourceURL) }
+                }
                 if model.donateURL != nil {
                     MenuRow(title: L("app.donate"), symbol: "heart") { panel.close(); model.donate() }
                 }

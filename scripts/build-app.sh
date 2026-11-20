@@ -9,6 +9,9 @@ BUNDLE_ID="app.kidsafe.KidSafe"     # à remplacer par votre identifiant défini
 DONATE_URL="${KIDSAFE_DONATE_URL-https://github.com/sponsors/lls-hcr}"
 # Avis : page GitHub Issues (publique) et adresse e-mail (facultative).
 ISSUES_URL="${KIDSAFE_ISSUES_URL-https://github.com/lls-hcr/kidsafe/issues/new}"
+# Liens du menu : page du projet et code source.
+WEBSITE_URL="${KIDSAFE_WEBSITE_URL-https://mizuki.ch/documentation/kidsafe/}"
+SOURCE_URL="${KIDSAFE_SOURCE_URL-https://github.com/lls-hcr/kidsafe}"
 # Réglages personnels non publiés (ex. KIDSAFE_FEEDBACK_EMAIL) : scripts/local.env, ignoré par git.
 [ -f scripts/local.env ] && . scripts/local.env
 FEEDBACK_EMAIL="${KIDSAFE_FEEDBACK_EMAIL:-}"
@@ -60,6 +63,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>NSHumanReadableCopyright</key><string>KidSafe</string>
   <key>KidSafeDonateURL</key><string>$DONATE_URL</string>
   <key>KidSafeIssuesURL</key><string>$ISSUES_URL</string>
+  <key>KidSafeWebsiteURL</key><string>$WEBSITE_URL</string>
+  <key>KidSafeSourceURL</key><string>$SOURCE_URL</string>
   <key>KidSafeFeedbackEmail</key><string>$FEEDBACK_EMAIL</string>
 </dict>
 </plist>

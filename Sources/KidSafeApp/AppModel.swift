@@ -361,6 +361,14 @@ final class AppModel: ObservableObject {
     let feedbackEmail: String? = (Bundle.main.object(forInfoDictionaryKey: "KidSafeFeedbackEmail") as? String).flatMap { $0.isEmpty ? nil : $0 }
     let issuesURL: URL? = (Bundle.main.object(forInfoDictionaryKey: "KidSafeIssuesURL") as? String)
         .flatMap { $0.isEmpty ? nil : URL(string: $0) }
+    /// Liens publics, définis à la construction (clés `KidSafeWebsiteURL` et `KidSafeSourceURL`).
+    let websiteURL: URL? = AppModel.infoURL("KidSafeWebsiteURL")
+    let sourceURL: URL? = AppModel.infoURL("KidSafeSourceURL")
+    private static func infoURL(_ key: String) -> URL? {
+        (Bundle.main.object(forInfoDictionaryKey: key) as? String).flatMap { $0.isEmpty ? nil : URL(string: $0) }
+    }
+    func open(_ url: URL?) { if let url { NSWorkspace.shared.open(url) } }
+
     var canSendFeedback: Bool { feedbackEmail != nil || issuesURL != nil }
 
     /// E-mail prérempli avec la version de KidSafe et de macOS (rien d'autre n'est joint).

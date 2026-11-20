@@ -95,3 +95,10 @@ toujours vers la dernière version : https://github.com/lls-hcr/kidsafe/releases
 
 L'adresse e-mail de « Envoyer un avis… » se règle dans `scripts/local.env` (`KIDSAFE_FEEDBACK_EMAIL=…`),
 un fichier ignoré par git : elle n'apparaît pas dans le dépôt public.
+
+## Licence
+
+KidSafe est distribué sous licence GNU GPL v3 (voir `LICENSE`). Privoxy est sous GPL v2 ou ultérieure ;
+les listes de blocage gardent leur propre licence (indiquée dans le catalogue).
+
+Soutenir le projet : https://github.com/sponsors/lls-hcr · Page du projet : https://mizuki.ch/documentation/kidsafe/
