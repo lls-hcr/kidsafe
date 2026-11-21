@@ -29,11 +29,29 @@ public enum PrivoxyConfigEditor {
         public var removeLegacyBlocklist = false
         /// Faux : les fichiers KidSafe restent sur le disque mais ne sont plus chargés (filtrage en pause).
         public var active = true
-        public init(harden: Bool = true, removeLegacyBlocklist: Bool = false, active: Bool = true) {
+        /// Éditeur d'actions de Privoxy (http://p.p) : ouvert seulement à la demande du parent (onglet Avancé).
+        public var editActions = false
+        /// Journal des requêtes bloquées (`debug 1024`), lu par l'onglet Avancé.
+        public var logBlocked = false
+        public init(harden: Bool = true, removeLegacyBlocklist: Bool = false, active: Bool = true,
+                    editActions: Bool = false, logBlocked: Bool = false) {
             self.harden = harden
             self.removeLegacyBlocklist = removeLegacyBlocklist
             self.active = active
+            self.editActions = editActions
+            self.logBlocked = logBlocked
         }
+
+        /// Options issues des réglages du parent.
+        public init(catalog: Catalog) {
+            self.init(harden: catalog.hardenPrivoxy, active: catalog.filteringEnabled,
+                      editActions: catalog.advanced.editorActive(), logBlocked: catalog.advanced.logBlocked)
+        }
+    }
+
+    /// Directives imposées par KidSafe pour ces options.
+    static func directives(_ options: Options) -> [(String, String)] {
+        hardening.map { $0.0 == "enable-edit-actions" ? ($0.0, options.editActions ? "1" : "0") : $0 }
     }
 
     /// Ajoute (ou remplace) le bloc KidSafe. `actionFiles` est dans l'ordre de chargement :
@@ -57,8 +75,9 @@ public enum PrivoxyConfigEditor {
                     lines[i] = disabledPrefix + lines[i]
                 }
             }
-            block += hardening.map { "\($0.0) \($0.1)" }
+            block += directives(options).map { "\($0.0) \($0.1)" }
         }
+        if options.logBlocked { block.append("debug 1024   # KidSafe : journal des requêtes bloquées") }
         block.append(endMarker)
 
         // Avant `actionsfile user.action` pour que l'utilisateur garde le dernier mot ;

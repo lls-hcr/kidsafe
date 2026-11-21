@@ -4,7 +4,7 @@
 # Usage : scripts/build-app.sh [--universal]
 set -eu
 cd "$(dirname "$0")/.."
-VERSION="0.4.1"
+VERSION="0.5.0"
 # Étiquette affichée après la version (« KidSafe 0.3.3 (beta) ») ; vide pour une version finale.
 RELEASE_LABEL="${KIDSAFE_RELEASE_LABEL-beta}"
 BUNDLE_ID="app.kidsafe.KidSafe"     # à remplacer par votre identifiant définitif

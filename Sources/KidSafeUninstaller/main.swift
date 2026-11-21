@@ -52,7 +52,13 @@ for running in NSRunningApplication.runningApplications(withBundleIdentifier: Ki
 }
 
 // 4. Nettoyage (proxy de KidSafe, Privoxy intégré, réglages).
+// Port de KidSafe : celui de sa config (il a pu être changé dans l'onglet Avancé), et le port par défaut.
+let bundledConfig = BundledPrivoxy.installDir(supportDir: paths.supportDir).appendingPathComponent("config")
 var endpoints = [SystemStatus.Endpoint(host: "127.0.0.1", port: BundledPrivoxy.port)]
+if FileManager.default.fileExists(atPath: bundledConfig.path) {
+    let e = SystemStatus.listenAddress(configFile: bundledConfig)
+    if !endpoints.contains(e) { endpoints.append(e) }
+}
 if let ext = PrivoxyInstaller.detectExternal() { endpoints.append(SystemStatus.listenAddress(configFile: ext.configFile)) }
 if let err = KidSafeUninstaller.perform(paths: paths, endpoints: endpoints, adminPrompt: L("app.proxy.adminPromptOff")) {
     _ = show(L("app.uninstall.title"), L("app.uninstall.proxyFailed", err), buttons: ["OK"], style: .critical)

@@ -530,3 +530,120 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(!AppUpdater.canReplace(URL(fileURLWithPath: "/Volumes/KidSafe/KidSafe.app")))
     }
 }
+
+@Suite struct AdvancedTests {
+    @Test func editorAndLogOptionsInConfig() {
+        let base = ConfigEditorTests.config
+        let off = PrivoxyConfigEditor.apply(actionFiles: ["a.action"], to: base)
+        #expect(off.contains("enable-edit-actions 0") && !off.contains("debug 1024"))
+        let on = PrivoxyConfigEditor.apply(actionFiles: ["a.action"], to: base, options: .init(editActions: true, logBlocked: true))
+        #expect(on.contains("enable-edit-actions 1") && on.contains("debug 1024"))
+        #expect(on.contains("enforce-blocks 1") && on.contains("enable-remote-toggle 0"))   // protections maintenues
+        #expect(PrivoxyConfigEditor.remove(from: on) == base)
+    }
+
+    @Test func editorClosesAfterDelay() {
+        let now = Date()
+        #expect(AdvancedSettings(editorUntil: now.addingTimeInterval(60)).editorActive(at: now))
+        #expect(!AdvancedSettings(editorUntil: now.addingTimeInterval(-1)).editorActive(at: now))
+        #expect(!AdvancedSettings().editorActive(at: now))
+    }
+
+    @Test func bypassEntries() {
+        #expect(AdvancedSettings.normalizeBypass("*.Exemple.org") == "*.exemple.org")
+        #expect(AdvancedSettings.normalizeBypass("https://intranet.corp.example/x") == "intranet.corp.example")
+        #expect(AdvancedSettings.normalizeBypass("192.168.1.10") == "192.168.1.10")
+        #expect(AdvancedSettings.normalizeBypass("pas valide") == nil)
+        let a = AdvancedSettings(proxyBypass: ["localhost", "corp.example"])
+        #expect(a.bypassDomains == ["localhost", "127.0.0.1", "*.local", "corp.example"])
+    }
+
+    @Test func olderCatalogsGetDefaultAdvancedSettings() throws {
+        let json = #"{"categories":[]}"#
+        let c = try JSONDecoder().decode(Catalog.self, from: Data(json.utf8))
+        #expect(c.advanced == AdvancedSettings())
+    }
+
+    @Test func blockLogLines() {
+        let e = BlockLog.parse("2026-11-21 02:30:12.345 0000700001 Crunch: Blocked: www.tiktok.com:443")
+        #expect(e?.host == "www.tiktok.com" && e?.target == "www.tiktok.com:443")
+        #expect(BlockLog.parse("2026-11-21 02:30:12.345 0000700001 Crunch: Blocked: http://bad.example/page")?.host == "bad.example")
+        #expect(BlockLog.parse("2026-11-21 02:30:12.345 0000700001 Request: example.com/") == nil)
+    }
+
+    @Test func changePortInConfig() throws {
+        let f = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-port-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: f) }
+        try "confdir /x\nlisten-address  127.0.0.1:8128\n#listen-address [::1]:8118\n".write(to: f, atomically: true, encoding: .utf8)
+        try BundledPrivoxy.setPort(8130, configFile: f)
+        #expect(SystemStatus.listenAddress(configFile: f).port == 8130)
+        #expect(try String(contentsOf: f, encoding: .utf8).contains("#listen-address [::1]:8118"))
+    }
+}
+
+/// Test d'intégration avec le vrai Privoxy compilé (build/privoxy) : ignoré s'il n'est pas construit.
+@Suite(.serialized) struct RealPrivoxyAdvancedTests {
+    static let root = URL(fileURLWithPath: #filePath).deletingLastPathComponent().deletingLastPathComponent().deletingLastPathComponent()
+    static let privoxy = root.appendingPathComponent("build/privoxy")
+
+    func curl(_ args: [String]) -> String {
+        let p = Process()
+        p.executableURL = URL(fileURLWithPath: "/usr/bin/curl")
+        p.arguments = ["-s", "--max-time", "5"] + args
+        let out = Pipe(); p.standardOutput = out; p.standardError = FileHandle.nullDevice
+        try? p.run()
+        let d = out.fileHandleForReading.readDataToEndOfFile()
+        p.waitUntilExit()
+        return String(decoding: d, as: UTF8.self)
+    }
+
+    @Test(.enabled(if: FileManager.default.isExecutableFile(atPath: privoxy.appendingPathComponent("privoxy").path)))
+    func editorLogPortAndReset() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-adv-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        // Faux KidSafe.app contenant le vrai Privoxy compilé.
+        let app = root.appendingPathComponent("KidSafe.app/Contents")
+        try FileManager.default.createDirectory(at: app.appendingPathComponent("Helpers"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: app.appendingPathComponent("Resources"), withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: Self.privoxy.appendingPathComponent("privoxy"), to: app.appendingPathComponent("Helpers/privoxy"))
+        try FileManager.default.copyItem(at: Self.privoxy.appendingPathComponent("conf"), to: app.appendingPathComponent("Resources/privoxy-conf"))
+        try FileManager.default.copyItem(at: Self.privoxy.appendingPathComponent("VERSION"), to: app.appendingPathComponent("Resources/privoxy-conf/VERSION"))
+        try "<?xml version=\"1.0\"?><plist version=\"1.0\"><dict><key>CFBundleVersion</key><string>1</string></dict></plist>"
+            .write(to: app.appendingPathComponent("Info.plist"), atomically: true, encoding: .utf8)
+        let bundle = try #require(Bundle(url: root.appendingPathComponent("KidSafe.app")))
+        let support = root.appendingPathComponent("support")
+
+        // Installation sur le port 8141, une liste bloquant bad.example.
+        let inst = try #require(try BundledPrivoxy.prepare(bundle: bundle, supportDir: support, port: 8141))
+        _ = try inst.install(.init(files: [("kidsafe-cat-t.action", "{ +block{test} }\n.bad.example\n")], options: .init()))
+        var ctl = PrivoxyController(binary: inst.privoxyBinary, configFile: inst.configFile, host: "127.0.0.1", port: 8141, useLaunchAgent: false)
+        #expect(ctl.start())
+        defer { ctl.stop() }
+        let proxy = ["-x", "http://127.0.0.1:8141"]
+
+        // Éditeur fermé par défaut, ouvert par l'option (Privoxy relit la config tout seul).
+        #expect(curl(proxy + ["http://p.p/edit-actions-list?f=0"]).contains("disabled"))
+        try inst.updateOptions(.init(editActions: true, logBlocked: true))
+        try await Task.sleep(for: .seconds(1))
+        #expect(!curl(proxy + ["http://p.p/edit-actions-list?f=0"]).contains("is disabled"))
+
+        // Journal : un site bloqué apparaît.
+        _ = curl(proxy + ["http://bad.example/"])
+        try await Task.sleep(for: .milliseconds(500))
+        #expect(BlockLog.recent(BlockLog.logFile(confDir: inst.confDir)).contains { $0.host == "bad.example" })
+
+        // Changement de port.
+        ctl.stop()
+        try BundledPrivoxy.setPort(8142, configFile: inst.configFile)
+        ctl = PrivoxyController(binary: inst.privoxyBinary, configFile: inst.configFile, host: "127.0.0.1", port: 8142, useLaunchAgent: false)
+        #expect(ctl.start())
+        #expect(curl(["-x", "http://127.0.0.1:8142", "http://p.p/"]).contains("8142"))
+
+        // Réinitialisation : user.action d'origine, listes KidSafe conservées.
+        try "{ +block } \n.perso.example\n".write(to: inst.confDir.appendingPathComponent("user.action"), atomically: true, encoding: .utf8)
+        let reset = try #require(try BundledPrivoxy.reset(bundle: bundle, supportDir: support, port: 8142))
+        #expect(!(try String(contentsOf: reset.confDir.appendingPathComponent("user.action"), encoding: .utf8)).contains("perso.example"))
+        #expect(PrivoxyConfigEditor.managedActionFiles(in: try String(contentsOf: reset.configFile, encoding: .utf8)).contains("kidsafe-cat-t.action"))
+        try reset.testConfig()
+    }
+}

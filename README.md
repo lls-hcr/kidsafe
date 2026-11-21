@@ -55,6 +55,10 @@ to the Trash. If a parent password is set, it is required.
 - **The Mac never loses its connection**: if Privoxy stops, KidSafe restarts it, or removes the proxy
   if it can't. Only KidSafe's own proxy setting is ever changed.
 
+- **Advanced tab** (parent password, with a warning): Privoxy port (picked automatically if busy, or set by hand),
+  Privoxy's browser editor (`http://p.p`, closes by itself after one hour), your own Privoxy rules (`user.action`,
+  checked before being applied), blocked-sites log, domains that skip the filter, Privoxy status, restart and reset.
+
 **Limits**: filtering works per domain (no HTTPS interception), so blocked HTTPS sites show a browser
 error rather than a block page. Time slots are applied while the app is running. A child with an
 administrator account can still change system settings; use a standard account for children.

@@ -65,6 +65,10 @@ Développement : les variables `KIDSAFE_SUPPORT_DIR` et `KIDSAFE_PRIVOXY_CONF` i
   - **Domaines** : domaines bloqués à la main et liste blanche (un domaine ne peut pas être dans les deux) ;
   - **Général** : filtrage, mode strict, fréquence de mise à jour des listes (jamais → chaque semaine),
     mot de passe parent, Privoxy et proxy, langue, don.
+- **Avancé** (mot de passe parent, avec mise en garde) : port de Privoxy (choisi automatiquement s'il est occupé,
+  ou réglé à la main), éditeur de Privoxy dans le navigateur (`http://p.p`, refermé tout seul après une heure),
+  règles personnelles (`user.action`, vérifiées avant d'être appliquées), journal des sites bloqués, domaines qui
+  ne passent pas par le filtre, état, redémarrage et réinitialisation de Privoxy. Filtrer d'autres appareils : à venir.
 - **Mot de passe parent** (facultatif) : demandé pour toute modification, la pause et « Quitter » ;
   il reste déverrouillé 5 minutes. Seule son empreinte PBKDF2-SHA256 est enregistrée.
 - Les plages horaires sont appliquées par l'app (vérification toutes les 30 s) : elle doit rester ouverte

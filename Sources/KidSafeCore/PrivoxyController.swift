@@ -27,6 +27,12 @@ public final class PrivoxyController: @unchecked Sendable {
 
     public var isListening: Bool { Self.isListening(host: host, port: port) }
 
+    private static func appendHandle(_ file: URL) -> FileHandle? {
+        try? FileManager.default.createDirectory(at: file.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let fd = open(file.path, O_WRONLY | O_APPEND | O_CREAT, 0o644)
+        return fd >= 0 ? FileHandle(fileDescriptor: fd, closeOnDealloc: true) : nil
+    }
+
     /// Démarre Privoxy s'il ne répond pas encore. Renvoie vrai s'il répond.
     @discardableResult
     public func start(timeout: TimeInterval = 8) -> Bool {
@@ -50,7 +56,9 @@ public final class PrivoxyController: @unchecked Sendable {
         p.arguments = ["--no-daemon", configFile.path]
         p.currentDirectoryURL = configFile.deletingLastPathComponent()
         p.standardOutput = FileHandle.nullDevice
-        p.standardError = FileHandle.nullDevice
+        // En mode --no-daemon, Privoxy écrit son journal sur la sortie d'erreur : on l'envoie dans
+        // log/logfile (ajout en fin de fichier, pour que le journal puisse être vidé pendant l'exécution).
+        p.standardError = Self.appendHandle(BlockLog.logFile(confDir: configFile.deletingLastPathComponent())) ?? FileHandle.nullDevice
         do { try p.run() } catch { return false }
         child = p
         mode = .child
@@ -103,6 +111,27 @@ public final class PrivoxyController: @unchecked Sendable {
     }
 
     // MARK: -
+
+    /// Ligne de commande du programme qui écoute sur ce port (pour savoir si c'est notre Privoxy).
+    public static func listenerCommand(port: Int) -> String? {
+        let lsof = Process()
+        lsof.executableURL = URL(fileURLWithPath: "/usr/sbin/lsof")
+        lsof.arguments = ["-nP", "-t", "-iTCP:\(port)", "-sTCP:LISTEN"]
+        let out = Pipe(); lsof.standardOutput = out; lsof.standardError = FileHandle.nullDevice
+        guard (try? lsof.run()) != nil else { return nil }
+        let pid = String(decoding: out.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+            .split(separator: "\n").first.map(String.init)
+        lsof.waitUntilExit()
+        guard let pid else { return nil }
+        let ps = Process()
+        ps.executableURL = URL(fileURLWithPath: "/bin/ps")
+        ps.arguments = ["-o", "command=", "-p", pid]
+        let o2 = Pipe(); ps.standardOutput = o2; ps.standardError = FileHandle.nullDevice
+        guard (try? ps.run()) != nil else { return nil }
+        let cmd = String(decoding: o2.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        ps.waitUntilExit()
+        return cmd.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
 
     public static func isListening(host: String, port: Int) -> Bool {
         let fd = socket(AF_INET, SOCK_STREAM, 0)

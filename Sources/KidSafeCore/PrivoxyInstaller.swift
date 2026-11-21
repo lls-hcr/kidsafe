@@ -134,6 +134,29 @@ public struct PrivoxyInstaller: Sendable {
         }
     }
 
+    /// Réapplique les options (éditeur, journal…) sans rien télécharger : même liste de fichiers,
+    /// test de la config, retour arrière si Privoxy la refuse. Privoxy relit la config tout seul.
+    public func updateOptions(_ options: PrivoxyConfigEditor.Options) throws {
+        let old = try String(contentsOf: configFile, encoding: .utf8)
+        guard old.contains(PrivoxyConfigEditor.beginMarker) else { return }
+        var opts = options
+        opts.active = !PrivoxyConfigEditor.isPaused(old)
+        let new = PrivoxyConfigEditor.apply(actionFiles: PrivoxyConfigEditor.managedActionFiles(in: old), to: old, options: opts)
+        guard new != old else { return }
+        try writeAtomically(new, to: configFile, keepAttributesOf: configFile)
+        if let bin = privoxyBinary {
+            do { try configTest(binary: bin) } catch {
+                try? writeAtomically(old, to: configFile, keepAttributesOf: configFile)
+                throw error
+            }
+        }
+    }
+
+    /// Teste la configuration actuelle (après une modification manuelle de user.action, par exemple).
+    public func testConfig() throws {
+        if let bin = privoxyBinary { try configTest(binary: bin) }
+    }
+
     public func isPaused() -> Bool {
         (try? String(contentsOf: configFile, encoding: .utf8)).map(PrivoxyConfigEditor.isPaused) ?? false
     }

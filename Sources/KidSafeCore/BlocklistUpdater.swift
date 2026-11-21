@@ -73,8 +73,7 @@ public struct BlocklistUpdater: Sendable {
         // La liste blanche est toujours chargée en dernier : elle l'emporte.
         files.append((PrivoxyActions.allowFileName, PrivoxyActions.allowFile(domains: catalog.allowlist)))
 
-        var options = PrivoxyConfigEditor.Options(harden: catalog.hardenPrivoxy)
-        options.active = catalog.filteringEnabled
+        let options = PrivoxyConfigEditor.Options(catalog: catalog)
         return Result(plan: .init(files: files, options: options), categories: results, failed: failed)
     }
 }

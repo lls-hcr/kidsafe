@@ -123,7 +123,7 @@ public struct KidSafeEngine: Sendable {
 
     /// Met le filtrage en pause (aucun téléchargement) ; la reprise passe par `apply`.
     public func pause(_ catalog: Catalog, installer: PrivoxyInstaller) throws {
-        try installer.pause(options: PrivoxyConfigEditor.Options(harden: catalog.hardenPrivoxy))
+        try installer.pause(options: PrivoxyConfigEditor.Options(catalog: catalog))
     }
 
     /// À appeler chaque minute : met à jour les réseaux sociaux bloqués selon les plages horaires.

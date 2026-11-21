@@ -3,6 +3,9 @@ import Darwin
 
 /// État du système vu par l'app : Privoxy répond-il, le proxy système pointe-t-il dessus ?
 public enum SystemStatus {
+    /// Domaines exclus du proxy (`-setproxybypassdomains`), tenus à jour par l'app.
+    nonisolated(unsafe) public static var bypassDomains = AdvancedSettings.systemBypass
+
     public struct Endpoint: Equatable, Sendable {
         public var host: String
         public var port: Int
@@ -81,7 +84,7 @@ public enum SystemStatus {
         let services = enable ? networkServices() : servicesUsingProxy(e)
         let cmds: [[String]] = services.flatMap { s -> [[String]] in
             enable ? [["-setwebproxy", s, e.host, "\(e.port)"], ["-setsecurewebproxy", s, e.host, "\(e.port)"],
-                      ["-setproxybypassdomains", s, "localhost", "127.0.0.1", "*.local"]]
+                      ["-setproxybypassdomains", s] + bypassDomains]
                    : [["-setwebproxystate", s, "off"], ["-setsecurewebproxystate", s, "off"]]
         }
         // Vérification ciblée : seulement les services modifiés (chaque appel à networksetup coûte ~30 ms).

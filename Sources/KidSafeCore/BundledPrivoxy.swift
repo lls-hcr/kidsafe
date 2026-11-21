@@ -9,6 +9,8 @@ import Foundation
 /// attribut de quarantaine). Le port est dédié pour ne jamais entrer en conflit avec un autre Privoxy.
 public enum BundledPrivoxy {
     public static let port = 8128
+    /// Plage où chercher un port libre si le port choisi est déjà pris par un autre programme.
+    public static let portRange = 8128...8199
 
     public static func binary(in bundle: Bundle) -> URL? {
         let url = bundle.bundleURL.appendingPathComponent("Contents/Helpers/privoxy")
@@ -23,7 +25,7 @@ public enum BundledPrivoxy {
 
     /// Prépare (ou met à jour) la copie de Privoxy et renvoie l'installateur correspondant.
     /// Les listes KidSafe déjà installées et l'état de pause sont conservés.
-    public static func prepare(bundle: Bundle = .main, supportDir: URL) throws -> PrivoxyInstaller? {
+    public static func prepare(bundle: Bundle = .main, supportDir: URL, port: Int = BundledPrivoxy.port) throws -> PrivoxyInstaller? {
         guard let srcBin = binary(in: bundle), let srcConf = defaults(in: bundle) else { return nil }
         let fm = FileManager.default
         let dir = installDir(supportDir: supportDir)
@@ -57,7 +59,7 @@ public enum BundledPrivoxy {
 
             // Config : modèle de la nouvelle version + bloc KidSafe de l'ancienne.
             let template = try String(contentsOf: srcConf.appendingPathComponent("config"), encoding: .utf8)
-            var new = adapt(template, dir: dir)
+            var new = adapt(template, dir: dir, port: port)
             if let old = try? String(contentsOf: config, encoding: .utf8), old.contains(PrivoxyConfigEditor.beginMarker) {
                 let files = PrivoxyConfigEditor.managedActionFiles(in: old)
                 new = PrivoxyConfigEditor.apply(actionFiles: files, to: new,
@@ -70,7 +72,7 @@ public enum BundledPrivoxy {
     }
 
     /// Chemins absolus, journal dans `log/`, écoute locale sur le port dédié.
-    static func adapt(_ template: String, dir: URL) -> String {
+    static func adapt(_ template: String, dir: URL, port: Int = BundledPrivoxy.port) -> String {
         template.components(separatedBy: "\n").map { line in
             let t = line.trimmingCharacters(in: .whitespaces)
             if t.hasPrefix("confdir ") { return "confdir \(dir.path)" }
@@ -80,6 +82,30 @@ public enum BundledPrivoxy {
             if t.hasPrefix("elliptic-curve-keys ") { return "#" + line + "   # KidSafe : sans objet (Privoxy compilé sans TLS)" }
             return line
         }.joined(separator: "\n")
+    }
+
+    /// Réinitialise les fichiers de Privoxy (y compris user.action et user.filter) depuis l'app.
+    /// Les listes KidSafe et l'état de pause sont conservés.
+    public static func reset(bundle: Bundle = .main, supportDir: URL, port: Int) throws -> PrivoxyInstaller? {
+        let dir = installDir(supportDir: supportDir)
+        for name in [".kidsafe-bundle", "user.action", "user.filter"] {
+            try? FileManager.default.removeItem(at: dir.appendingPathComponent(name))
+        }
+        return try prepare(bundle: bundle, supportDir: supportDir, port: port)
+    }
+
+    /// Change le port d'écoute dans la config (Privoxy doit ensuite être redémarré).
+    public static func setPort(_ port: Int, configFile: URL) throws {
+        let old = try String(contentsOf: configFile, encoding: .utf8)
+        let new = old.components(separatedBy: "\n").map { line in
+            line.trimmingCharacters(in: .whitespaces).hasPrefix("listen-address ") ? "listen-address  127.0.0.1:\(port)" : line
+        }.joined(separator: "\n")
+        try new.write(to: configFile, atomically: true, encoding: .utf8)
+    }
+
+    /// Premier port libre de la plage (en commençant par `preferred`).
+    public static func freePort(preferred: Int) -> Int? {
+        ([preferred] + Array(portRange)).first { !PrivoxyController.isListening(host: "127.0.0.1", port: $0) }
     }
 
     private static func replace(_ dst: URL, with src: URL) throws {

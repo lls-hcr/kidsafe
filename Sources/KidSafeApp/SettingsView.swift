@@ -12,6 +12,7 @@ struct SettingsView: View {
                 SocialTab().tabItem { Label(L("app.tab.social"), systemImage: "person.2") }
                 DomainsTab().tabItem { Label(L("app.tab.domains"), systemImage: "globe") }
                 GeneralTab().tabItem { Label(L("app.tab.general"), systemImage: "gearshape") }
+                AdvancedTab().tabItem { Label(L("adv.tab"), systemImage: "wrench.and.screwdriver") }
             }
             .padding()
             MenuBarHint()
@@ -310,7 +311,8 @@ struct GeneralTab: View {
                 LabeledContent(L("app.general.privoxy")) {
                     Text(model.installer?.confDir.path ?? L("app.general.notFound")).textSelection(.enabled)
                 }
-                LabeledContent(L("app.general.address")) { Text(model.endpoint.map { "\($0.host):\($0.port)" } ?? "—") }
+                // verbatim : sinon SwiftUI formate le port selon la langue (« 8'128 » en Suisse).
+                LabeledContent(L("app.general.address")) { Text(verbatim: model.endpoint.map { "\($0.host):\($0.port)" } ?? "—") }
                 LabeledContent(L("app.general.running")) { Text(model.privoxyRunning ? L("app.yes") : L("app.no")) }
                 LabeledContent(L("app.general.systemProxy")) { Text(model.systemProxyOK ? L("app.yes") : L("app.no")) }
                 HStack {

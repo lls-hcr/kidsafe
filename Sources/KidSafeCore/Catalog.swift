@@ -20,12 +20,14 @@ public struct Catalog: Codable, Sendable, Equatable {
     public var refreshHours: Int
     /// Mot de passe parent facultatif.
     public var parentPassword: PasswordHash?
+    /// Réglages de l'onglet Avancé.
+    public var advanced: AdvancedSettings
 
     public static let refreshChoices = [0, 1, 6, 12, 24, 72, 168]
 
     public init(categories: [Category], allowlist: [String] = [], strictMode: Bool = false, hardenPrivoxy: Bool = true,
                 blockedDomains: [String] = [], services: [String: ServicePolicy] = [:], filteringEnabled: Bool = true,
-                refreshHours: Int = 24, parentPassword: PasswordHash? = nil) {
+                refreshHours: Int = 24, parentPassword: PasswordHash? = nil, advanced: AdvancedSettings = AdvancedSettings()) {
         self.categories = categories
         self.allowlist = allowlist
         self.strictMode = strictMode
@@ -35,10 +37,11 @@ public struct Catalog: Codable, Sendable, Equatable {
         self.filteringEnabled = filteringEnabled
         self.refreshHours = refreshHours
         self.parentPassword = parentPassword
+        self.advanced = advanced
     }
 
     private enum CodingKeys: String, CodingKey {
-        case categories, allowlist, strictMode, hardenPrivoxy, blockedDomains, services, filteringEnabled, refreshHours, parentPassword
+        case categories, allowlist, strictMode, hardenPrivoxy, blockedDomains, services, filteringEnabled, refreshHours, parentPassword, advanced
     }
 
     /// Les champs ajoutés après la première version sont facultatifs dans le fichier.
@@ -52,7 +55,8 @@ public struct Catalog: Codable, Sendable, Equatable {
                   services: try c.decodeIfPresent([String: ServicePolicy].self, forKey: .services) ?? [:],
                   filteringEnabled: try c.decodeIfPresent(Bool.self, forKey: .filteringEnabled) ?? true,
                   refreshHours: try c.decodeIfPresent(Int.self, forKey: .refreshHours) ?? 24,
-                  parentPassword: try c.decodeIfPresent(PasswordHash.self, forKey: .parentPassword))
+                  parentPassword: try c.decodeIfPresent(PasswordHash.self, forKey: .parentPassword),
+                  advanced: try c.decodeIfPresent(AdvancedSettings.self, forKey: .advanced) ?? AdvancedSettings())
     }
 
     public func policy(for serviceID: String) -> ServicePolicy { services[serviceID] ?? ServicePolicy() }
@@ -178,5 +182,43 @@ public struct Catalog: Codable, Sendable, Equatable {
         let enc = JSONEncoder()
         enc.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         try enc.encode(self).write(to: url, options: .atomic)
+    }
+}
+
+/// Réglages de l'onglet Avancé (réservés aux parents avertis).
+public struct AdvancedSettings: Codable, Sendable, Equatable {
+    /// Port de Privoxy ; nil = port par défaut (choisi automatiquement s'il est occupé).
+    public var port: Int?
+    /// Éditeur d'actions de Privoxy ouvert jusqu'à cette date (fermé automatiquement ensuite).
+    public var editorUntil: Date?
+    public var logBlocked: Bool
+    /// Domaines qui ne passent pas par le proxy (en plus de localhost, 127.0.0.1, *.local).
+    public var proxyBypass: [String]
+
+    public static let editorDuration: TimeInterval = 3600
+    public static let systemBypass = ["localhost", "127.0.0.1", "*.local"]
+
+    public init(port: Int? = nil, editorUntil: Date? = nil, logBlocked: Bool = false, proxyBypass: [String] = []) {
+        self.port = port; self.editorUntil = editorUntil; self.logBlocked = logBlocked; self.proxyBypass = proxyBypass
+    }
+
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(port: try c.decodeIfPresent(Int.self, forKey: .port),
+                  editorUntil: try c.decodeIfPresent(Date.self, forKey: .editorUntil),
+                  logBlocked: try c.decodeIfPresent(Bool.self, forKey: .logBlocked) ?? false,
+                  proxyBypass: try c.decodeIfPresent([String].self, forKey: .proxyBypass) ?? [])
+    }
+
+    public func editorActive(at date: Date = Date()) -> Bool { editorUntil.map { $0 > date } ?? false }
+
+    /// Liste complète pour `networksetup -setproxybypassdomains`.
+    public var bypassDomains: [String] { Self.systemBypass + proxyBypass.filter { !Self.systemBypass.contains($0) } }
+
+    /// Saisie d'une exclusion : domaine (avec ses sous-domaines, `*.exemple.org`) ou adresse IP.
+    public static func normalizeBypass(_ raw: String) -> String? {
+        let t = raw.trimmingCharacters(in: .whitespaces)
+        if t.hasPrefix("*.") { return Catalog.normalizeUserDomain(String(t.dropFirst(2))).map { "*." + $0 } }
+        return Catalog.normalizeUserDomain(t)
     }
 }

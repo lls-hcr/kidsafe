@@ -14,11 +14,11 @@ final class AppModel: ObservableObject {
 
     @Published private(set) var catalog: Catalog
     @Published private(set) var status: KidSafeStatus
-    @Published private(set) var installer: PrivoxyInstaller?
+    @Published var installer: PrivoxyInstaller?
     @Published private(set) var privoxyRunning = false
     @Published private(set) var systemProxyOK = false
     @Published private(set) var isApplying = false
-    @Published private(set) var lastError: String?
+    @Published var lastError: String?
     /// Heure courante, rafraîchie toutes les 30 s (état « bloqué maintenant » des réseaux sociaux).
     @Published private(set) var now = Date()
     /// État de l'ouverture automatique au démarrage de la session.
@@ -48,16 +48,22 @@ final class AppModel: ObservableObject {
     /// Un changement du parent attend d'être appliqué : après l'application, Privoxy est
     /// redémarré pour couper les connexions déjà ouvertes vers les sites désormais bloqués.
     private var reconnectAfterApply = false
+    // État de l'onglet Avancé (voir AppModel+Advanced.swift).
+    @Published var blockEntries: [BlockLog.Entry] = []
+    @Published var portNote: String?
+    @Published var editingUserAction = false
+    @Published var advancedBusy = false
+
     /// Privoxy, démarré par l'app au lancement et arrêté quand elle quitte.
-    private(set) var privoxy: PrivoxyController?
+    var privoxy: PrivoxyController?
     private var healthTimer: Timer?
-    private var healthBusy = false
+    var healthBusy = false
     private var lastAutoProxyFailure: Date?
     private var safetyNoticeShown = false
     private var uninstalling = false
     /// Le parent a branché le Mac sur Privoxy : KidSafe remet le proxy à chaque lancement
     /// et le retire toujours en quittant, avant d'arrêter Privoxy.
-    private var proxyWanted: Bool {
+    var proxyWanted: Bool {
         get { AppModel.prefs.bool(forKey: "proxyWanted") }
         set { AppModel.prefs.set(newValue, forKey: "proxyWanted") }
     }
@@ -77,7 +83,8 @@ final class AppModel: ObservableObject {
         }
         if BundledPrivoxy.binary(in: .main) != nil {
             do {
-                if let inst = try BundledPrivoxy.prepare(supportDir: engine.paths.supportDir) {
+                if let inst = try BundledPrivoxy.prepare(supportDir: engine.paths.supportDir,
+                                                         port: catalog.advanced.port ?? BundledPrivoxy.port) {
                     usesBundledPrivoxy = true
                     return inst
                 }
@@ -95,6 +102,7 @@ final class AppModel: ObservableObject {
         engine = KidSafeEngine(paths: Self.env["KIDSAFE_SUPPORT_DIR"].map { KidSafePaths(supportDir: URL(fileURLWithPath: $0)) } ?? .user)
         catalog = (try? engine.loadCatalog()) ?? .default
         status = engine.loadStatus()
+        SystemStatus.bypassDomains = catalog.advanced.bypassDomains
         installer = detectInstaller()
         refreshSystemStatus()
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
@@ -131,6 +139,7 @@ final class AppModel: ObservableObject {
     private func tick() {
         now = Date()
         if let until = unlockedUntil, until <= now { unlockedUntil = nil }
+        closeExpiredEditor()
         if let installer, !isApplying, status.lastApplied != nil {
             do {
                 if try engine.refreshServices(catalog, installer: installer, date: now) {
@@ -397,7 +406,7 @@ final class AppModel: ObservableObject {
 
     // MARK: - Cycle de vie de Privoxy
 
-    private func makeController() {
+    func makeController() {
         installer = installer ?? detectInstaller()
         guard privoxy == nil, let installer, let e = endpoint else { return }
         privoxy = PrivoxyController(binary: installer.privoxyBinary, configFile: installer.configFile, host: e.host, port: e.port,
@@ -406,6 +415,8 @@ final class AppModel: ObservableObject {
 
     /// Au lancement : démarre Privoxy puis, si le parent l'avait activé, remet le proxy du Mac.
     func startUp() {
+        ensureFreePort()
+        if catalog.advanced.logBlocked, let dir = installer?.confDir { BlockLog.trim(BlockLog.logFile(confDir: dir)) }
         makeController()
         guard let privoxy, let e = endpoint else { return }
         // Premier lancement (aucun choix enregistré) : la protection s'active toute seule.
@@ -493,7 +504,7 @@ final class AppModel: ObservableObject {
         notice(L("app.safety.removed"))
     }
 
-    private func restartPrivoxy() {
+    func restartPrivoxy() {
         guard let privoxy else { return }
         healthBusy = true
         Task.detached {
@@ -696,7 +707,7 @@ final class AppModel: ObservableObject {
     /// Modifie le catalogue, l'enregistre et planifie son application.
     /// `locked` : demande le mot de passe parent ; `fast` : application presque immédiate.
     @discardableResult
-    private func mutate(locked: Bool = true, apply: Bool = true, fast: Bool = false, _ change: (inout Catalog) throws -> Void) -> Bool {
+    func mutate(locked: Bool = true, apply: Bool = true, fast: Bool = false, _ change: (inout Catalog) throws -> Void) -> Bool {
         if locked, !requireUnlock() { return false }
         var copy = catalog
         do {
@@ -724,7 +735,7 @@ final class AppModel: ObservableObject {
         return base.isEmpty ? nil : base + "/domains"
     }
 
-    private func confirm(title: String, message: String, ok: String, style: NSAlert.Style) -> Bool {
+    func confirm(title: String, message: String, ok: String, style: NSAlert.Style) -> Bool {
         NSApp.activate(ignoringOtherApps: true)
         let a = NSAlert()
         a.alertStyle = style
@@ -735,7 +746,7 @@ final class AppModel: ObservableObject {
         return a.runModal() == .alertFirstButtonReturn
     }
 
-    private func notice(_ message: String) {
+    func notice(_ message: String) {
         NSApp.activate(ignoringOtherApps: true)
         let a = NSAlert()
         a.messageText = "KidSafe"
