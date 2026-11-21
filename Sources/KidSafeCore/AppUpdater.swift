@@ -1,5 +1,6 @@
 import CryptoKit
 import Foundation
+import Security
 
 /// Mise à jour automatique de KidSafe : téléchargement du .dmg, vérifications, puis remplacement
 /// de l'app une fois qu'elle a quitté (elle retire d'abord le filtre et arrête Privoxy), et relance.
@@ -7,10 +8,11 @@ import Foundation
 /// Vérifications avant toute installation :
 /// 1. empreinte SHA-256 du .dmg identique à celle publiée par GitHub ;
 /// 2. le .dmg contient bien KidSafe (même identifiant d'app) dans une version plus récente ;
-/// 3. la signature de l'app copiée est intacte (`codesign --verify`).
+/// 3. la signature de l'app copiée est intacte (`codesign --verify`) ;
+/// 4. si l'app en cours est signée avec un Developer ID, la nouvelle doit l'être par le même développeur (Team ID).
 public enum AppUpdater {
     public enum UpdateError: Error, CustomStringConvertible {
-        case noChecksum, noDownload, checksumMismatch, notKidSafe, notNewer(String), tool(String), notWritable(String)
+        case noChecksum, noDownload, checksumMismatch, notKidSafe, notNewer(String), tool(String), notWritable(String), wrongSigner
         public var description: String {
             switch self {
             case .noChecksum: return L("autoupdate.error.noChecksum")
@@ -20,6 +22,7 @@ public enum AppUpdater {
             case .notNewer(let v): return L("autoupdate.error.notNewer", v)
             case .tool(let why): return why
             case .notWritable(let p): return L("autoupdate.error.notWritable", p)
+            case .wrongSigner: return L("autoupdate.error.signer")
             }
         }
     }
@@ -32,8 +35,9 @@ public enum AppUpdater {
     }
 
     /// Télécharge et vérifie la nouvelle version, puis la copie dans `stagingDir/KidSafe.app`.
+    /// `requiredTeamID` : Team ID de l'app en cours (`nil` pour une app signée ad hoc : pas d'exigence).
     public static func prepare(_ release: UpdateChecker.Release, currentVersion: String, bundleID: String,
-                               stagingDir: URL) async throws -> URL {
+                               requiredTeamID: String? = nil, stagingDir: URL) async throws -> URL {
         guard let expected = release.dmgSHA256 else { throw UpdateError.noChecksum }
         guard let url = release.downloadURL else { throw UpdateError.noDownload }
         let fm = FileManager.default
@@ -67,7 +71,18 @@ public enum AppUpdater {
         let staged = stagingDir.appendingPathComponent("KidSafe.app")
         try run("/usr/bin/ditto", [newApp.path, staged.path])
         try run("/usr/bin/codesign", ["--verify", "--strict", "--deep", staged.path])
+        if let requiredTeamID, teamID(of: staged) != requiredTeamID { throw UpdateError.wrongSigner }
         return staged
+    }
+
+    /// Team ID du développeur qui a signé l'app (`nil` : signature ad hoc ou absente).
+    public static func teamID(of app: URL) -> String? {
+        var code: SecStaticCode?
+        guard SecStaticCodeCreateWithPath(app as CFURL, [], &code) == errSecSuccess, let code else { return nil }
+        var info: CFDictionary?
+        guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
+              let dict = info as? [String: Any] else { return nil }
+        return dict[kSecCodeInfoTeamIdentifier as String] as? String
     }
 
     /// Lance, détaché de l'app, le script qui attend la fin de l'app, remplace `current` par `staged`

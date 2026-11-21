@@ -7,7 +7,7 @@ extension AppModel {
 
     func openMonitor() {
         // Le journal des sites bloqués alimente « dernier blocage » et la page détaillée.
-        if !catalog.advanced.logBlocked,
+        if !catalog.recordsBlocks,
            confirm(title: L("mon.enableLog.title"), message: L("mon.enableLog.message"), ok: L("mon.enableLog.ok"), style: .informational) {
             setLogBlocked(true)
         }
@@ -47,7 +47,7 @@ extension AppModel {
     func openDashboard(open: Bool = true) {
         guard !monitorBusy, let e = endpoint else { return }
         monitorBusy = true
-        let file = blockLogFile, dir = confDir, domains = domainsOnListsNow, logOn = catalog.advanced.logBlocked
+        let file = blockLogFile, dir = confDir, domains = domainsOnListsNow, logOn = catalog.recordsBlocks
         let out = engine.paths.supportDir.appendingPathComponent("dashboard.html"), version = appVersion
         Task.detached {
             let counters = await Monitor.counters(host: e.host, port: e.port)

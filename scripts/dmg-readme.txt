@@ -2,9 +2,8 @@ KidSafe — contrôle parental pour Mac (version de test)
 =====================================================
 
 1. Glissez KidSafe dans le dossier Applications.
-2. Ouvrez KidSafe. macOS indique qu'il ne peut pas vérifier l'app (elle n'est pas
-   encore signée par Apple) : allez dans Réglages Système → Confidentialité et
-   sécurité, puis cliquez sur « Ouvrir quand même ».
+2. Ouvrez KidSafe. macOS demande de confirmer l'ouverture d'une app téléchargée :
+   cliquez sur « Ouvrir ». KidSafe est signé et vérifié par Apple.
 3. Au premier lancement, KidSafe active la protection tout seul
    (bouclier vert dans la barre de menus).
 
@@ -25,8 +24,8 @@ KidSafe — parental control for Mac (test version)
 ================================================
 
 1. Drag KidSafe to the Applications folder.
-2. Open KidSafe. macOS says it can't verify the app (it isn't signed by Apple yet):
-   go to System Settings → Privacy & Security and click “Open Anyway”.
+2. Open KidSafe. macOS asks you to confirm opening a downloaded app: click “Open”.
+   KidSafe is signed and checked by Apple.
 3. On first launch, KidSafe turns protection on by itself (green shield in the menu bar).
 
 Updates: KidSafe checks every week and can install them by itself

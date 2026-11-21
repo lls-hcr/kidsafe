@@ -45,13 +45,22 @@ public enum PrivoxyConfigEditor {
         /// Options issues des réglages du parent.
         public init(catalog: Catalog) {
             self.init(harden: catalog.hardenPrivoxy, active: catalog.filteringEnabled,
-                      editActions: catalog.advanced.editorActive(), logBlocked: catalog.advanced.logBlocked)
+                      editActions: catalog.advanced.editorActive(), logBlocked: catalog.recordsBlocks)
         }
     }
 
     /// Directives imposées par KidSafe pour ces options.
+    /// En pause, `toggle 0` : Privoxy transmet tout sans rien bloquer ni modifier, y compris
+    /// ses propres règles (default.action), et http://p.p affiche « disabled ».
     static func directives(_ options: Options) -> [(String, String)] {
-        hardening.map { $0.0 == "enable-edit-actions" ? ($0.0, options.editActions ? "1" : "0") : $0 }
+        guard options.harden else { return options.active ? [] : [("toggle", "0")] }
+        return hardening.map {
+            switch $0.0 {
+            case "enable-edit-actions": return ($0.0, options.editActions ? "1" : "0")
+            case "toggle": return ($0.0, options.active ? "1" : "0")
+            default: return $0
+            }
+        }
     }
 
     /// Ajoute (ou remplace) le bloc KidSafe. `actionFiles` est dans l'ordre de chargement :
@@ -68,15 +77,14 @@ public enum PrivoxyConfigEditor {
         } else {
             block.append("# " + pausedMarker)
         }
-        if options.harden {
-            let names = Set(hardening.map(\.0))
-            for i in lines.indices {
-                if let name = directiveName(lines[i]), names.contains(name) {
-                    lines[i] = disabledPrefix + lines[i]
-                }
+        let imposed = directives(options)
+        let names = Set(imposed.map(\.0))
+        for i in lines.indices {
+            if let name = directiveName(lines[i]), names.contains(name) {
+                lines[i] = disabledPrefix + lines[i]
             }
-            block += directives(options).map { "\($0.0) \($0.1)" }
         }
+        block += imposed.map { "\($0.0) \($0.1)" }
         if options.logBlocked { block.append("debug 1024   # KidSafe : journal des requêtes bloquées") }
         block.append(endMarker)
 

@@ -177,6 +177,7 @@ case "pause", "resume":
     }
     let inst = installer(args)
     catalog.filteringEnabled = argv[1] == "resume"
+    catalog.pausedUntil = nil
     do {
         try catalog.save(to: catURL)
         if catalog.filteringEnabled {
@@ -209,7 +210,7 @@ case "dashboard":
     let entries = BlockLog.all(BlockLog.logFile(confDir: inst.confDir))
     let index = Monitor.CategoryIndex(confDir: inst.confDir)
     let html = Dashboard.html(.init(counters: counters, domainsOnLists: index.domainCount, summary: Monitor.summarize(entries, index: index),
-                                    logEnabled: !entries.isEmpty || catalog.advanced.logBlocked, version: "cli"))
+                                    logEnabled: !entries.isEmpty || catalog.recordsBlocks, version: "cli"))
     let out = args.values["-o"] ?? "kidsafe-dashboard.html"
     do { try html.write(toFile: out, atomically: true, encoding: .utf8); log(out) } catch { fail("\(error)") }
 

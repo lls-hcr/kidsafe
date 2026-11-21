@@ -279,6 +279,15 @@ struct DomainColumn: View {
 
 // MARK: - Général
 
+/// Réglage du message « site bloqué » (aussi capturé seul pour le guide).
+struct BlockMessageSetting: View {
+    @EnvironmentObject var model: AppModel
+    var body: some View {
+        Toggle(L("app.general.notify"), isOn: Binding(get: { model.catalog.notifyBlocked }, set: { model.setNotifyBlocked($0) }))
+        Text(L("app.general.notifyHelp")).font(.caption).foregroundStyle(.secondary)
+    }
+}
+
 struct GeneralTab: View {
     @EnvironmentObject var model: AppModel
 
@@ -290,6 +299,7 @@ struct GeneralTab: View {
                 Text(L("app.general.strictHelp")).font(.caption).foregroundStyle(.secondary)
                 Toggle(L("app.login.toggle"), isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) }))
                 Text(L("app.login.help")).font(.caption).foregroundStyle(.secondary)
+                BlockMessageSetting()
                 if model.loginItemStatus == .requiresApproval {
                     Problem(text: L("app.login.approvalMessage"))
                 }

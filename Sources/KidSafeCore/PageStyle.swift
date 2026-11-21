@@ -80,17 +80,25 @@ public enum PageStyle {
     .guide h3{font-size:14px;margin:18px 0 6px;color:var(--accent-ink);text-transform:uppercase;letter-spacing:.6px}
     .guide p,.guide li{max-width:70ch}.guide ul{padding-left:20px;margin:6px 0 10px}.guide li{margin:4px 0}
     .guide a{color:var(--accent-ink)}
-    .split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:26px;align-items:start}
     .split.narrow{grid-template-columns:minmax(0,1.3fr) minmax(0,.9fr)}
     .steps{list-style:none;padding:0;margin:8px 0 12px;counter-reset:s}
     .steps li{counter-increment:s;position:relative;padding:2px 0 10px 40px;margin:0}
     .steps li::before{content:counter(s);position:absolute;left:0;top:0;width:26px;height:26px;border-radius:50%;
       background:var(--soft);color:var(--accent-ink);font-weight:700;font-size:13px;display:grid;place-items:center}
-    figure.shot{margin:4px 0 6px;text-align:center}
-    figure.shot img{max-width:min(100%,760px);height:auto;border-radius:12px;border:1px solid var(--line);
-      box-shadow:0 1px 2px rgba(0,0,0,.05),0 8px 24px rgba(0,0,0,.08);background:#fff}
-    .split figure.shot img{max-width:100%}
-    figure.shot.small img{max-width:340px}
+    figure.shot{margin:6px 0 10px;text-align:center}
+    figure.shot img{max-width:min(100%,440px);height:auto;border-radius:10px;border:1px solid var(--line);
+      box-shadow:0 1px 2px rgba(0,0,0,.05),0 6px 18px rgba(0,0,0,.08);background:#fff;cursor:zoom-in;transition:transform .15s}
+    figure.shot img:hover{transform:scale(1.015)}
+    .split figure.shot img{max-width:min(100%,420px)}
+    figure.shot.small img{max-width:min(100%,280px)}
+    figure.shot.wide img{max-width:min(100%,620px)}
+    .split{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:28px;align-items:start;margin:6px 0 4px}
+    #zoom{position:fixed;inset:0;z-index:50;background:rgba(8,12,14,.84);display:grid;place-items:center;padding:3vh 3vw;cursor:zoom-out}
+    #zoom[hidden]{display:none}
+    #zoom figure{margin:0;text-align:center;max-width:94vw}
+    #zoom img{max-width:94vw;max-height:86vh;width:auto;height:auto;border-radius:12px;background:#fff;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+    .split .kv{grid-template-columns:minmax(0,42%) 1fr}
+    #zoom p{color:#e3eaed;font-size:13px;margin:10px 0 0;text-align:center}
     figcaption{color:var(--muted);font-size:12px;margin-top:8px}
     .box{border-radius:12px;padding:12px 16px 12px 16px;margin:14px 0;border-left:4px solid}
     .box b.tag{display:block;font-size:11px;letter-spacing:.6px;text-transform:uppercase;margin-bottom:3px}

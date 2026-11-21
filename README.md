@@ -16,13 +16,21 @@ gambling, scams, social networks on a schedule, and any domain you choose.
 ## Install
 
 1. Open `KidSafe.dmg` and drag **KidSafe** to **Applications**.
-2. Open KidSafe. The first time, macOS blocks it because it isn't signed yet: go to
-   **System Settings → Privacy & Security → Open Anyway**.
+2. Open KidSafe. macOS asks you to confirm opening an app downloaded from the internet: click **Open**.
+   KidSafe is signed with a Developer ID and notarized by Apple.
 3. That's it: on first launch, KidSafe turns protection on by itself (green shield in the menu bar).
    On a standard account, macOS asks once for an administrator password.
 
 Nothing else to install: Privoxy is built into the app. Quitting KidSafe removes the filter and gives
 the Mac its normal connection back.
+
+With [Homebrew](https://brew.sh):
+
+```bash
+brew tap lls-hcr/tap
+brew trust lls-hcr/tap
+brew install --cask kidsafe
+```
 
 ## Updates
 
@@ -50,7 +58,10 @@ to the Trash. If a parent password is set, it is required.
 - **Your own domains**: block or always allow any domain (and its subdomains).
 - **Strict mode**: everything is blocked except the allowlist, for younger children.
 - **Optional parent password** for every change, pausing and quitting.
-- **Filtering switch** in the menu bar to pause without deleting anything.
+- **“Site blocked” message**: KidSafe shows the blocked site and the reason in the middle of the screen, whatever the browser;
+  it goes away at the first click (ads and tracking blocked in the background are not reported).
+- **Filtering switch** in the menu bar to pause without deleting anything, or **Disable temporarily**
+  (30 s to 1 h, resumes on its own).
 - **Automatic list updates**, from every hour to every week (or never).
 - **The Mac never loses its connection**: if Privoxy stops, KidSafe restarts it, or removes the proxy
   if it can't. Only KidSafe's own proxy setting is ever changed.
@@ -77,6 +88,8 @@ scripts/build-app.sh                 # build/KidSafe.app for this Mac
 scripts/build-app.sh --universal     # Apple Silicon + Intel
 scripts/build-privoxy.sh             # Privoxy 4.2.0 + PCRE2 from source, universal (called by build-app.sh)
 scripts/make-dmg.sh                  # build/KidSafe.dmg with a designed window (uses dmgbuild in build/venv)
+                                     # signed and notarized when a "Developer ID Application" certificate and the
+                                     # notarytool profile "kidsafe-notary" are in the keychain; ad hoc otherwise
 swift scripts/make-icon.swift Resources/AppIcon.png   # redraws the icon
 ```
 
@@ -132,7 +145,6 @@ The CLI follows the system language; `KIDSAFE_LANG=en` or `KIDSAFE_LANG=fr` forc
 
 ## Roadmap
 
-- Apple signature and notarization (no more “Open Anyway”).
 - Root helper (LaunchDaemon) protected by the parent password, so filtering and time slots keep running
   even when the app is closed; settings moved to
   `/Library/Application Support/KidSafe`, where a child can't change them.

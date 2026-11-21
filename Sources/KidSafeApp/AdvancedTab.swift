@@ -65,8 +65,12 @@ struct AdvancedTab: View {
 
             // Journal des sites bloqués
             Section(L("adv.log")) {
-                Toggle(L("adv.log.toggle"), isOn: Binding(get: { model.catalog.advanced.logBlocked }, set: { model.setLogBlocked($0) }))
-                if model.catalog.advanced.logBlocked {
+                Toggle(L("adv.log.toggle"), isOn: Binding(get: { model.catalog.recordsBlocks }, set: { model.setLogBlocked($0) }))
+                    .disabled(model.catalog.notifyBlocked)
+                if model.catalog.notifyBlocked {
+                    Text(L("adv.log.neededByNotifications")).font(.caption).foregroundStyle(.secondary)
+                }
+                if model.catalog.recordsBlocks {
                     HStack {
                         Button(L("adv.log.open")) { model.openBlockLog() }
                         Button(L("mon.menu") + "…") { model.openMonitor() }

@@ -18,6 +18,10 @@ struct Screenshotter {
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
         shoot(AnyView(MenuShot()), "menu", width: 330, into: dir)
+        shoot(AnyView(BlockSplashView(site: "pokerstars.com", reason: L("category.gambling")).padding(14)
+                        .background(Color(nsColor: .windowBackgroundColor))), "splash", width: 448, into: dir)
+        shoot(AnyView(TabShot { Form { Section(L("app.general.protection")) { BlockMessageSetting() } }.formStyle(.grouped).toggleStyle(ColorSwitchStyle()) }),
+              "block-setting", width: 620, height: 200, into: dir)
         shoot(AnyView(TabShot { ListsTab() }), "lists", width: 620, height: 560, into: dir)
         shoot(AnyView(TabShot { SocialTab() }), "social", width: 620, height: 560, into: dir)
         shoot(AnyView(TabShot { DomainsTab() }), "domains", width: 620, height: 300, into: dir)

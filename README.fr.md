@@ -16,8 +16,8 @@ L'app et la CLI partagent le même catalogue : `~/Library/Application Support/Ki
 
 Tout se fait depuis [`KidSafe.dmg`](https://github.com/lls-hcr/kidsafe/releases/latest/download/KidSafe.dmg), Privoxy est intégré :
 
-1. Glissez **KidSafe** dans **Applications** et ouvrez-le. La première fois : Réglages Système →
-   Confidentialité et sécurité → **Ouvrir quand même** (l'app n'est pas encore signée par Apple).
+1. Glissez **KidSafe** dans **Applications** et ouvrez-le. macOS demande de confirmer l'ouverture d'une app
+   téléchargée : cliquez sur **Ouvrir**. KidSafe est signé (Developer ID) et notarisé par Apple.
 2. C'est tout : au premier lancement, KidSafe active la protection tout seul (bouclier vert dans la barre de
    menus). Sur un compte standard, macOS demande une fois le mot de passe administrateur.
 3. Mises à jour : KidSafe cherche les nouvelles versions chaque semaine (ou via « Rechercher des mises à jour… »)
@@ -25,6 +25,8 @@ Tout se fait depuis [`KidSafe.dmg`](https://github.com/lls-hcr/kidsafe/releases/
    puis remplacement et relance. Les réglages sont conservés.
 4. Pour tout enlever : double-cliquez sur **Désinstaller KidSafe** dans le `.dmg` (ou Réglages → Général →
    « Désinstaller KidSafe… »). Le mot de passe parent est demandé s'il existe.
+
+Avec Homebrew : `brew tap lls-hcr/tap && brew trust lls-hcr/tap && brew install --cask kidsafe`.
 
 ## Construire et lancer
 
@@ -54,7 +56,9 @@ Développement : les variables `KIDSAFE_SUPPORT_DIR` et `KIDSAFE_PRIVOXY_CONF` i
 
 ## L'app
 
-- **Barre de menus** : état de la protection, interrupteur **Filtrage** (pause sans rien supprimer),
+- **Message « site bloqué »** : KidSafe affiche au centre de l'écran le site bloqué et la raison, quel que soit le navigateur ;
+  il disparaît au premier clic (publicités et pistage bloqués en arrière-plan non signalés).
+- **Barre de menus** : état de la protection, interrupteur **Filtrage** (pause sans rien supprimer), **Désactivation temporaire** (30 s à 1 h, reprise automatique),
   résumé (catégories, réseaux sociaux bloqués en ce moment, domaines perso), « Mettre à jour les listes »,
   « Réglages… », « Soutenir KidSafe » (si un lien est configuré), « Rechercher des mises à jour », « Quitter ».
 - **Réglages** :
@@ -114,7 +118,6 @@ $B uninstall
 
 - Helper root (LaunchDaemon installé par le .pkg) protégé par un mot de passe parent. Le catalogue passera
   alors dans `/Library/Application Support/KidSafe`, où l'enfant ne peut rien modifier.
-- Signature et notarisation Apple (compte Apple Developer) : plus besoin d'« Ouvrir quand même ».
 - Journal des sites bloqués, page de blocage locale.
 - Protections contre le contournement : compte enfant standard, profil qui verrouille le proxy, mot de passe parent.
 
@@ -122,6 +125,8 @@ $B uninstall
 
 ```sh
 scripts/make-dmg.sh        # build/KidSafe.dmg : app universelle + raccourci Applications + mode d'emploi
+                           # signé et notarisé si un certificat « Developer ID Application » et le profil
+                           # notarytool « kidsafe-notary » sont dans le trousseau ; ad hoc sinon
 ```
 
 Joindre `build/KidSafe.dmg` à une Release GitHub. Le nom du fichier ne change pas, donc ce lien pointe

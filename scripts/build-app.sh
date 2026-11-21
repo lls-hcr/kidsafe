@@ -1,10 +1,12 @@
 #!/bin/sh
 # Construit build/KidSafe.app (app de la barre de menus + CLI + Privoxy intégré)
-# et build/Uninstall KidSafe.app (désinstalleur fourni dans le .dmg), signature ad hoc.
+# et build/Uninstall KidSafe.app (désinstalleur fourni dans le .dmg).
+# Signature : Developer ID si un certificat « Developer ID Application » est dans le trousseau
+# (ou KIDSAFE_SIGN_IDENTITY), sinon ad hoc. KIDSAFE_SIGN_IDENTITY=- force la signature ad hoc.
 # Usage : scripts/build-app.sh [--universal]
 set -eu
 cd "$(dirname "$0")/.."
-VERSION="0.6.2"
+VERSION="0.7.1"
 # Étiquette affichée après la version (« KidSafe 0.3.3 (beta) ») ; vide pour une version finale.
 RELEASE_LABEL="${KIDSAFE_RELEASE_LABEL-beta}"
 BUNDLE_ID="app.kidsafe.KidSafe"     # à remplacer par votre identifiant définitif
@@ -20,6 +22,20 @@ UPDATE_API="${KIDSAFE_UPDATE_API-https://api.github.com/repos/lls-hcr/kidsafe/re
 # Réglages personnels non publiés (ex. KIDSAFE_FEEDBACK_EMAIL) : scripts/local.env, ignoré par git.
 [ -f scripts/local.env ] && . scripts/local.env
 FEEDBACK_EMAIL="${KIDSAFE_FEEDBACK_EMAIL:-}"
+
+# Identité de signature. Developer ID : « hardened runtime » et horodatage Apple, exigés pour la notarisation.
+SIGN_ID="${KIDSAFE_SIGN_IDENTITY:-}"
+if [ -z "$SIGN_ID" ] && security find-identity -v -p codesigning 2>/dev/null | grep -q '"Developer ID Application'; then
+  SIGN_ID="Developer ID Application"
+fi
+[ -n "$SIGN_ID" ] || SIGN_ID="-"
+sign() {
+  if [ "$SIGN_ID" = "-" ]; then
+    codesign --force --sign - --timestamp=none ${KIDSAFE_HARDENED:+--options runtime} "$@"
+  else
+    codesign --force --sign "$SIGN_ID" --options runtime --timestamp "$@"
+  fi
+}
 
 # Une compilation par architecture, puis fusion avec lipo (la compilation multi-arch
 # en une passe passe par un système de build qui échoue avec les seuls Command Line Tools).
@@ -91,10 +107,13 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
-codesign --force --sign - --timestamp=none "$APP/Contents/Helpers/privoxy"
-codesign --force --sign - --timestamp=none "$APP/Contents/MacOS/kidsafe-blocklist"
-codesign --force --sign - --timestamp=none "$APP"
-codesign --verify --strict "$APP" && echo "OK : $APP ($(lipo -archs "$APP/Contents/MacOS/KidSafe"), Privoxy $(cat build/privoxy/VERSION))"
+# Du plus profond au plus haut : outils intégrés, puis l'app.
+sign "$APP/Contents/Helpers/privoxy"
+sign "$APP/Contents/MacOS/kidsafe-blocklist"
+sign "$APP"
+codesign --verify --strict --deep "$APP"
+SIGNED_BY="$(codesign -dvv "$APP" 2>&1 | sed -n 's/^Authority=//p' | head -1)"
+echo "OK : $APP ($(lipo -archs "$APP/Contents/MacOS/KidSafe"), Privoxy $(cat build/privoxy/VERSION), signature : ${SIGNED_BY:-ad hoc})"
 
 # Désinstalleur : nom anglais dans le Finder, « Désinstaller KidSafe » en français.
 UNI="build/Uninstall KidSafe.app"
@@ -127,5 +146,5 @@ cat > "$UNI/Contents/Info.plist" <<PLIST
 </dict>
 </plist>
 PLIST
-codesign --force --sign - --timestamp=none "$UNI"
+sign "$UNI"
 codesign --verify --strict "$UNI" && echo "OK : $UNI"

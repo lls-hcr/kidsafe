@@ -436,6 +436,7 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         try engine.pause(c, installer: inst)
         #expect(inst.isPaused())
         #expect(PrivoxyConfigEditor.managedActionFiles(in: try cfg()).isEmpty)
+        #expect(try cfg().contains("\ntoggle 0\n"))   // Privoxy entièrement désactivé
         #expect(FileManager.default.fileExists(atPath: conf.appendingPathComponent("kidsafe-cat-a.action").path))
         #expect(try !engine.refreshServices(c, installer: inst))
 
@@ -443,6 +444,7 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         _ = try await engine.apply(c, installer: inst)
         #expect(!inst.isPaused())
         #expect(PrivoxyConfigEditor.managedActionFiles(in: try cfg()).first == "kidsafe-cat-a.action")
+        #expect(try cfg().contains("\ntoggle 1\n") && !(try cfg()).contains("\ntoggle 0\n"))
     }
 }
 
@@ -529,6 +531,16 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         }
         #expect(!AppUpdater.canReplace(URL(fileURLWithPath: "/Volumes/KidSafe/KidSafe.app")))
     }
+
+    @Test func teamIDOfSignedAndUnsignedCode() throws {
+        // Signature ad hoc ou absente : pas de Team ID, donc aucune exigence pour la mise à jour.
+        let tool = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-adhoc-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: tool) }
+        try FileManager.default.copyItem(at: URL(fileURLWithPath: "/usr/bin/true"), to: tool)
+        try AppUpdater.run("/usr/bin/codesign", ["--force", "--sign", "-", tool.path])
+        #expect(AppUpdater.teamID(of: tool) == nil)
+        #expect(AppUpdater.teamID(of: FileManager.default.temporaryDirectory) == nil)
+    }
 }
 
 @Suite struct AdvancedTests {
@@ -540,6 +552,41 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(on.contains("enable-edit-actions 1") && on.contains("debug 1024"))
         #expect(on.contains("enforce-blocks 1") && on.contains("enable-remote-toggle 0"))   // protections maintenues
         #expect(PrivoxyConfigEditor.remove(from: on) == base)
+    }
+
+    @Test func temporaryPause() throws {
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        var c = Catalog.default
+        #expect(!c.pauseExpired(at: now))
+        c.filteringEnabled = false
+        #expect(!c.pauseExpired(at: now))                      // pause sans limite : jamais de reprise automatique
+        c.pausedUntil = now.addingTimeInterval(30)
+        #expect(!c.pauseExpired(at: now.addingTimeInterval(29)))
+        #expect(c.pauseExpired(at: now.addingTimeInterval(30)))
+        c.filteringEnabled = true
+        #expect(!c.pauseExpired(at: now.addingTimeInterval(60)))  // déjà repris
+        #expect(Catalog.pauseChoices.allSatisfy { L("app.pause.\(Int($0))") != "app.pause.\(Int($0))" })
+
+        // Enregistrée avec le catalogue ; absente des anciens fichiers.
+        c.filteringEnabled = false
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-pause-\(UUID().uuidString).json")
+        defer { try? FileManager.default.removeItem(at: url) }
+        try c.save(to: url)
+        #expect(try Catalog.load(from: url).pausedUntil == c.pausedUntil)
+        let old = try JSONDecoder().decode(Catalog.self, from: Data(#"{"categories": []}"#.utf8))
+        #expect(old.pausedUntil == nil && old.filteringEnabled)
+    }
+
+    @Test func pauseDisablesPrivoxyEntirely() {
+        let base = ConfigEditorTests.config
+        for harden in [true, false] {
+            let paused = PrivoxyConfigEditor.apply(actionFiles: [], to: base, options: .init(harden: harden, active: false))
+            let active = paused.split(separator: "\n").filter { PrivoxyConfigEditor.directiveName(String($0)) == "toggle" }
+            #expect(active == ["toggle 0"])
+            #expect(PrivoxyConfigEditor.remove(from: paused) == base)
+        }
+        let unhardened = PrivoxyConfigEditor.apply(actionFiles: ["a.action"], to: base, options: .init(harden: false))
+        #expect(unhardened.contains("\ntoggle  1\n") && !unhardened.contains("toggle 0"))
     }
 
     @Test func editorClosesAfterDelay() {
@@ -710,7 +757,7 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(en.contains("User guide") && en.contains("id=\"uninstall\"") && en.contains("lang=\"en\""))
         // Captures intégrées (une par {{shot:…}}), aucun espace réservé restant.
         for page in [fr, en] {
-            #expect(page.components(separatedBy: "data:image/png;base64,").count - 1 == 8)
+            #expect(page.components(separatedBy: "data:image/png;base64,").count - 1 == 10)
             #expect(!page.contains("{{shot:"))
         }
         // Chaque lien du sommaire pointe vers une section existante.
@@ -719,5 +766,52 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
             #expect(!anchors.isEmpty)
             for a in anchors { #expect(page.contains("id=\"\(a)\""), "ancre manquante : \(a)") }
         }
+    }
+}
+
+@Suite struct BlockNotifierTests {
+    @Test func reportsOnlyVisibleBlocksOncePerSite() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-notify-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.createDirectory(at: dir.appendingPathComponent("log"), withIntermediateDirectories: true)
+        func write(_ name: String, _ text: String) throws { try text.write(to: dir.appendingPathComponent(name), atomically: true, encoding: .utf8) }
+        try write("kidsafe-cat-adult.action", "# KidSafe\n\n{ +block{KidSafe : Adultes} }\n.pornhub.com\n.xvideos.com\n\n{ -block }\n.safe.xvideos.com\n")
+        try write("kidsafe-cat-ads.action", "# KidSafe\n\n{ +block{KidSafe : Publicité} }\n.doubleclick.net\n")
+        try write(PrivoxyActions.customBlockFileName, PrivoxyActions.customBlockFile(domains: ["roblox.com"]))
+        let tiktok = try #require(SocialService.all.first { $0.id == "tiktok" })
+        try write(PrivoxyActions.servicesFileName, PrivoxyActions.servicesFile(blocked: [tiktok]))
+        let log = BlockLog.logFile(confDir: dir)
+        try "2026-11-21 08:00:00.000 01 Crunch: Blocked: www.pornhub.com:443\n".write(to: log, atomically: true, encoding: .utf8)
+
+        let n = BlockNotifier(confDir: dir)
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+        #expect(n.poll(now: t0) == nil)                       // lignes déjà présentes : ignorées
+        func append(_ hosts: [String], partial: String = "") throws {
+            let h = try FileHandle(forWritingTo: log); defer { try? h.close() }
+            try h.seekToEnd()
+            try h.write(contentsOf: Data((hosts.map { "2026-11-21 08:00:01.000 02 Crunch: Blocked: \($0)\n" }.joined() + partial).utf8))
+        }
+
+        try append(["ad.doubleclick.net:443", "unknown.example:443", "safe.xvideos.com:443"])
+        #expect(n.poll(now: t0) == nil)                       // publicité, règle de base de Privoxy, exception
+        try append(["www.pornhub.com:443", "pornhub.com:443"])
+        #expect(n.poll(now: t0) == .init(site: "pornhub.com", reason: "Adultes", key: "pornhub.com"))
+        #expect(n.poll(now: t0) == nil)                       // même site : déjà signalé
+        try append([], partial: "2026-11-21 08:00:02.000 03 Crunch: Blocked: rob")
+        #expect(n.poll(now: t0) == nil)                       // ligne incomplète : attend la suite
+        try append([], partial: "lox.com:443\n")
+        #expect(n.poll(now: t0)?.reason == L("action.reason.custom"))
+        let first = try #require(tiktok.domains.first), second = try #require(tiktok.domains.dropFirst().first)
+        try append([first + ":443"])
+        #expect(n.poll(now: t0)?.key == "service:" + tiktok.name)
+        try append([second + ":443"])
+        #expect(n.poll(now: t0) == nil)                       // TikTok : une seule notification pour tous ses domaines
+        try append(["http://www.pornhub.com/video"])
+        #expect(n.poll(now: t0.addingTimeInterval(BlockNotifier.repeatInterval + 1))?.site == "pornhub.com")
+
+        BlockLog.clear(log)                                   // journal vidé : reprise au début
+        #expect(n.poll(now: t0) == nil)
+        try append(["xvideos.com:443"])
+        #expect(n.poll(now: t0)?.site == "xvideos.com")
     }
 }

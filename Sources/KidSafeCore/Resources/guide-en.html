@@ -13,6 +13,7 @@
 <li><a href="#install">Install</a></li>
 <li><a href="#menu">The menu bar</a></li>
 <li><a href="#lists">Block categories</a></li>
+<li><a href="#blocked-site">When a site is blocked</a></li>
 <li><a href="#social">Social networks and schedules</a></li>
 <li><a href="#domains">Block or allow a site</a></li>
 <li><a href="#general">General settings</a></li>
@@ -31,7 +32,7 @@
 <ol class="steps">
 <li>Open <code>KidSafe.dmg</code>. Drag <strong>KidSafe</strong> onto <strong>Applications</strong>.</li>
 <li>Open KidSafe from Applications.</li>
-<li>First time only: <span class="ui">System Settings</span> → <span class="ui">Privacy &amp; Security</span> → <span class="ui">Open Anyway</span>.</li>
+<li>macOS asks to confirm: click <span class="ui">Open</span>. KidSafe is signed and checked by Apple.</li>
 <li>Done. A green shield appears at the top right of the screen.</li>
 </ol>
 <div class="box tip"><b class="tag">Good to know</b>By default, KidSafe blocks adult content. Everything else is in <span class="ui">Settings…</span>.</div>
@@ -48,7 +49,8 @@
 <li><strong>Orange</strong>: protection incomplete. The reason shows, with a button to fix it.</li>
 </ul>
 <h3>Filtering</h3>
-<p>The switch pauses filtering. Nothing is deleted. One click resumes it.</p>
+<p>The switch pauses filtering: nothing is blocked, and Privoxy shows “disabled” on http://p.p. Nothing is deleted. One click resumes it.</p>
+<p><b>Disable temporarily</b>: 30 seconds, 1, 5 or 15 minutes, or 1 hour. The menu shows the time left, then filtering resumes on its own. If a parent password is set, it is required.</p>
 <h3>Shortcuts</h3>
 <ul>
 <li>Update lists</li>
@@ -57,7 +59,7 @@
 <li>Send feedback, donate, quit</li>
 </ul>
 </div>
-<figure class="shot">{{shot:menu}}<figcaption>The shield menu</figcaption></figure>
+<figure class="shot small">{{shot:menu}}<figcaption>The shield menu</figcaption></figure>
 </div>
 <div class="box tip"><b class="tag">Tip</b>Tick <strong>Open KidSafe when the Mac starts</strong>. Protection starts with the session.</div>
 </section>
@@ -65,42 +67,83 @@
 <section id="lists">
 <div class="sec-head"><span class="num">3</span><h2>Block categories</h2></div>
 <p class="lead"><span class="ui">Lists</span> tab. Tick a box, it applies within seconds.</p>
-<figure class="shot">{{shot:lists}}<figcaption>Categories and the number of blocked domains</figcaption></figure>
+<div class="split">
+<div>
 <ul>
 <li><strong>Categories</strong>: adult, bypass tools (VPNs, proxies), scams, gambling, violence, drugs, dating, social networks, online games, ads.</li>
 <li><strong>🐢 Tortoise</strong>: very large list. It may slow browsing.</li>
 <li><strong>Add a list</strong>: free lists, a web address or a file on your Mac.</li>
 </ul>
 <div class="box ok"><b class="tag">Good to know</b>Blocking <code>example.com</code> also blocks <code>www.example.com</code> and all its subdomains.</div>
+</div>
+<figure class="shot">{{shot:lists}}<figcaption>Categories and the number of blocked domains</figcaption></figure>
+</div>
+</section>
+
+<section id="blocked-site">
+<div class="sec-head"><span class="num">4</span><h2>When a site is blocked</h2></div>
+<p class="lead">What the child sees, and how KidSafe explains it.</p>
+<p>Almost all sites are encrypted (<code>https://</code>). The browser then doesn't show KidSafe's page, but its own error message. That's expected: the site is blocked.</p>
+<table>
+<tr><th>Browser</th><th>Message</th></tr>
+<tr><td>Firefox</td><td>“The proxy server is refusing connections”</td></tr>
+<tr><td>Chrome, Edge, Brave</td><td><code>ERR_TUNNEL_CONNECTION_FAILED</code></td></tr>
+<tr><td>Safari</td><td>“Safari can't open the page”</td></tr>
+<tr><td>Unencrypted site (<code>http://</code>)</td><td>Privoxy's “Request blocked” page</td></tr>
+</table>
+<h3>KidSafe's message</h3>
+<div class="split">
+<div>
+<p>At the same time, KidSafe shows the site and the reason in the middle of the screen, whatever the browser. The message goes away at the first click.</p>
+<p>Ads and tracking blocked in the background are not reported. The same site is reported at most once every 10 minutes.</p>
+</div>
+<figure class="shot small">{{shot:splash}}<figcaption>KidSafe's message</figcaption></figure>
+</div>
+<h3>Turning the message off</h3>
+<div class="split">
+<div>
+<p><span class="ui">Settings</span> → <span class="ui">General</span> → uncheck <span class="ui">Show a message when a site is blocked</span>.</p>
+<p>Sites stay blocked; only the message goes away. If a parent password is set, it is required.</p>
+</div>
+<figure class="shot">{{shot:block-setting}}<figcaption>Turning the message on or off</figcaption></figure>
+</div>
 </section>
 
 <section id="social">
-<div class="sec-head"><span class="num">4</span><h2>Social networks and schedules</h2></div>
+<div class="sec-head"><span class="num">5</span><h2>Social networks and schedules</h2></div>
 <p class="lead"><span class="ui">Social networks</span> tab. One setting per network: TikTok, Instagram, YouTube, Snapchat…</p>
+<div class="split">
+<div>
 <dl class="kv">
 <dt>Allowed</dt><dd>Free access.</dd>
 <dt>Always blocked</dt><dd>Blocked at all times.</dd>
 <dt>Blocked during time slots</dt><dd>Example: at night, 21:00 to 07:00.</dd>
 <dt>Allowed only during time slots</dt><dd>Example: Wednesday and weekends, 14:00 to 18:00.</dd>
 </dl>
+</div>
 <figure class="shot">{{shot:social}}<figcaption>A time slot: days, then start and end time</figcaption></figure>
+</div>
 <p>The badge shows the current state: <em>blocked now</em> or <em>allowed now</em>. When a slot starts, open tabs are cut.</p>
 <div class="box warn"><b class="tag">Careful</b>Schedules are applied by the app. Keep it open: turn on open at startup and a parent password.</div>
 </section>
 
 <section id="domains">
-<div class="sec-head"><span class="num">5</span><h2>Block or allow a site</h2></div>
+<div class="sec-head"><span class="num">6</span><h2>Block or allow a site</h2></div>
 <p class="lead"><span class="ui">Domains</span> tab. Two columns.</p>
-<figure class="shot">{{shot:domains}}<figcaption>Left: always blocked. Right: always allowed.</figcaption></figure>
+<div class="split">
+<div>
 <ul>
 <li><strong>Blocked domains</strong>: blocked at all times.</li>
 <li><strong>Allowlist</strong>: always allowed, even if a list contains them. Ideal to unblock a site blocked by mistake.</li>
 </ul>
 <p>Paste a full address: KidSafe keeps only the domain.</p>
+</div>
+<figure class="shot">{{shot:domains}}<figcaption>Left: always blocked. Right: always allowed.</figcaption></figure>
+</div>
 </section>
 
 <section id="general">
-<div class="sec-head"><span class="num">6</span><h2>General settings</h2></div>
+<div class="sec-head"><span class="num">7</span><h2>General settings</h2></div>
 <p class="lead"><span class="ui">General</span> tab.</p>
 <div class="split">
 <div>
@@ -108,6 +151,7 @@
 <dt>Strict mode</dt><dd>Everything blocked, except the allowlist. For younger children.</dd>
 <dt>List updates</dt><dd>From never to every week. Default: every day.</dd>
 <dt>Parent password</dt><dd>Protects settings, pausing and Quit.</dd>
+<dt>Blocked site</dt><dd>An on-screen message shows the site and the reason. The same site at most once every 10 minutes.</dd>
 <dt>Language</dt><dd>System, Français or English.</dd>
 </dl>
 <div class="box ok"><b class="tag">Password</b>Unlocked for 5 minutes after you enter it. The padlock in the menu locks it again right away.</div>
@@ -119,7 +163,7 @@
 </section>
 
 <section id="monitor">
-<div class="sec-head"><span class="num">7</span><h2>The monitor</h2></div>
+<div class="sec-head"><span class="num">8</span><h2>The monitor</h2></div>
 <p class="lead">Menu → <span class="ui">Monitor</span>. A small window with key figures.</p>
 <div class="split narrow">
 <div>
@@ -136,13 +180,13 @@
 </div>
 <h3>Detailed view</h3>
 <p>A local page with charts and tables: blocks per hour and per day, top blocked sites, categories.</p>
-<figure class="shot">{{shot:dashboard}}<figcaption>The detailed view</figcaption></figure>
+<figure class="shot wide">{{shot:dashboard}}<figcaption>The detailed view</figcaption></figure>
 </section>
 
 <section id="advanced">
-<div class="sec-head"><span class="num">8</span><h2>Advanced settings</h2></div>
+<div class="sec-head"><span class="num">9</span><h2>Advanced settings</h2></div>
 <p class="lead"><span class="ui">Advanced</span> tab. For experienced users. Parent password required.</p>
-<figure class="shot">{{shot:advanced}}<figcaption>Port, Privoxy editor, personal rules</figcaption></figure>
+<div class="split">
 <dl class="kv">
 <dt>Port</dt><dd>Picked automatically if busy. Can be changed by hand.</dd>
 <dt>Privoxy editor</dt><dd>Edit rules in the browser. Closes by itself after 1 hour.</dd>
@@ -151,11 +195,13 @@
 <dt>Exclusions</dt><dd>Domains that skip the filter (company VPN…).</dd>
 <dt>Troubleshooting</dt><dd>Status, folder, restart or reset Privoxy.</dd>
 </dl>
+<figure class="shot">{{shot:advanced}}<figcaption>Port, Privoxy editor, personal rules</figcaption></figure>
+</div>
 <div class="box warn"><b class="tag">Careful</b>A mistake here can cut the connection or the filtering.</div>
 </section>
 
 <section id="tips">
-<div class="sec-head"><span class="num">9</span><h2>Tips</h2></div>
+<div class="sec-head"><span class="num">10</span><h2>Tips</h2></div>
 <p class="lead">For solid protection.</p>
 <ul class="check">
 <li>A <strong>standard macOS account</strong> for the child, not administrator.</li>
@@ -164,11 +210,11 @@
 <li><strong>Bypass tools</strong> category ticked: it blocks VPNs and proxies.</li>
 <li>Firefox: keep <em>Use system proxy settings</em>.</li>
 </ul>
-<div class="box tip"><b class="tag">Good to know</b>A blocked site shows a connection error. That's normal: KidSafe filters by domain, without reading your pages.</div>
+<div class="box tip"><b class="tag">Good to know</b>A blocked site shows a connection error, and KidSafe shows a message (section 4). That's normal: KidSafe filters by domain, without reading your pages.</div>
 </section>
 
 <section id="problems">
-<div class="sec-head"><span class="num">10</span><h2>Common problems</h2></div>
+<div class="sec-head"><span class="num">11</span><h2>Common problems</h2></div>
 <div class="faq"><b>No internet?</b>KidSafe fixes it by itself within seconds. Otherwise: <span class="ui">General</span> → <span class="ui">Remove proxy</span>, or quit KidSafe.</div>
 <div class="faq"><b>A site is blocked by mistake?</b>Add it to the allowlist (Domains tab).</div>
 <div class="faq"><b>A site should be blocked?</b>Reload the page. Then check with <span class="ui">Test Privoxy</span>.</div>
@@ -177,7 +223,7 @@
 </section>
 
 <section id="uninstall">
-<div class="sec-head"><span class="num">11</span><h2>Uninstall</h2></div>
+<div class="sec-head"><span class="num">12</span><h2>Uninstall</h2></div>
 <p class="lead">Two ways, same result.</p>
 <ul>
 <li>On the <code>.dmg</code>: double-click <strong>Uninstall KidSafe</strong>.</li>
@@ -188,7 +234,7 @@
 </section>
 
 <section id="privacy">
-<div class="sec-head"><span class="num">12</span><h2>Privacy</h2></div>
+<div class="sec-head"><span class="num">13</span><h2>Privacy</h2></div>
 <p class="lead">Your data stays on your Mac.</p>
 <ul>
 <li>No personal data is sent.</li>

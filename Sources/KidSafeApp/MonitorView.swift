@@ -13,7 +13,7 @@ struct MonitorView: View {
             row(L("mon.domains"), formatCount(model.domainsOnListsNow))
             let social = model.blockedServicesNow.map(\.name)
             row(L("mon.socialNow"), social.isEmpty ? L("mon.noneShort") : social.joined(separator: ", "))
-            if model.catalog.advanced.logBlocked {
+            if model.catalog.recordsBlocks {
                 row(L("mon.last"), model.monitorLastBlock.map {
                     "\($0.host) · \($0.date.formatted(.relative(presentation: .named).locale(Locale(identifier: Localization.currentLanguage))))"
                 } ?? L("mon.noneShort"))

@@ -147,6 +147,10 @@ struct MenuView: View {
             .toggleStyle(StateSwitchStyle())
             .disabled(model.installer == nil)
 
+            if model.catalog.filteringEnabled {
+                PauseMenu().disabled(model.installer == nil)
+            }
+
             Summary()
 
             Toggle(isOn: Binding(get: { model.launchAtLogin }, set: { model.setLaunchAtLogin($0) })) {
@@ -208,7 +212,15 @@ struct Summary: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 3) {
-            if !model.catalog.filteringEnabled {
+            if !model.catalog.filteringEnabled, let until = model.catalog.pausedUntil {
+                // Compte à rebours, rafraîchi chaque seconde.
+                TimelineView(.periodic(from: .now, by: 1)) { ctx in
+                    Label(L("app.menu.pausedUntil", formatDate(until, date: .omitted, time: .shortened),
+                            remainingLabel(until.timeIntervalSince(ctx.date))), systemImage: "timer")
+                        .foregroundStyle(.orange).monospacedDigit()
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            } else if !model.catalog.filteringEnabled {
                 Label(L("app.menu.paused"), systemImage: "pause.circle").foregroundStyle(.orange)
             } else if model.catalog.strictMode {
                 Label(L("app.strict.active", model.catalog.allowlist.count), systemImage: "lock.fill")
@@ -225,6 +237,31 @@ struct Summary: View {
         }
         .font(.callout)
         .foregroundStyle(.secondary)
+    }
+}
+
+/// « 4:12 » ou « 1:04:12 ».
+func remainingLabel(_ seconds: TimeInterval) -> String {
+    let s = max(0, Int(seconds.rounded(.up)))
+    return s >= 3600 ? String(format: "%d:%02d:%02d", s / 3600, s / 60 % 60, s % 60) : String(format: "%d:%02d", s / 60, s % 60)
+}
+
+/// Désactivation temporaire, comme sur Pi-hole : le filtrage reprend tout seul.
+struct PauseMenu: View {
+    @EnvironmentObject var model: AppModel
+
+    var body: some View {
+        Menu {
+            ForEach(Catalog.pauseChoices, id: \.self) { s in
+                Button(L("app.pause.\(Int(s))")) { model.pause(for: s) }
+            }
+        } label: {
+            MenuLabel(title: L("app.pause.menu"), symbol: "timer")
+        }
+        .menuStyle(.borderlessButton)
+        .menuIndicator(.visible)
+        .fixedSize()
+        .padding(.horizontal, 6)
     }
 }
 

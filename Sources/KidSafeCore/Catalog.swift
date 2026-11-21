@@ -16,6 +16,13 @@ public struct Catalog: Codable, Sendable, Equatable {
     public var services: [String: ServicePolicy]
     /// Interrupteur général : faux = Privoxy laisse tout passer (les listes restent installées).
     public var filteringEnabled: Bool
+    /// Pause temporaire : le filtrage reprend tout seul à cette date. nil = pause sans limite.
+    public var pausedUntil: Date?
+    /// Notification macOS quand un site est bloqué (nécessite le journal des blocages de Privoxy).
+    public var notifyBlocked: Bool
+
+    /// Privoxy écrit le journal des blocages : demandé par le parent, ou nécessaire aux notifications.
+    public var recordsBlocks: Bool { advanced.logBlocked || notifyBlocked }
     /// Mise à jour automatique des listes, en heures ; 0 = jamais.
     public var refreshHours: Int
     /// Mot de passe parent facultatif.
@@ -24,10 +31,18 @@ public struct Catalog: Codable, Sendable, Equatable {
     public var advanced: AdvancedSettings
 
     public static let refreshChoices = [0, 1, 6, 12, 24, 72, 168]
+    /// Durées proposées pour la désactivation temporaire, en secondes.
+    public static let pauseChoices: [TimeInterval] = [30, 60, 5 * 60, 15 * 60, 60 * 60]
+
+    /// Vrai si une pause temporaire est terminée et que le filtrage doit reprendre.
+    public func pauseExpired(at date: Date) -> Bool {
+        !filteringEnabled && (pausedUntil.map { $0 <= date } ?? false)
+    }
 
     public init(categories: [Category], allowlist: [String] = [], strictMode: Bool = false, hardenPrivoxy: Bool = true,
                 blockedDomains: [String] = [], services: [String: ServicePolicy] = [:], filteringEnabled: Bool = true,
-                refreshHours: Int = 24, parentPassword: PasswordHash? = nil, advanced: AdvancedSettings = AdvancedSettings()) {
+                refreshHours: Int = 24, parentPassword: PasswordHash? = nil, advanced: AdvancedSettings = AdvancedSettings(),
+                pausedUntil: Date? = nil, notifyBlocked: Bool = true) {
         self.categories = categories
         self.allowlist = allowlist
         self.strictMode = strictMode
@@ -38,10 +53,12 @@ public struct Catalog: Codable, Sendable, Equatable {
         self.refreshHours = refreshHours
         self.parentPassword = parentPassword
         self.advanced = advanced
+        self.pausedUntil = pausedUntil
+        self.notifyBlocked = notifyBlocked
     }
 
     private enum CodingKeys: String, CodingKey {
-        case categories, allowlist, strictMode, hardenPrivoxy, blockedDomains, services, filteringEnabled, refreshHours, parentPassword, advanced
+        case categories, allowlist, strictMode, hardenPrivoxy, blockedDomains, services, filteringEnabled, refreshHours, parentPassword, advanced, pausedUntil, notifyBlocked
     }
 
     /// Les champs ajoutés après la première version sont facultatifs dans le fichier.
@@ -56,7 +73,9 @@ public struct Catalog: Codable, Sendable, Equatable {
                   filteringEnabled: try c.decodeIfPresent(Bool.self, forKey: .filteringEnabled) ?? true,
                   refreshHours: try c.decodeIfPresent(Int.self, forKey: .refreshHours) ?? 24,
                   parentPassword: try c.decodeIfPresent(PasswordHash.self, forKey: .parentPassword),
-                  advanced: try c.decodeIfPresent(AdvancedSettings.self, forKey: .advanced) ?? AdvancedSettings())
+                  advanced: try c.decodeIfPresent(AdvancedSettings.self, forKey: .advanced) ?? AdvancedSettings(),
+                  pausedUntil: try c.decodeIfPresent(Date.self, forKey: .pausedUntil),
+                  notifyBlocked: try c.decodeIfPresent(Bool.self, forKey: .notifyBlocked) ?? true)
     }
 
     public func policy(for serviceID: String) -> ServicePolicy { services[serviceID] ?? ServicePolicy() }

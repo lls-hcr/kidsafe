@@ -80,6 +80,10 @@ final class AppModel: ObservableObject {
     /// Réseaux sociaux bloqués lors de la dernière vérification des plages horaires.
     private var lastBlockedServiceIDs: Set<String> = []
     private var timer: Timer?
+    private var resumeTimer: Timer?
+    /// Message « site bloqué » (voir BlockSplash.swift).
+    var blockNotifier: BlockNotifier?
+    var notifyTimer: Timer?
 
     /// Vrai quand KidSafe utilise le Privoxy intégré à l'app (cas normal pour l'utilisateur).
     private(set) var usesBundledPrivoxy = false
@@ -121,6 +125,7 @@ final class AppModel: ObservableObject {
             Task { @MainActor in self?.tick() }
         }
         tick()
+        scheduleResume()
     }
 
     /// Données de démonstration pour les captures d'écran du guide (rien n'est enregistré).
@@ -175,6 +180,7 @@ final class AppModel: ObservableObject {
     /// Toutes les 30 s : plages horaires des réseaux sociaux, verrouillage, mise à jour automatique des listes.
     private func tick() {
         now = Date()
+        if catalog.pauseExpired(at: now) { resumeIfPauseExpired(); return }
         if let until = unlockedUntil, until <= now { unlockedUntil = nil }
         closeExpiredEditor()
         if let installer, !isApplying, status.lastApplied != nil {
@@ -265,10 +271,18 @@ final class AppModel: ObservableObject {
 
     // MARK: - Filtrage
 
-    func setFiltering(_ on: Bool) {
-        guard requireUnlock() else { return }
+    func setFiltering(_ on: Bool) { setFiltering(on, until: nil) }
+
+    /// Désactivation temporaire (protégée par le mot de passe parent) : le filtrage reprend tout seul.
+    func pause(for seconds: TimeInterval) { setFiltering(false, until: Date().addingTimeInterval(seconds)) }
+
+    /// `until` : fin d'une pause temporaire ; `locked` faux pour la reprise automatique.
+    private func setFiltering(_ on: Bool, until: Date?, locked: Bool = true) {
+        if locked { guard requireUnlock() else { return } }
         guard let installer else { lastError = L("app.error.noPrivoxy"); objectWillChange.send(); return }
-        guard mutate(locked: false, apply: false, { $0.filteringEnabled = on }) else { return }
+        guard mutate(locked: false, apply: false, { $0.filteringEnabled = on; $0.pausedUntil = on ? nil : until }) else { return }
+        now = Date()
+        scheduleResume()
         if on {
             reconnectAfterApply = true
             applyNow()
@@ -276,6 +290,23 @@ final class AppModel: ObservableObject {
             pendingApply?.cancel()
             do { try engine.pause(catalog, installer: installer) } catch { lastError = "\(error)" }
         }
+    }
+
+    /// Minuterie de fin de pause (la vérification toutes les 30 s sert de filet, après une mise en veille par exemple).
+    private func scheduleResume() {
+        resumeTimer?.invalidate()
+        resumeTimer = nil
+        guard !catalog.filteringEnabled, let until = catalog.pausedUntil else { return }
+        let t = Timer(fire: max(until, Date()), interval: 0, repeats: false) { [weak self] _ in
+            Task { @MainActor in self?.resumeIfPauseExpired() }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        resumeTimer = t
+    }
+
+    private func resumeIfPauseExpired() {
+        guard catalog.pauseExpired(at: Date()) else { return }
+        setFiltering(true, until: nil, locked: false)
     }
 
     func setRefreshHours(_ h: Int) { mutate(apply: false) { $0.refreshHours = h } }
@@ -453,7 +484,9 @@ final class AppModel: ObservableObject {
     /// Au lancement : démarre Privoxy puis, si le parent l'avait activé, remet le proxy du Mac.
     func startUp() {
         ensureFreePort()
-        if catalog.advanced.logBlocked, let dir = installer?.confDir { BlockLog.trim(BlockLog.logFile(confDir: dir)) }
+        applyPrivoxyOptions()        // ex. journal des blocages requis par les notifications (versions précédentes)
+        updateBlockNotifier()
+        if catalog.recordsBlocks, let dir = installer?.confDir { BlockLog.trim(BlockLog.logFile(confDir: dir)) }
         makeController()
         guard let privoxy, let e = endpoint else { return }
         // Premier lancement (aucun choix enregistré) : la protection s'active toute seule.
@@ -666,7 +699,9 @@ final class AppModel: ObservableObject {
         let staging = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-update-\(release.version)")
         Task {
             do {
-                let staged = try await AppUpdater.prepare(release, currentVersion: current, bundleID: bundleID, stagingDir: staging)
+                let staged = try await AppUpdater.prepare(release, currentVersion: current, bundleID: bundleID,
+                                                              requiredTeamID: AppUpdater.teamID(of: Bundle.main.bundleURL),
+                                                              stagingDir: staging)
                 let env = ProcessInfo.processInfo.environment.filter { $0.key.hasPrefix("KIDSAFE_") }
                 try AppUpdater.scheduleReplace(current: Bundle.main.bundleURL, staged: staged, stagingDir: staging,
                                                pid: ProcessInfo.processInfo.processIdentifier, env: env)

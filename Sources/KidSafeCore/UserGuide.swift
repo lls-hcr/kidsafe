@@ -13,11 +13,35 @@ public enum UserGuide {
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>KidSafe — \(Dashboard.esc(L("guide.title")))</title>
         <style>\(PageStyle.css)</style></head><body class="guide-page">
-        \(PageStyle.header(title: Dashboard.esc(L("guide.title")), meta: "KidSafe " + Dashboard.esc(version)))
+        \(PageStyle.header(title: Dashboard.esc(L("guide.title")),
+                           meta: Dashboard.esc(version.hasPrefix("KidSafe") ? version : "KidSafe " + version)))
         <main class="guide">\(body)</main>
         <footer>\(Dashboard.esc(L("guide.footer")))</footer>
+        <div id="zoom" hidden><figure><img alt=""><p></p></figure></div>
+        <script>
+        // Captures en vignettes : un clic les agrandit, un autre clic (ou Échap) referme.
+        (function () {
+          var z = document.getElementById('zoom'), zi = z.querySelector('img'), zp = z.querySelector('p');
+          document.querySelectorAll('figure.shot img').forEach(function (i) { i.title = \(jsString(L("guide.zoom"))); });
+          document.addEventListener('click', function (e) {
+            var t = e.target;
+            if (t.matches && t.matches('figure.shot img')) {
+              zi.src = t.src;
+              zi.style.width = Math.min(t.naturalWidth / 2, window.innerWidth * 0.94) + 'px';   // captures en 2× : taille réelle
+              var c = t.closest('figure').querySelector('figcaption');
+              zp.textContent = c ? c.textContent : ''; z.hidden = false;
+            } else if (!z.hidden) { z.hidden = true; }
+          });
+          document.addEventListener('keydown', function (e) { if (e.key === 'Escape') z.hidden = true; });
+        })();
+        </script>
         </body></html>
         """
+    }
+
+    /// Texte JavaScript entre guillemets (échappé).
+    static func jsString(_ s: String) -> String {
+        "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
     }
 
     /// Remplace {{shot:nom}} par la capture (Resources/shot-<langue>-<nom>.png), intégrée à la page :
@@ -34,7 +58,7 @@ public enum UserGuide {
                 out.replaceSubrange(r, with: "")
             }
         }
-        return out.replacingOccurrences(of: #"<figure class="shot( small)?"><figcaption>[^<]*</figcaption></figure>"#,
+        return out.replacingOccurrences(of: #"<figure class="shot( small| wide)?"><figcaption>[^<]*</figcaption></figure>"#,
                                         with: "", options: .regularExpression)
     }
 }
