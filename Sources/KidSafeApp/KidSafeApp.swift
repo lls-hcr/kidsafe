@@ -43,6 +43,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         model.openMonitorHandler = { [weak self] in self?.showMonitor() }
         model.monitorPinHandler = { [weak self] pinned in self?.applyPin(pinned) }
         model.startUp()
+        // Diagnostic (KIDSAFE_MONITOR_SELFTEST) : lit les compteurs depuis l'app, les affiche et quitte.
+        if ProcessInfo.processInfo.environment["KIDSAFE_MONITOR_SELFTEST"] != nil {
+            Task { @MainActor in
+                try? await Task.sleep(for: .seconds(4))
+                if let e = model.endpoint, let c = await Monitor.counters(host: e.host, port: e.port) {
+                    print("COMPTEURS port \(e.port) : \(c.blocked) bloquées / \(c.requests) requêtes")
+                } else {
+                    print("COMPTEURS indisponibles")
+                }
+                NSApp.terminate(nil)
+            }
+        }
     }
 
     /// Quitter retire le proxy puis arrête Privoxy (voir AppModel.shutDown).

@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 /// Statistiques du moniteur. Tout est lu à la demande (fenêtre ouverte ou clic sur « Mode détaillé ») :
@@ -15,22 +16,45 @@ public enum Monitor {
         public init(requests: Int, blocked: Int, since: Date?) { self.requests = requests; self.blocked = blocked; self.since = since }
     }
 
-    /// Lit les compteurs que Privoxy tient en mémoire (page http://p.p/show-status, via le proxy local).
+    /// Lit les compteurs que Privoxy tient en mémoire (page http://p.p/show-status).
+    /// Requête HTTP envoyée directement à Privoxy sur 127.0.0.1 : pas de URLSession, donc pas de blocage
+    /// par App Transport Security (qui refuse le HTTP non chiffré dans les apps) et aucun réglage de proxy.
     public static func counters(host: String, port: Int) async -> Counters? {
-        let config = URLSessionConfiguration.ephemeral
-        config.connectionProxyDictionary = [
-            kCFNetworkProxiesHTTPEnable as String: 1,
-            kCFNetworkProxiesHTTPProxy as String: host,
-            kCFNetworkProxiesHTTPPort as String: port,
-        ]
-        config.timeoutIntervalForRequest = 3
-        let session = URLSession(configuration: config)
-        defer { session.finishTasksAndInvalidate() }
-        guard let url = URL(string: "http://p.p/show-status"),
-              let (data, _) = try? await session.data(from: url) else { return nil }
-        guard var c = parseCounters(String(decoding: data, as: UTF8.self)) else { return nil }
-        c.since = startDate(port: port)
-        return c
+        await Task.detached {
+            guard let html = rawGet(host: host, port: port, url: "http://p.p/show-status"),
+                  var c = parseCounters(html) else { return nil }
+            c.since = startDate(port: port)
+            return c
+        }.value
+    }
+
+    /// GET minimal en HTTP/1.0 via le proxy (forme absolue de l'URL), délai de 3 s.
+    static func rawGet(host: String, port: Int, url: String, timeout: Int = 3) -> String? {
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        guard fd >= 0 else { return nil }
+        defer { close(fd) }
+        var tv = timeval(tv_sec: timeout, tv_usec: 0)
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = in_port_t(UInt16(port).bigEndian)
+        guard inet_pton(AF_INET, host == "localhost" ? "127.0.0.1" : host, &addr.sin_addr) == 1 else { return nil }
+        let ok = withUnsafePointer(to: &addr) {
+            $0.withMemoryRebound(to: sockaddr.self, capacity: 1) { connect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size)) }
+        }
+        guard ok == 0 else { return nil }
+        let hostHeader = URL(string: url)?.host ?? "p.p"
+        let request = "GET \(url) HTTP/1.0\r\nHost: \(hostHeader)\r\nUser-Agent: KidSafe\r\nConnection: close\r\n\r\n"
+        guard request.withCString({ send(fd, $0, strlen($0), 0) }) > 0 else { return nil }
+        var data = Data()
+        var buf = [UInt8](repeating: 0, count: 16384)
+        while data.count < 2_000_000 {
+            let n = recv(fd, &buf, buf.count, 0)
+            if n <= 0 { break }
+            data.append(buf, count: n)
+        }
+        return data.isEmpty ? nil : String(decoding: data, as: UTF8.self)
     }
 
     /// « 519 out of 3587 requests have been blocked »

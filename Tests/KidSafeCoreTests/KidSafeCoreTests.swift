@@ -636,6 +636,11 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         }
         #expect(logged, "journal : \((try? String(contentsOf: BlockLog.logFile(confDir: inst.confDir), encoding: .utf8)) ?? "absent")")
 
+        // Compteurs du moniteur, lus directement sur le port de Privoxy.
+        let counters = await Monitor.counters(host: "127.0.0.1", port: 8141)
+        #expect(counters != nil && (counters?.requests ?? 0) >= 2 && (counters?.blocked ?? 0) >= 1)
+        #expect(counters?.since != nil)
+
         // Changement de port.
         ctl.stop()
         try BundledPrivoxy.setPort(8142, configFile: inst.configFile)
