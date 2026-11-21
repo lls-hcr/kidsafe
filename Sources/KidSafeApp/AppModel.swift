@@ -142,6 +142,10 @@ final class AppModel: ObservableObject {
             refreshSystemStatus()
             loginItemStatus = SMAppService.mainApp.status
         }
+        if autoUpdateCheck, !isCheckingUpdates,
+           lastUpdateCheck.map({ now.timeIntervalSince($0) > Self.updateCheckInterval }) ?? true {
+            checkForUpdates(manual: false)
+        }
         guard installer != nil, !isApplying, catalog.filteringEnabled else { return }
         if status.lastApplied == nil {
             applyNow()
@@ -514,9 +518,63 @@ final class AppModel: ObservableObject {
     var openSettingsHandler: (() -> Void)?
     func openSettings() { openSettingsHandler?() }
 
-    func checkForUpdates() {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
-        notice(L("app.updates.message", version))
+    // MARK: - Nouvelles versions de KidSafe
+
+    let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+    private let updateChecker: UpdateChecker? = (Bundle.main.object(forInfoDictionaryKey: "KidSafeUpdateAPI") as? String)
+        .flatMap { $0.isEmpty ? nil : URL(string: $0) }.map(UpdateChecker.init)
+    @Published private(set) var isCheckingUpdates = false
+    @Published private(set) var availableUpdate: UpdateChecker.Release?
+    @Published private(set) var lastUpdateCheck: Date? = UserDefaults.standard.object(forKey: "lastUpdateCheck") as? Date
+    /// Recherche automatique, une fois par semaine (activée par défaut).
+    @Published var autoUpdateCheck: Bool = UserDefaults.standard.object(forKey: "autoUpdateCheck") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(autoUpdateCheck, forKey: "autoUpdateCheck") }
+    }
+    static let updateCheckInterval: TimeInterval = 7 * 24 * 3600
+    var canCheckUpdates: Bool { updateChecker != nil }
+
+    /// `manual` : affiche toujours le résultat. Sinon (recherche hebdomadaire), ne prévient
+    /// que d'une version nouvelle, une seule fois par version, et reste silencieuse en cas d'erreur.
+    func checkForUpdates(manual: Bool = true) {
+        guard let updateChecker, !isCheckingUpdates else { return }
+        isCheckingUpdates = true
+        let current = appVersion
+        Task {
+            let result: Result<UpdateChecker.Release, Error>
+            do { result = .success(try await updateChecker.latest(userAgent: "KidSafe/\(current)")) } catch { result = .failure(error) }
+            self.isCheckingUpdates = false
+            self.lastUpdateCheck = Date()
+            UserDefaults.standard.set(self.lastUpdateCheck, forKey: "lastUpdateCheck")
+            switch result {
+            case .success(let release) where UpdateChecker.isNewer(release.version, than: current):
+                self.availableUpdate = release
+                let notified = UserDefaults.standard.string(forKey: "notifiedVersion")
+                if manual || notified != release.version {
+                    UserDefaults.standard.set(release.version, forKey: "notifiedVersion")
+                    self.offerUpdate(release)
+                }
+            case .success:
+                self.availableUpdate = nil
+                if manual { self.notice(L("updates.upToDate", current)) }
+            case .failure(let error):
+                if manual { self.notice(L("updates.error", "\(error)")) }
+            }
+        }
+    }
+
+    func offerUpdate(_ release: UpdateChecker.Release) {
+        NSApp.activate(ignoringOtherApps: true)
+        let a = NSAlert()
+        a.messageText = L("updates.available.title", release.version)
+        a.informativeText = L("updates.available.message", appVersion)
+        a.addButton(withTitle: L("updates.download"))
+        a.addButton(withTitle: L("updates.notes"))
+        a.addButton(withTitle: L("updates.later"))
+        switch a.runModal() {
+        case .alertFirstButtonReturn: NSWorkspace.shared.open(release.downloadURL ?? release.pageURL)
+        case .alertSecondButtonReturn: NSWorkspace.shared.open(release.pageURL)
+        default: break
+        }
     }
 
     /// Contact pour les avis, défini à la construction (clés `KidSafeFeedbackEmail` et `KidSafeIssuesURL`).

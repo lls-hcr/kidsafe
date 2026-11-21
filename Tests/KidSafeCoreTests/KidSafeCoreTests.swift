@@ -127,6 +127,7 @@ import Testing
         #expect(lines[begin + 1] == "actionsfile kidsafe-cat-adult.action")
         #expect(lines[begin + 2] == "actionsfile kidsafe-allow.action")
         #expect(lines.contains("enable-remote-toggle 0"))
+        #expect(lines.contains("enforce-blocks 1"))
         #expect(lines.contains("#KidSafe-désactivé# enable-remote-toggle 1"))
         #expect(lines.contains("#KidSafe-désactivé# toggle  1"))
         #expect(lines.contains("#enable-edit-actions 0"))   // commentaire d'origine intact
@@ -448,8 +449,8 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
 @Suite struct BundledPrivoxyTests {
     @Test func adaptsTemplate() {
         let dir = URL(fileURLWithPath: "/Users/x/Library/Application Support/KidSafe/privoxy")
-        let out = BundledPrivoxy.adapt("confdir .\nlogdir .\n#listen-address [::1]:8118\nlisten-address  127.0.0.1:8118\ntoggle 1", dir: dir)
-        #expect(out == "confdir \(dir.path)\nlogdir \(dir.path)/log\n#listen-address [::1]:8118\nlisten-address  127.0.0.1:\(BundledPrivoxy.port)\ntoggle 1")
+        let out = BundledPrivoxy.adapt("confdir .\nlogdir .\n#listen-address [::1]:8118\nlisten-address  127.0.0.1:8118\ntoggle 1\nelliptic-curve-keys 1", dir: dir)
+        #expect(out.hasPrefix("confdir \(dir.path)\nlogdir \(dir.path)/log\n#listen-address [::1]:8118\nlisten-address  127.0.0.1:\(BundledPrivoxy.port)\ntoggle 1\n#elliptic-curve-keys 1"))
     }
 
     @Test func prepareCopiesAndKeepsKidSafeBlock() throws {
@@ -482,5 +483,21 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         try "2".write(to: support.appendingPathComponent("privoxy/.kidsafe-bundle"), atomically: true, encoding: .utf8)
         let again = try #require(try BundledPrivoxy.prepare(bundle: bundle, supportDir: support))
         #expect(PrivoxyConfigEditor.managedActionFiles(in: try String(contentsOf: again.configFile, encoding: .utf8)) == ["kidsafe-cat-adult.action"])
+    }
+}
+
+@Suite struct UpdateCheckerTests {
+    @Test(arguments: [("0.3.2", "0.3.1", true), ("0.10.0", "0.9.9", true), ("1.0", "0.9.9", true),
+                      ("0.3.1", "0.3.1", false), ("0.3.0", "0.3.1", false), ("0.3.1", "0.3", true), ("0.3", "0.3.0", false)])
+    func compare(_ a: String, _ b: String, _ newer: Bool) {
+        #expect(UpdateChecker.isNewer(a, than: b) == newer)
+    }
+
+    @Test func parseGitHubRelease() throws {
+        let json = #"{"tag_name":"v0.3.2","html_url":"https://github.com/lls-hcr/kidsafe/releases/tag/v0.3.2","draft":false,"prerelease":false,"assets":[{"name":"privoxy-4.2.0.tar.gz","browser_download_url":"https://x/p.tar.gz"},{"name":"KidSafe.dmg","browser_download_url":"https://x/KidSafe.dmg"}]}"#
+        let r = try UpdateChecker.parse(Data(json.utf8))
+        #expect(r.version == "0.3.2")
+        #expect(r.downloadURL?.absoluteString == "https://x/KidSafe.dmg")
+        #expect(throws: UpdateChecker.CheckError.self) { try UpdateChecker.parse(Data("{}".utf8)) }
     }
 }

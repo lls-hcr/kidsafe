@@ -19,6 +19,8 @@ public enum PrivoxyConfigEditor {
         ("enable-remote-toggle", "0"),
         ("enable-remote-http-toggle", "0"),
         ("enable-edit-actions", "0"),
+        // Sans cela, la page de blocage propose « Go there anyway » : contournement en un clic.
+        ("enforce-blocks", "1"),
     ]
 
     public struct Options: Sendable {

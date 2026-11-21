@@ -320,6 +320,24 @@ struct GeneralTab: View {
                 }
                 .disabled(model.installer == nil)
             }
+            Section(L("updates.section")) {
+                LabeledContent(L("updates.current")) { Text(model.appVersion) }
+                if model.canCheckUpdates {
+                    Toggle(L("updates.auto"), isOn: $model.autoUpdateCheck)
+                    HStack {
+                        Button(L("updates.checkNow")) { model.checkForUpdates() }.disabled(model.isCheckingUpdates)
+                        if model.isCheckingUpdates { ProgressView().controlSize(.small) }
+                        Spacer()
+                        if let d = model.lastUpdateCheck {
+                            Text(L("updates.lastCheck", d.formatted(date: .abbreviated, time: .shortened)))
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
+                    if let u = model.availableUpdate {
+                        Button { model.offerUpdate(u) } label: { Label(L("updates.menuAvailable", u.version), systemImage: "sparkles") }
+                    }
+                }
+            }
             Section(L("app.uninstall.section")) {
                 Text(L("app.uninstall.help")).font(.caption).foregroundStyle(.secondary)
                 Button(role: .destructive) { model.uninstall() } label: { Label(L("app.uninstall.button"), systemImage: "trash") }

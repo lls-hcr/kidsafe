@@ -76,6 +76,8 @@ public enum BundledPrivoxy {
             if t.hasPrefix("confdir ") { return "confdir \(dir.path)" }
             if t.hasPrefix("logdir ") { return "logdir \(dir.appendingPathComponent("log").path)" }
             if t.hasPrefix("listen-address ") { return "listen-address  127.0.0.1:\(port)" }
+            // Option de l'inspection HTTPS, absente de notre Privoxy (compilé sans TLS) : évite l'avertissement.
+            if t.hasPrefix("elliptic-curve-keys ") { return "#" + line + "   # KidSafe : sans objet (Privoxy compilé sans TLS)" }
             return line
         }.joined(separator: "\n")
     }

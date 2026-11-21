@@ -116,7 +116,14 @@ struct MenuView: View {
                 if model.donateURL != nil {
                     MenuRow(title: L("app.donate"), symbol: "heart") { panel.close(); model.donate() }
                 }
-                MenuRow(title: L("app.checkUpdates"), symbol: "arrow.down.circle") { panel.close(); model.checkForUpdates() }
+                if let update = model.availableUpdate {
+                    MenuRow(title: L("updates.menuAvailable", update.version), symbol: "sparkles") { panel.close(); model.offerUpdate(update) }
+                }
+                if model.canCheckUpdates {
+                    MenuRow(title: L("app.checkUpdates"), symbol: "arrow.down.circle", busy: model.isCheckingUpdates) {
+                        panel.close(); model.checkForUpdates()
+                    }
+                }
                 Divider().padding(.vertical, 4)
                 MenuRow(title: L("app.quit"), symbol: "power") { model.quit() }
             }

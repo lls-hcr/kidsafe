@@ -4,7 +4,7 @@
 # Usage : scripts/build-app.sh [--universal]
 set -eu
 cd "$(dirname "$0")/.."
-VERSION="0.3.1"
+VERSION="0.3.2"
 BUNDLE_ID="app.kidsafe.KidSafe"     # à remplacer par votre identifiant définitif
 # Lien du bouton « Soutenir KidSafe » (Buy Me a Coffee, Ko-fi, PayPal, Liberapay…). KIDSAFE_DONATE_URL= (vide) masque le bouton.
 DONATE_URL="${KIDSAFE_DONATE_URL-https://github.com/sponsors/lls-hcr}"
@@ -13,6 +13,8 @@ ISSUES_URL="${KIDSAFE_ISSUES_URL-https://github.com/lls-hcr/kidsafe/issues/new}"
 # Liens du menu : page du projet et code source.
 WEBSITE_URL="${KIDSAFE_WEBSITE_URL-https://mizuki.ch/documentation/kidsafe/}"
 SOURCE_URL="${KIDSAFE_SOURCE_URL-https://github.com/lls-hcr/kidsafe}"
+# Recherche de nouvelles versions : dernière release GitHub. Vide : fonction masquée.
+UPDATE_API="${KIDSAFE_UPDATE_API-https://api.github.com/repos/lls-hcr/kidsafe/releases/latest}"
 # Réglages personnels non publiés (ex. KIDSAFE_FEEDBACK_EMAIL) : scripts/local.env, ignoré par git.
 [ -f scripts/local.env ] && . scripts/local.env
 FEEDBACK_EMAIL="${KIDSAFE_FEEDBACK_EMAIL:-}"
@@ -76,6 +78,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>KidSafeIssuesURL</key><string>$ISSUES_URL</string>
   <key>KidSafeWebsiteURL</key><string>$WEBSITE_URL</string>
   <key>KidSafeSourceURL</key><string>$SOURCE_URL</string>
+  <key>KidSafeUpdateAPI</key><string>$UPDATE_API</string>
   <key>KidSafeFeedbackEmail</key><string>$FEEDBACK_EMAIL</string>
 </dict>
 </plist>
