@@ -1,113 +1,122 @@
 # KidSafe
 
-Contrôle parental pour macOS basé sur Privoxy : une app dans la barre de menus, en français et en anglais.
+*[Français](README.fr.md)*
 
-| Cible | Rôle |
-|---|---|
-| `KidSafeCore` | Lecture des listes, génération des fichiers Privoxy, installation avec test et retour arrière, catalogue, traductions |
-| `KidSafeApp` (produit `KidSafe`) | App SwiftUI de la barre de menus et fenêtre de réglages |
-| `kidsafe-blocklist` | CLI, qui remplace `privoxy-blocklist.sh` et `blocklist2privoxy.sh` |
+**Free parental control for macOS, built on [Privoxy](https://www.privoxy.org/).**
+A menu bar app (English and French) that blocks unwanted websites for the whole Mac: adult content,
+gambling, scams, social networks on a schedule, and any domain you choose.
 
-L'app et la CLI partagent le même catalogue : `~/Library/Application Support/KidSafe/catalog.json`.
+> **Test version.** KidSafe is not yet signed by Apple and still needs Privoxy from Homebrew.
+> A signed `.pkg` that installs everything is planned.
 
-## Construire et lancer
+**[⬇︎ Download KidSafe.dmg](https://github.com/lls-hcr/kidsafe/releases/latest/download/KidSafe.dmg)** ·
+[Release notes](https://github.com/lls-hcr/kidsafe/releases) ·
+[Project page](https://mizuki.ch/documentation/kidsafe/)
+
+## Install
+
+1. Install Privoxy once with [Homebrew](https://brew.sh): `brew install privoxy`
+   (KidSafe starts and stops Privoxy itself).
+2. Open `KidSafe.dmg` and drag KidSafe to **Applications**.
+3. Open KidSafe. The first time, macOS blocks it because it isn't signed yet: go to
+   **System Settings → Privacy & Security → Open Anyway**.
+4. Click the shield in the menu bar, then **Set up** to route the Mac through the filter.
+
+Quitting KidSafe removes the filter and gives the Mac its normal connection back.
+To remove everything: **Settings → General → Uninstall KidSafe…**
+
+## Features
+
+- **Blocklist categories**: adult content (on by default), bypass tools (VPNs, proxies, encrypted DNS),
+  scams and malware, gambling, violence, drugs, dating, social networks, online games, ads.
+  Plus a library of free lists, any list from a web address, or a file from your Mac
+  (Adblock, hosts and plain domain formats).
+- **Social networks**: Facebook, Instagram, TikTok, X, Snapchat, YouTube, Threads, WhatsApp, Telegram,
+  Discord, Reddit, Twitch, Pinterest, BeReal. Each can be allowed, always blocked, blocked during time slots
+  (e.g. at night) or allowed only during time slots (e.g. Wednesday afternoon).
+- **Your own domains**: block or always allow any domain (and its subdomains).
+- **Strict mode**: everything is blocked except the allowlist, for younger children.
+- **Optional parent password** for every change, pausing and quitting.
+- **Filtering switch** in the menu bar to pause without deleting anything.
+- **Automatic list updates**, from every hour to every week (or never).
+- **The Mac never loses its connection**: if Privoxy stops, KidSafe restarts it, or removes the proxy
+  if it can't. Only KidSafe's own proxy setting is ever changed.
+
+**Limits**: filtering works per domain (no HTTPS interception), so blocked HTTPS sites show a browser
+error rather than a block page. Time slots are applied while the app is running. A child with an
+administrator account can still change system settings; use a standard account for children.
+
+## Build from source
+
+Requires macOS 14+ and the Xcode Command Line Tools (full Xcode not needed).
 
 ```sh
-scripts/test.sh                      # tests (fonctionne avec les seuls Command Line Tools)
-scripts/build-app.sh                 # build/KidSafe.app pour ce Mac
+scripts/test.sh                      # unit tests
+scripts/build-app.sh                 # build/KidSafe.app for this Mac
 scripts/build-app.sh --universal     # Apple Silicon + Intel
-swift scripts/make-icon.swift Resources/AppIcon.png   # redessine l'icône (puis iconutil, voir l'historique git)
-open build/KidSafe.app
+scripts/make-dmg.sh                  # build/KidSafe.dmg (universal app + Applications link + read me)
+swift scripts/make-icon.swift Resources/AppIcon.png   # redraws the icon
 ```
 
-Pour essayer : `brew install privoxy`, ouvrir l'app, puis cliquer sur « Configurer ».
+| Target | Role |
+|---|---|
+| `KidSafeCore` | Blocklist parsing, Privoxy file generation, install with config test and rollback, catalog, schedules, translations |
+| `KidSafeApp` (product `KidSafe`) | SwiftUI menu bar app and settings window |
+| `kidsafe-blocklist` | Command-line tool (replaces the old `privoxy-blocklist.sh` and `blocklist2privoxy.sh` scripts) |
 
-**Le Mac ne doit jamais perdre sa connexion** :
-- au lancement, KidSafe démarre Privoxy (service launchd s'il existe, sinon processus de l'app), puis remet
-  le proxy si le parent l'avait activé ;
-- en quittant, KidSafe retire d'abord le proxy, puis arrête Privoxy. Si le proxy ne peut pas être retiré,
-  Privoxy reste allumé ;
-- toutes les 5 s, si le proxy pointe vers un Privoxy qui ne répond plus, KidSafe le relance ; s'il ne repart pas,
-  le proxy est retiré (puis remis quand Privoxy revient) ;
-- seul le proxy 127.0.0.1:<port de Privoxy> est retiré : un proxy configuré par ailleurs n'est jamais touché ;
-- Réglages → Général → « Désinstaller KidSafe… » remet le Mac dans son état d'origine.
+The app and the CLI share the same catalog: `~/Library/Application Support/KidSafe/catalog.json`.
+For development, `KIDSAFE_SUPPORT_DIR` and `KIDSAFE_PRIVOXY_CONF` isolate the app from your real configuration.
 
-Développement : les variables `KIDSAFE_SUPPORT_DIR` et `KIDSAFE_PRIVOXY_CONF` isolent l'app de la vraie configuration.
+Build options (environment variables for `scripts/build-app.sh`): `KIDSAFE_DONATE_URL`, `KIDSAFE_ISSUES_URL`,
+`KIDSAFE_WEBSITE_URL`, `KIDSAFE_SOURCE_URL`. The feedback email is read from `scripts/local.env`
+(`KIDSAFE_FEEDBACK_EMAIL=…`), which git ignores.
 
-## L'app
-
-- **Barre de menus** : état de la protection, interrupteur **Filtrage** (pause sans rien supprimer),
-  résumé (catégories, réseaux sociaux bloqués en ce moment, domaines perso), « Mettre à jour les listes »,
-  « Réglages… », « Soutenir KidSafe » (si un lien est configuré), « Rechercher des mises à jour », « Quitter ».
-- **Réglages** :
-  - **Listes** : catégories et listes ajoutées (listes gratuites, adresse web, fichier du Mac) ;
-  - **Réseaux sociaux** : Facebook, Instagram, TikTok, X, Snapchat, YouTube, Threads, WhatsApp, Telegram,
-    Discord, Reddit, Twitch, Pinterest, BeReal. Chacun peut être autorisé, toujours bloqué, bloqué pendant
-    des plages, ou autorisé seulement pendant des plages (jours de la semaine + heures, plages de nuit acceptées) ;
-  - **Domaines** : domaines bloqués à la main et liste blanche (un domaine ne peut pas être dans les deux) ;
-  - **Général** : filtrage, mode strict, fréquence de mise à jour des listes (jamais → chaque semaine),
-    mot de passe parent, Privoxy et proxy, langue, don.
-- **Mot de passe parent** (facultatif) : demandé pour toute modification, la pause et « Quitter » ;
-  il reste déverrouillé 5 minutes. Seule son empreinte PBKDF2-SHA256 est enregistrée.
-- Les plages horaires sont appliquées par l'app (vérification toutes les 30 s) : elle doit rester ouverte
-  tant que le helper système n'existe pas.
-
-Lien de don : GitHub Sponsors (https://github.com/sponsors/lls-hcr) par défaut ; `KIDSAFE_DONATE_URL=https://… scripts/build-app.sh` le remplace, `KIDSAFE_DONATE_URL=` (vide) masque le bouton. `.github/FUNDING.yml` affichera le bouton « Sponsor » sur GitHub.
-
-## Traductions
-
-`Sources/KidSafeCore/Resources/{fr,en}.lproj/Localizable.strings`. Les deux fichiers doivent avoir les mêmes clés.
-La CLI suit la langue du système ; `KIDSAFE_LANG=en` la force.
-
-## CLI
+### Command line
 
 ```sh
 B=build/KidSafe.app/Contents/MacOS/kidsafe-blocklist
 $B lists
 $B enable gambling
-$B enable adult-ut1 --yes                       # liste lourde : avertissement sans --yes
+$B enable adult-ut1 --yes                       # large list: warning without --yes
 $B library
 $B add-list --from-library easylist
-$B add-list --name "Ma liste" --url https://exemple.org/liste.txt
-$B add-list --file ~/Documents/ma-liste.txt     # depuis le disque
-$B remove-list ma-liste
-$B block roblox.com | allow exemple.org
-$B pause | resume                               # demande le mot de passe parent s'il existe
-$B update [--dry-run] [--remove-legacy]         # télécharge, installe, teste, revient en arrière si erreur
+$B add-list --name "My list" --url https://example.org/list.txt
+$B add-list --file ~/Documents/my-list.txt      # from disk
+$B remove-list my-list
+$B block roblox.com | allow example.org
+$B pause | resume                               # asks for the parent password if set
+$B update [--dry-run] [--remove-legacy]         # download, install, test, roll back on error
 $B uninstall
 ```
 
-## Mesures (Mac Apple Silicon, Privoxy 4.2.0, 20/11/2026)
+The CLI follows the system language; `KIDSAFE_LANG=en` or `KIDSAFE_LANG=fr` forces it.
 
-| Listes chargées | Domaines | Mémoire Privoxy | Temps de requête | Rechargement |
+### Translations
+
+`Sources/KidSafeCore/Resources/{en,fr}.lproj/Localizable.strings`. Both files must have the same keys.
+
+### Measurements (Apple Silicon Mac, Privoxy 4.2.0)
+
+| Lists loaded | Domains | Privoxy memory | Request time | Reload |
 |---|---|---|---|---|
-| HaGeZi NSFW + UT1 gambling | ~180 000 | 41 Mo | ~36 ms (comme sans liste) | instantané |
-| UT1 adult complète | 4,6 M | 786 Mo | +~70 ms | ~4 s |
+| HaGeZi NSFW + UT1 gambling | ~180,000 | 41 MB | ~36 ms (same as without lists) | instant |
+| Full UT1 adult list | 4.6 M | 786 MB | +~70 ms | ~4 s |
 
-## À faire
+## Roadmap
 
-- Helper root (LaunchDaemon installé par le .pkg) protégé par un mot de passe parent. Le catalogue passera
-  alors dans `/Library/Application Support/KidSafe`, où l'enfant ne peut rien modifier.
-- .pkg contenant Privoxy compilé (sources GPL fournies), puis signature et notarisation (compte Apple Developer).
-- Recherche de nouvelles versions de l'app avec Sparkle.
-- Plages horaires, journal des sites bloqués, page de blocage locale.
-- Protections contre le contournement : compte enfant standard, profil qui verrouille le proxy, mot de passe parent.
+- Signed and notarized `.pkg` that installs Privoxy (built from source, GPL sources provided) as a system service.
+- Root helper (LaunchDaemon) protected by the parent password; settings moved to
+  `/Library/Application Support/KidSafe`, where a child can't change them.
+- In-app updates with Sparkle.
+- Log of blocked attempts, local block page.
 
-## Publier une version de test
+## Feedback and support
 
-```sh
-scripts/make-dmg.sh        # build/KidSafe.dmg : app universelle + raccourci Applications + mode d'emploi
-```
+- Ideas and problems: [open an issue](https://github.com/lls-hcr/kidsafe/issues/new), or use **Send Feedback…** in the app.
+- Support the project: [GitHub Sponsors](https://github.com/sponsors/lls-hcr).
 
-Joindre `build/KidSafe.dmg` à une Release GitHub. Le nom du fichier ne change pas, donc ce lien pointe
-toujours vers la dernière version : https://github.com/lls-hcr/kidsafe/releases/latest/download/KidSafe.dmg
+## License
 
-L'adresse e-mail de « Envoyer un avis… » se règle dans `scripts/local.env` (`KIDSAFE_FEEDBACK_EMAIL=…`),
-un fichier ignoré par git : elle n'apparaît pas dans le dépôt public.
-
-## Licence
-
-KidSafe est distribué sous licence GNU GPL v3 (voir `LICENSE`). Privoxy est sous GPL v2 ou ultérieure ;
-les listes de blocage gardent leur propre licence (indiquée dans le catalogue).
-
-Soutenir le projet : https://github.com/sponsors/lls-hcr · Page du projet : https://mizuki.ch/documentation/kidsafe/
+KidSafe is released under the GNU GPL v3 (see [LICENSE](LICENSE)). Privoxy is GPL v2 or later.
+Blocklists keep their own licenses (listed in the catalog): HaGeZi (GPL-3.0), UT1 Toulouse Capitole (CC BY-SA 4.0),
+StevenBlack (MIT), Block List Project (Unlicense), EasyList (GPL-3.0 / CC BY-SA 3.0).
