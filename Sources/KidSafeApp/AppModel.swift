@@ -428,8 +428,8 @@ final class AppModel: ObservableObject {
         healthTimer?.invalidate()
         pendingApply?.cancel()
         guard !uninstalling, let e = endpoint else { return }
-        if !SystemStatus.servicesUsingProxy(e).isEmpty,
-           SystemStatus.setSystemProxy(e, enable: false, prompt: L("app.proxy.adminPromptOff")) != nil {
+        // setSystemProxy ne touche que les services qui pointent vers Privoxy (aucun : rien à faire).
+        if SystemStatus.setSystemProxy(e, enable: false, prompt: L("app.proxy.adminPromptOff")) != nil {
             return
         }
         privoxy?.stop()

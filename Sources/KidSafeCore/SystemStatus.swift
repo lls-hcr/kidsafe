@@ -51,10 +51,15 @@ public enum SystemStatus {
 
     /// Services dont le proxy web (HTTP ou HTTPS) est activé et pointe vers Privoxy.
     /// Seuls ceux-là sont modifiés au retrait : un proxy configuré par ailleurs n'est jamais touché.
-    public static func servicesUsingProxy(_ e: Endpoint) -> [String] {
+    public static func servicesUsingProxy(_ e: Endpoint, among list: [String]? = nil) -> [String] {
         let hosts: Set<String> = [e.host, "127.0.0.1", "localhost"]
-        return networkServices().filter { s in
-            ["-getwebproxy", "-getsecurewebproxy"].contains { flag in
+        // Lectures en parallèle (une par service et par protocole) : ~0,1 s au lieu de ~0,7 s.
+        let services = list ?? networkServices()
+        var using = [Bool](repeating: false, count: services.count)
+        let lock = NSLock()
+        DispatchQueue.concurrentPerform(iterations: services.count) { i in
+            let s = services[i]
+            let hit = ["-getwebproxy", "-getsecurewebproxy"].contains { flag in
                 guard let out = run("/usr/sbin/networksetup", [flag, s]) else { return false }
                 var v: [String: String] = [:]
                 for line in out.split(separator: "\n") {
@@ -63,7 +68,9 @@ public enum SystemStatus {
                 }
                 return v["Enabled"] == "Yes" && hosts.contains(v["Server"] ?? "") && v["Port"] == "\(e.port)"
             }
+            lock.lock(); using[i] = hit; lock.unlock()
         }
+        return services.indices.filter { using[$0] }.map { services[$0] }
     }
 
     /// Active (`enable`) ou retire Privoxy comme proxy HTTP/HTTPS du Mac.
@@ -77,11 +84,15 @@ public enum SystemStatus {
                       ["-setproxybypassdomains", s, "localhost", "127.0.0.1", "*.local"]]
                    : [["-setwebproxystate", s, "off"], ["-setsecurewebproxystate", s, "off"]]
         }
-        let done = { enable ? systemProxyPointsTo(e) : servicesUsingProxy(e).isEmpty }
-        if cmds.isEmpty { return done() ? nil : "networksetup" }
+        // Vérification ciblée : seulement les services modifiés (chaque appel à networksetup coûte ~30 ms).
+        let done = { enable ? systemProxyPointsTo(e) : servicesUsingProxy(e, among: services).isEmpty }
+        if cmds.isEmpty { return nil }
         for c in cmds { _ = run("/usr/sbin/networksetup", c) }
         // networksetup ne signale pas toujours un refus d'autorisation : on vérifie le résultat.
-        for _ in 0..<10 { if done() { return nil }; Thread.sleep(forTimeInterval: 0.1) }
+        for attempt in 0..<3 {
+            if done() { return nil }
+            if attempt < 2 { Thread.sleep(forTimeInterval: 0.2) }
+        }
         guard let prompt else { return "networksetup" }
 
         let shell = cmds.map { (["/usr/sbin/networksetup"] + $0).map(shellQuote).joined(separator: " ") }.joined(separator: " && ")

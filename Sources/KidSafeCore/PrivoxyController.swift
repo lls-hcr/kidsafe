@@ -63,8 +63,17 @@ public final class PrivoxyController: @unchecked Sendable {
         if case .none = mode, isListening { mode = (useLaunchAgent ? loadedLabel() : nil).map { .launchd($0) } ?? .external }
         switch mode {
         case .child:
-            child?.terminate()
-            child?.waitUntilExit()
+            // Pas de waitUntilExit : Privoxy a été lancé depuis un autre fil d'exécution et la
+            // notification de fin n'arrive jamais sur celui qui attend (l'app restait bloquée en quittant).
+            // On envoie le signal directement, puis on vérifie que le port est libéré.
+            if let pid = child?.processIdentifier, pid > 0 {
+                // Privoxy n'a rien à sauvegarder : court délai pour un arrêt propre, puis arrêt immédiat.
+                kill(pid, SIGTERM)
+                if !waitUntil(listening: false, timeout: 0.6) {
+                    kill(pid, SIGKILL)
+                    _ = waitUntil(listening: false, timeout: timeout)
+                }
+            }
             child = nil
         case .launchd(let label):
             // KeepAlive : un simple kill le relancerait ; bootout décharge le service.
