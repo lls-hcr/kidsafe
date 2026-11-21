@@ -629,8 +629,12 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
 
         // Journal : un site bloqué apparaît.
         _ = curl(proxy + ["http://bad.example/"])
-        try await Task.sleep(for: .milliseconds(500))
-        #expect(BlockLog.recent(BlockLog.logFile(confDir: inst.confDir)).contains { $0.host == "bad.example" })
+        var logged = false
+        for _ in 0..<15 where !logged {
+            try await Task.sleep(for: .milliseconds(200))
+            logged = BlockLog.recent(BlockLog.logFile(confDir: inst.confDir)).contains { $0.host == "bad.example" }
+        }
+        #expect(logged, "journal : \((try? String(contentsOf: BlockLog.logFile(confDir: inst.confDir), encoding: .utf8)) ?? "absent")")
 
         // Changement de port.
         ctl.stop()
@@ -645,5 +649,68 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(!(try String(contentsOf: reset.confDir.appendingPathComponent("user.action"), encoding: .utf8)).contains("perso.example"))
         #expect(PrivoxyConfigEditor.managedActionFiles(in: try String(contentsOf: reset.configFile, encoding: .utf8)).contains("kidsafe-cat-t.action"))
         try reset.testConfig()
+    }
+}
+
+@Suite(.serialized) struct MonitorTests {
+    init() { Localization.forcedLanguage = "fr" }
+
+    @Test func parsesPrivoxyCounters() {
+        let html = "<p>   519 out of 3587 requests have been blocked,\n which equals a block rate of 14.47%.</p>"
+        let c = Monitor.parseCounters(html)
+        #expect(c?.blocked == 519 && c?.requests == 3587)
+        #expect(Monitor.parseCounters("<p>nothing</p>") == nil)
+    }
+
+    @Test func summarizesLogAndCategories() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-mon-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try "# x\n{ +block{KidSafe : Contenus pour adultes} }\n.bad.example\n{ -block }\n.ok.bad.example\n"
+            .write(to: dir.appendingPathComponent("kidsafe-cat-adult.action"), atomically: true, encoding: .utf8)
+        try "{ +block{KidSafe : TikTok} }\n.tiktok.com\n".write(to: dir.appendingPathComponent("kidsafe-services.action"), atomically: true, encoding: .utf8)
+        let index = Monitor.CategoryIndex(confDir: dir)
+        #expect(index.category(of: "www.bad.example") == "Contenus pour adultes")
+        #expect(index.category(of: "ok.bad.example") == nil)       // exception : pas une catégorie de blocage
+        #expect(index.category(of: "m.tiktok.com") == "TikTok")
+
+        let now = Date()
+        func e(_ host: String, _ ago: TimeInterval) -> BlockLog.Entry { .init(date: now.addingTimeInterval(-ago), target: host, host: host) }
+        let s = Monitor.summarize([e("www.bad.example", 60), e("www.bad.example", 120), e("tiktok.com", 7200), e("old.example", 9 * 86400)],
+                                  index: index, now: now)
+        #expect(s.total == 4)
+        #expect(s.perHour.count == 24 && s.perHour.last?.count ?? 0 >= 2)
+        #expect(s.perDay.count == 7 && s.perDay.map(\.count).reduce(0, +) == 3)   // la ligne d'il y a 9 jours est hors période
+        #expect(s.topDomains.first?.host == "www.bad.example" && s.topDomains.first?.count == 2)
+        #expect(s.perCategory.first?.name == "Contenus pour adultes")
+
+        let html = Dashboard.html(.init(counters: .init(requests: 1000, blocked: 120, since: now), domainsOnLists: 87887,
+                                        summary: s, logEnabled: true, version: "0.6.0"))
+        #expect(html.contains("Requêtes bloquées") && html.contains("12,0 %") && html.contains("www.bad.example"))
+        #expect(!html.contains("http://") && !html.contains("https://"))   // page autonome, aucun appel externe
+        #expect(Dashboard.esc("<b>&\"") == "&lt;b&gt;&amp;&quot;")
+    }
+}
+
+@Suite(.serialized) struct GuideTests {
+    @Test func guideInBothLanguages() throws {
+        defer { Localization.forcedLanguage = "fr" }
+        Localization.forcedLanguage = "fr"
+        let fr = try #require(UserGuide.html(version: "1.0"))
+        #expect(fr.contains("Guide d'utilisation") && fr.contains("id=\"desinstaller\"") && fr.contains("lang=\"fr\""))
+        Localization.forcedLanguage = "en"
+        let en = try #require(UserGuide.html(version: "1.0"))
+        #expect(en.contains("User guide") && en.contains("id=\"uninstall\"") && en.contains("lang=\"en\""))
+        // Captures intégrées (une par {{shot:…}}), aucun espace réservé restant.
+        for page in [fr, en] {
+            #expect(page.components(separatedBy: "data:image/png;base64,").count - 1 == 8)
+            #expect(!page.contains("{{shot:"))
+        }
+        // Chaque lien du sommaire pointe vers une section existante.
+        for page in [fr, en] {
+            let anchors = page.matches(of: /href="#([a-z\-]+)"/).map { String($0.1) }
+            #expect(!anchors.isEmpty)
+            for a in anchors { #expect(page.contains("id=\"\(a)\""), "ancre manquante : \(a)") }
+        }
     }
 }

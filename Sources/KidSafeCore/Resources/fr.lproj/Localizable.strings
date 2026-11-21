@@ -79,6 +79,8 @@
   kidsafe-blocklist remove-list ID [--catalog CATALOGUE.json]
       Ajoute ou supprime une liste personnelle ; elle est installée au prochain « update ».
   kidsafe-blocklist default-catalog
+  kidsafe-blocklist dashboard [--conf-dir DOSSIER] [-o PAGE.html]
+      Génère la page détaillée du moniteur (statistiques).
   kidsafe-blocklist pause | resume
       Met le filtrage en pause (sans rien supprimer) ou le reprend.
   kidsafe-blocklist block DOMAINE | allow DOMAINE
@@ -344,3 +346,39 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "adv.lan" = "Filtrer d'autres appareils (iPad, téléphone) via ce Mac";
 "adv.soon" = "BIENTÔT";
 "adv.lan.help" = "Prévu pour une version future : les autres appareils de la maison pourront utiliser ce Mac comme filtre. Cela demande de restreindre l'accès aux seuls appareils du réseau local.";
+"mon.title" = "Moniteur";
+"mon.menu" = "Moniteur";
+"mon.requests" = "Requêtes filtrées";
+"mon.blocked" = "Requêtes bloquées";
+"mon.percent" = "Pourcentage bloqué";
+"mon.domains" = "Domaines dans les listes";
+"mon.domains.sub" = "listes, réseaux sociaux et domaines actifs";
+"mon.since" = "depuis %@ (démarrage de Privoxy)";
+"mon.logOff" = "Le journal des sites bloqués est désactivé : seuls les compteurs sont disponibles. Activez-le dans Réglages → Avancé pour voir les graphiques et les tableaux.";
+"mon.perHour" = "Blocages par heure (24 h)";
+"mon.perDay" = "Blocages par jour (7 jours)";
+"mon.top" = "Domaines les plus bloqués";
+"mon.perCategory" = "Blocages par catégorie";
+"mon.recent" = "Derniers blocages";
+"mon.none" = "Aucun blocage enregistré pour cette période.";
+"mon.noneShort" = "aucun";
+"mon.col.domain" = "Domaine";
+"mon.col.hits" = "Blocages";
+"mon.col.freq" = "Fréquence";
+"mon.col.time" = "Heure";
+"mon.generated" = "Généré le %@";
+"mon.footer" = "Page générée par KidSafe sur ce Mac, à partir du journal des sites bloqués. Aucune donnée n'est envoyée.";
+"mon.cat.other" = "Autres (journal antérieur, règles perso)";
+"mon.socialNow" = "Réseaux bloqués maintenant";
+"mon.last" = "Dernier blocage";
+"mon.lists" = "Listes mises à jour";
+"mon.unavailable" = "Privoxy ne répond pas : compteurs indisponibles.";
+"mon.pin" = "Au premier plan";
+"mon.details" = "Mode détaillé";
+"mon.enableLog.title" = "Activer le journal des sites bloqués ?";
+"mon.enableLog.message" = "Le moniteur s'en sert pour afficher le dernier blocage, les graphiques et les tableaux. Seuls les blocages sont enregistrés, sur ce Mac uniquement, et le journal est vidé au-delà de 5 Mo.";
+"mon.enableLog.ok" = "Activer";
+"mon.error" = "La page détaillée n'a pas pu être créée.";
+"guide.title" = "Guide d'utilisation";
+"guide.menu" = "Guide d'utilisation";
+"guide.footer" = "Guide de KidSafe, sur ce Mac. Une question ? Menu du bouclier → Envoyer un avis…";

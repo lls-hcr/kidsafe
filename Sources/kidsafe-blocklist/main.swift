@@ -199,6 +199,26 @@ case "block", "allow":
         log("\(argv[1] == "block" ? "⛔︎" : "✓") \(d) — " + L("cli.catalogSaved", catURL.path))
     } catch { fail("\(error)") }
 
+case "dashboard":
+    // Page détaillée du moniteur, générée depuis le Terminal.
+    let args = Args(argv.dropFirst(2), valued: catalogOptions)
+    let inst = installer(args)
+    let e = SystemStatus.listenAddress(configFile: inst.configFile)
+    let counters = await Monitor.counters(host: e.host, port: e.port)
+    let catalog = loadCatalog(catalogURL(args))
+    let entries = BlockLog.all(BlockLog.logFile(confDir: inst.confDir))
+    let index = Monitor.CategoryIndex(confDir: inst.confDir)
+    let html = Dashboard.html(.init(counters: counters, domainsOnLists: index.domainCount, summary: Monitor.summarize(entries, index: index),
+                                    logEnabled: !entries.isEmpty || catalog.advanced.logBlocked, version: "cli"))
+    let out = args.values["-o"] ?? "kidsafe-dashboard.html"
+    do { try html.write(toFile: out, atomically: true, encoding: .utf8); log(out) } catch { fail("\(error)") }
+
+case "guide":
+    let args = Args(argv.dropFirst(2), valued: catalogOptions)
+    guard let html = UserGuide.html(version: "cli") else { fail("guide") }
+    let out = args.values["-o"] ?? "kidsafe-guide.html"
+    do { try html.write(toFile: out, atomically: true, encoding: .utf8); log(out) } catch { fail("\(error)") }
+
 case "library":
     for c in Catalog.library {
         print("\(c.id.padding(toLength: 22, withPad: " ", startingAt: 0)) \(c.name)  [\(c.sources.first?.license ?? "?")]")

@@ -199,6 +199,7 @@ public struct PrivoxyInstaller: Sendable {
     /// un fichier à moitié écrit. Les fichiers générés sont en 0644 (lisibles, non modifiables par Privoxy).
     private func writeAtomically(_ content: String, to url: URL, keepAttributesOf original: URL? = nil) throws {
         let fm = FileManager.default
+        let previousModification = (try? fm.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
         let tmp = url.deletingLastPathComponent().appendingPathComponent(".kidsafe-tmp-\(UUID().uuidString)")
         guard fm.createFile(atPath: tmp.path, contents: Data(content.utf8), attributes: [.posixPermissions: 0o644]) else {
             throw KidSafeError.io(L("error.writeDir", url.deletingLastPathComponent().path))
@@ -212,6 +213,14 @@ public struct PrivoxyInstaller: Sendable {
             let why = String(cString: strerror(errno))
             try? fm.removeItem(at: tmp)
             throw KidSafeError.io(L("error.replace", url.path, why))
+        }
+        // Privoxy ne relit un fichier que si sa date de modification change, à la seconde près :
+        // deux écritures dans la même seconde passeraient inaperçues. On avance alors la date d'une seconde.
+        if let previous = previousModification,
+           let now = (try? fm.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date,
+           floor(now.timeIntervalSince1970) <= floor(previous.timeIntervalSince1970) {
+            try? fm.setAttributes([.modificationDate: Date(timeIntervalSince1970: floor(previous.timeIntervalSince1970) + 1)],
+                                  ofItemAtPath: url.path)
         }
     }
 

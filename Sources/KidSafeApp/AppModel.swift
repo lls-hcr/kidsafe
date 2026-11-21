@@ -48,6 +48,16 @@ final class AppModel: ObservableObject {
     /// Un changement du parent attend d'être appliqué : après l'application, Privoxy est
     /// redémarré pour couper les connexions déjà ouvertes vers les sites désormais bloqués.
     private var reconnectAfterApply = false
+    // Moniteur (voir AppModel+Monitor.swift) : rafraîchi seulement quand sa fenêtre est ouverte.
+    @Published var monitorCounters: Monitor.Counters?
+    @Published var monitorLastBlock: BlockLog.Entry?
+    @Published var monitorBusy = false
+    @Published var monitorPinned: Bool = AppModel.prefs.object(forKey: "monitorPinned") as? Bool ?? true {
+        didSet { AppModel.prefs.set(monitorPinned, forKey: "monitorPinned"); monitorPinHandler?(monitorPinned) }
+    }
+    var openMonitorHandler: (() -> Void)?
+    var monitorPinHandler: ((Bool) -> Void)?
+
     // État de l'onglet Avancé (voir AppModel+Advanced.swift).
     @Published var blockEntries: [BlockLog.Entry] = []
     @Published var portNote: String?
@@ -103,12 +113,39 @@ final class AppModel: ObservableObject {
         catalog = (try? engine.loadCatalog()) ?? .default
         status = engine.loadStatus()
         SystemStatus.bypassDomains = catalog.advanced.bypassDomains
+        // Mode capture d'écran (KIDSAFE_SCREENSHOTS) : aucune minuterie, aucun Privoxy, aucun réglage modifié.
+        guard Self.env["KIDSAFE_SCREENSHOTS"] == nil else { return }
         installer = detectInstaller()
         refreshSystemStatus()
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
         }
         tick()
+    }
+
+    /// Données de démonstration pour les captures d'écran du guide (rien n'est enregistré).
+    func loadDemoState() {
+        var c = Catalog.default
+        for id in ["adult", "bypass", "security", "gambling"] { if let i = c.categories.firstIndex(where: { $0.id == id }) { c.categories[i].enabled = true } }
+        c.services["tiktok"] = ServicePolicy(mode: .blocked)
+        c.services["youtube"] = ServicePolicy(mode: .blockedDuring, windows: [TimeWindow(days: TimeWindow.allDays, start: 21 * 60, end: 7 * 60)])
+        c.services["instagram"] = ServicePolicy(mode: .allowedOnlyDuring, windows: [TimeWindow(days: [3, 6, 7], start: 14 * 60, end: 18 * 60)])
+        c.blockedDomains = ["roblox.com", "fortnite.com"]
+        c.allowlist = ["khanacademy.org", "wikipedia.org"]
+        c.advanced.logBlocked = true
+        c.advanced.proxyBypass = ["intranet.example"]
+        catalog = c
+        var s = KidSafeStatus()
+        s.lastApplied = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date())
+        s.domainCounts = ["adult": 87_887, "bypass": 24_014, "security": 206_194, "gambling": 95_194]
+        status = s
+        now = Calendar.current.date(bySettingHour: 15, minute: 10, second: 0, of: Date()) ?? Date()
+        installer = PrivoxyInstaller(confDir: BundledPrivoxy.installDir(supportDir: KidSafePaths.user.supportDir))
+        privoxyRunning = true
+        systemProxyOK = true
+        loginItemStatus = .enabled
+        monitorCounters = .init(requests: 45_358, blocked: 8_543, since: Calendar.current.date(bySettingHour: 8, minute: 12, second: 0, of: Date()))
+        monitorLastBlock = .init(date: Date().addingTimeInterval(-120), target: "www.tiktok.com:443", host: "www.tiktok.com")
     }
 
     // MARK: - État

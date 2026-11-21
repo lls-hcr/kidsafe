@@ -65,6 +65,10 @@ Développement : les variables `KIDSAFE_SUPPORT_DIR` et `KIDSAFE_PRIVOXY_CONF` i
   - **Domaines** : domaines bloqués à la main et liste blanche (un domaine ne peut pas être dans les deux) ;
   - **Général** : filtrage, mode strict, fréquence de mise à jour des listes (jamais → chaque semaine),
     mot de passe parent, Privoxy et proxy, langue, don.
+- **Moniteur** (menu du bouclier) : petite fenêtre flottante avec les compteurs en direct (requêtes filtrées,
+  bloquées, pourcentage, domaines dans les listes, dernier blocage) et un **mode détaillé** : page HTML locale
+  autonome avec tuiles, graphiques par heure et par jour, domaines les plus bloqués, blocages par catégorie et
+  derniers blocages. Rien ne tourne quand la fenêtre est fermée.
 - **Avancé** (mot de passe parent, avec mise en garde) : port de Privoxy (choisi automatiquement s'il est occupé,
   ou réglé à la main), éditeur de Privoxy dans le navigateur (`http://p.p`, refermé tout seul après une heure),
   règles personnelles (`user.action`, vérifiées avant d'être appliquées), journal des sites bloqués, domaines qui

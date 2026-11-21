@@ -8,6 +8,7 @@ public enum BlockLog {
         public var target: String
         /// Nom d'hôte seul (sans schéma, port ni chemin).
         public var host: String
+        public init(date: Date, target: String, host: String) { self.date = date; self.target = target; self.host = host }
     }
 
     public static func logFile(confDir: URL) -> URL {

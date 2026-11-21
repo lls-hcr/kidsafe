@@ -4,7 +4,7 @@
 # Usage : scripts/build-app.sh [--universal]
 set -eu
 cd "$(dirname "$0")/.."
-VERSION="0.5.0"
+VERSION="0.6.0"
 # Étiquette affichée après la version (« KidSafe 0.3.3 (beta) ») ; vide pour une version finale.
 RELEASE_LABEL="${KIDSAFE_RELEASE_LABEL-beta}"
 BUNDLE_ID="app.kidsafe.KidSafe"     # à remplacer par votre identifiant définitif
@@ -98,6 +98,8 @@ rm -rf "$UNI"
 mkdir -p "$UNI/Contents/MacOS" "$UNI/Contents/Resources/fr.lproj" "$UNI/Contents/Resources/en.lproj"
 cp "$BIN/KidSafeUninstaller" "$UNI/Contents/MacOS/KidSafeUninstaller"
 cp -R "$RES" "$UNI/Contents/Resources/"
+# Le désinstalleur n'a besoin que des traductions : pas des captures ni du guide.
+find "$UNI/Contents/Resources/KidSafe_KidSafeCore.bundle" \( -name 'shot-*.png' -o -name 'guide-*.html' \) -delete
 cp Resources/AppIcon.icns "$UNI/Contents/Resources/AppIcon.icns"
 printf '"CFBundleDisplayName" = "Désinstaller KidSafe";\n"CFBundleName" = "Désinstaller KidSafe";\n' > "$UNI/Contents/Resources/fr.lproj/InfoPlist.strings"
 printf '"CFBundleDisplayName" = "Uninstall KidSafe";\n"CFBundleName" = "Uninstall KidSafe";\n' > "$UNI/Contents/Resources/en.lproj/InfoPlist.strings"

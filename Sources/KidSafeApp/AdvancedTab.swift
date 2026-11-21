@@ -43,7 +43,7 @@ struct AdvancedTab: View {
                 Toggle(L("adv.editor.toggle"), isOn: Binding(get: { model.editorActive }, set: { model.setEditor($0) }))
                 if model.editorActive, let until = model.catalog.advanced.editorUntil {
                     HStack {
-                        Text(L("adv.editor.until", until.formatted(date: .omitted, time: .shortened)))
+                        Text(L("adv.editor.until", formatDate(until, date: .omitted, time: .shortened)))
                             .font(.caption).foregroundStyle(.orange)
                         Spacer()
                         Button(L("adv.editor.open")) { model.openPrivoxyPage("show-status") }
@@ -67,26 +67,9 @@ struct AdvancedTab: View {
             Section(L("adv.log")) {
                 Toggle(L("adv.log.toggle"), isOn: Binding(get: { model.catalog.advanced.logBlocked }, set: { model.setLogBlocked($0) }))
                 if model.catalog.advanced.logBlocked {
-                    if model.blockEntries.isEmpty {
-                        Text(L("adv.log.empty")).font(.caption).foregroundStyle(.secondary)
-                    } else {
-                        ScrollView {
-                            VStack(alignment: .leading, spacing: 3) {
-                                ForEach(model.blockEntries.prefix(100)) { e in
-                                    HStack {
-                                        Text(e.date.formatted(date: .abbreviated, time: .standard))
-                                            .font(.caption.monospacedDigit()).foregroundStyle(.secondary)
-                                        Text(verbatim: e.host).font(.caption).textSelection(.enabled)
-                                        Spacer()
-                                    }
-                                }
-                            }
-                        }
-                        .frame(height: 140)
-                    }
                     HStack {
-                        Button(L("adv.log.refresh")) { model.reloadBlockLog() }
                         Button(L("adv.log.open")) { model.openBlockLog() }
+                        Button(L("mon.menu") + "…") { model.openMonitor() }
                         Spacer()
                         Button(L("adv.log.clear")) { model.clearBlockLog() }
                     }
@@ -132,9 +115,9 @@ struct AdvancedTab: View {
             ErrorLine()
         }
         .formStyle(.grouped)
+        .toggleStyle(ColorSwitchStyle())
         .onAppear {
             portEntry.text = String(model.currentPort)
-            model.reloadBlockLog()
         }
         .onChange(of: model.currentPort) { _, p in portEntry.text = String(p) }
     }

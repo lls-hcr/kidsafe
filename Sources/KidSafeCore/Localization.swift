@@ -54,3 +54,9 @@ public func formatCount(_ n: Int) -> String {
     f.locale = Locale(identifier: Localization.currentLanguage)
     return f.string(from: NSNumber(value: n)) ?? "\(n)"
 }
+
+/// Date formatée dans la langue de l'app (et non celle du système), avec le fuseau du Mac.
+public func formatDate(_ date: Date, date dateStyle: Date.FormatStyle.DateStyle = .abbreviated,
+                       time timeStyle: Date.FormatStyle.TimeStyle = .shortened) -> String {
+    date.formatted(Date.FormatStyle(date: dateStyle, time: timeStyle).locale(Locale(identifier: Localization.currentLanguage)))
+}

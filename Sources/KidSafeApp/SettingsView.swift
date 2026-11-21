@@ -297,7 +297,7 @@ struct GeneralTab: View {
                     ForEach(Catalog.refreshChoices, id: \.self) { Text(L("app.refresh.\($0)")).tag($0) }
                 }
                 if let date = model.status.lastApplied {
-                    LabeledContent(L("app.general.lastUpdate")) { Text(date.formatted(date: .abbreviated, time: .shortened)) }
+                    LabeledContent(L("app.general.lastUpdate")) { Text(formatDate(date, date: .abbreviated, time: .shortened)) }
                 }
             }
             Section(L("app.password.section")) {
@@ -336,7 +336,7 @@ struct GeneralTab: View {
                         if model.isCheckingUpdates { ProgressView().controlSize(.small) }
                         Spacer()
                         if let d = model.lastUpdateCheck {
-                            Text(L("updates.lastCheck", d.formatted(date: .abbreviated, time: .shortened)))
+                            Text(L("updates.lastCheck", formatDate(d, date: .abbreviated, time: .shortened)))
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
@@ -367,5 +367,6 @@ struct GeneralTab: View {
             }
         }
         .formStyle(.grouped)
+        .toggleStyle(ColorSwitchStyle())
     }
 }

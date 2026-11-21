@@ -29,11 +29,19 @@ struct MenuBarIcon: View {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = AppModel()
     private var settingsWindow: NSWindow?
+    private var monitorPanel: NSPanel?
+    private var monitorTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        if let dir = ProcessInfo.processInfo.environment["KIDSAFE_SCREENSHOTS"] {
+            Screenshotter(model: model).run(into: URL(fileURLWithPath: dir))
+            exit(0)
+        }
         // Pas de fenêtre au lancement : KidSafe vit dans la barre de menus.
         // Un double-clic sur l'app déjà ouverte affiche les réglages (applicationShouldHandleReopen).
         model.openSettingsHandler = { [weak self] in self?.showSettings() }
+        model.openMonitorHandler = { [weak self] in self?.showMonitor() }
+        model.monitorPinHandler = { [weak self] pinned in self?.applyPin(pinned) }
         model.startUp()
     }
 
@@ -46,6 +54,36 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
         showSettings()
         return false
+    }
+
+    /// Fenêtre flottante du moniteur ; ses chiffres ne sont rafraîchis que pendant qu'elle est ouverte.
+    func showMonitor() {
+        if monitorPanel == nil {
+            let p = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 340, height: 300),
+                            styleMask: [.titled, .closable, .utilityWindow], backing: .buffered, defer: false)
+            p.contentViewController = NSHostingController(rootView: MonitorView().environmentObject(model))
+            p.isReleasedWhenClosed = false
+            p.hidesOnDeactivate = false          // reste visible quand on travaille dans une autre app
+            p.setFrameAutosaveName("KidSafeMonitor")
+            if !p.setFrameUsingName("KidSafeMonitor") { p.center() }
+            NotificationCenter.default.addObserver(forName: NSWindow.willCloseNotification, object: p, queue: .main) { [weak self] _ in
+                MainActor.assumeIsolated { self?.monitorTimer?.invalidate(); self?.monitorTimer = nil }
+            }
+            monitorPanel = p
+        }
+        monitorPanel?.title = L("mon.title")
+        applyPin(model.monitorPinned)
+        monitorTimer?.invalidate()
+        monitorTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.model.refreshMonitor() }
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        monitorPanel?.makeKeyAndOrderFront(nil)
+    }
+
+    private func applyPin(_ pinned: Bool) {
+        monitorPanel?.level = pinned ? .floating : .normal
+        monitorPanel?.isFloatingPanel = pinned
     }
 
     func showSettings() {
@@ -105,7 +143,9 @@ struct MenuView: View {
                 MenuRow(title: L("app.updateNow"), symbol: "arrow.clockwise", busy: model.isApplying) { model.refreshListsManually() }
                     .disabled(model.isApplying || model.installer == nil || !model.catalog.filteringEnabled)
                 MenuRow(title: L("app.menu.settings"), symbol: "gearshape") { panel.close(); model.openSettings() }
+                MenuRow(title: L("mon.menu"), symbol: "gauge.with.dots.needle.33percent") { panel.close(); model.openMonitor() }
                 MenuRow(title: L("app.menu.testPrivoxy"), symbol: "stethoscope") { panel.close(); model.openPrivoxyTestPage() }
+                MenuRow(title: L("guide.menu"), symbol: "book") { panel.close(); model.openGuide() }
                 if model.canSendFeedback { FeedbackRow(panel: panel) }
                 if model.websiteURL != nil {
                     MenuRow(title: L("app.menu.website"), symbol: "globe") { panel.close(); model.open(model.websiteURL) }
@@ -222,7 +262,7 @@ struct StatusHeader: View {
                 VStack(alignment: .leading) {
                     Text(model.isProtected ? L("app.status.protected") : L("app.status.notProtected")).font(.headline)
                     if let date = model.status.lastApplied {
-                        Text(L("app.status.lastUpdate", date.formatted(date: .abbreviated, time: .shortened)))
+                        Text(L("app.status.lastUpdate", formatDate(date, date: .abbreviated, time: .shortened)))
                             .font(.caption).foregroundStyle(.secondary)
                     }
                 }
@@ -397,23 +437,35 @@ struct FeedbackRow: View {
     let panel: WindowRef
 
     var body: some View {
-        if model.feedbackEmail != nil, model.issuesURL != nil {
-            Menu {
-                Button(L("app.feedback.email")) { panel.close(); model.sendFeedbackByEmail() }
-                Button(L("app.feedback.github")) { panel.close(); model.sendFeedbackOnGitHub() }
-            } label: {
-                MenuLabel(title: L("app.feedback"), symbol: "envelope").frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .menuStyle(.borderlessButton)
-            .menuIndicator(.hidden)
-            .padding(.vertical, 4).padding(.horizontal, 6)
-        } else {
-            MenuRow(title: L("app.feedback"), symbol: "envelope") {
+        MenuRow(title: L("app.feedback"), symbol: "envelope") {
+            if model.feedbackEmail != nil, model.issuesURL != nil {
+                // Deux choix : petit menu à l'endroit du clic.
+                let menu = NSMenu()
+                let mail = FeedbackChoice(title: L("app.feedback.email")) { panel.close(); model.sendFeedbackByEmail() }
+                let gh = FeedbackChoice(title: L("app.feedback.github")) { panel.close(); model.sendFeedbackOnGitHub() }
+                menu.addItem(mail.item); menu.addItem(gh.item)
+                menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
+            } else {
                 panel.close()
                 if model.feedbackEmail != nil { model.sendFeedbackByEmail() } else { model.sendFeedbackOnGitHub() }
             }
         }
     }
+}
+
+/// Élément de menu AppKit qui exécute une action Swift.
+final class FeedbackChoice: NSObject {
+    let item: NSMenuItem
+    private let action: () -> Void
+    init(title: String, action: @escaping () -> Void) {
+        self.action = action
+        item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        super.init()
+        item.target = self
+        item.action = #selector(run)
+        item.representedObject = self   // garde l'objet en vie pendant l'affichage du menu
+    }
+    @objc private func run() { action() }
 }
 
 /// Icône de largeur fixe + texte : toutes les lignes du menu restent alignées.
@@ -424,6 +476,33 @@ struct MenuLabel: View {
         HStack(spacing: 8) {
             Image(systemName: symbol).frame(width: 20, alignment: .center)
             Text(title)
+        }
+    }
+}
+
+/// Interrupteur des réglages : couleur d'accentuation conservée même quand la fenêtre n'est pas active
+/// (l'interrupteur système devient gris, ce qui laisse croire qu'il est désactivé).
+struct ColorSwitchStyle: ToggleStyle {
+    func makeBody(configuration: Configuration) -> some View { SwitchRow(configuration: configuration) }
+
+    private struct SwitchRow: View {
+        let configuration: ToggleStyleConfiguration
+        @Environment(\.isEnabled) private var isEnabled
+
+        var body: some View {
+            let on = configuration.isOn
+            HStack {
+                configuration.label
+                Spacer()
+                ZStack(alignment: on ? .trailing : .leading) {
+                    Capsule().fill(on ? Color.accentColor : Color.secondary.opacity(0.28)).frame(width: 34, height: 20)
+                    Circle().fill(.white).shadow(color: .black.opacity(0.2), radius: 1, y: 0.5).frame(width: 17, height: 17).padding(1.5)
+                }
+                .contentShape(Capsule())
+                .onTapGesture { if isEnabled { withAnimation(.easeInOut(duration: 0.15)) { configuration.isOn.toggle() } } }
+                .accessibilityAddTraits(.isButton)
+                .opacity(isEnabled ? 1 : 0.45)
+            }
         }
     }
 }
