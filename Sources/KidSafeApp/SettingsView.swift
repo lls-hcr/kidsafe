@@ -320,6 +320,10 @@ struct GeneralTab: View {
                 }
                 .disabled(model.installer == nil)
             }
+            Section(L("app.uninstall.section")) {
+                Text(L("app.uninstall.help")).font(.caption).foregroundStyle(.secondary)
+                Button(role: .destructive) { model.uninstall() } label: { Label(L("app.uninstall.button"), systemImage: "trash") }
+            }
             Section(L("app.general.language")) {
                 Picker(L("app.general.language"), selection: $model.language) {
                     Text(L("app.general.langSystem")).tag(AppModel.Language.system)

@@ -3,7 +3,7 @@
 # Usage : scripts/build-app.sh [--universal]
 set -eu
 cd "$(dirname "$0")/.."
-VERSION="0.1.0"
+VERSION="0.2.0"
 BUNDLE_ID="app.kidsafe.KidSafe"     # à remplacer par votre identifiant définitif
 # Lien du bouton « Soutenir KidSafe » (Buy Me a Coffee, Ko-fi, PayPal, Liberapay…). KIDSAFE_DONATE_URL= (vide) masque le bouton.
 DONATE_URL="${KIDSAFE_DONATE_URL-https://github.com/sponsors/lls-hcr}"
@@ -42,6 +42,7 @@ cp "$BIN/KidSafe" "$APP/Contents/MacOS/KidSafe"
 cp "$BIN/kidsafe-blocklist" "$APP/Contents/MacOS/kidsafe-blocklist"
 # Ressources dans Contents/Resources (et non à la racine du .app) pour que la signature reste valide.
 cp -R "$RES" "$APP/Contents/Resources/"
+cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"   # dessinée par scripts/make-icon.swift
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -49,6 +50,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 <plist version="1.0">
 <dict>
   <key>CFBundleExecutable</key><string>KidSafe</string>
+  <key>CFBundleIconFile</key><string>AppIcon</string>
   <key>CFBundleIdentifier</key><string>$BUNDLE_ID</string>
   <key>CFBundleName</key><string>KidSafe</string>
   <key>CFBundleDisplayName</key><string>KidSafe</string>

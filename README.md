@@ -16,12 +16,21 @@ L'app et la CLI partagent le même catalogue : `~/Library/Application Support/Ki
 scripts/test.sh                      # tests (fonctionne avec les seuls Command Line Tools)
 scripts/build-app.sh                 # build/KidSafe.app pour ce Mac
 scripts/build-app.sh --universal     # Apple Silicon + Intel
+swift scripts/make-icon.swift Resources/AppIcon.png   # redessine l'icône (puis iconutil, voir l'historique git)
 open build/KidSafe.app
 ```
 
-Pour essayer avec le Privoxy de Homebrew : `brew services start privoxy`, ouvrir l'app, puis cliquer sur
-« Configurer » pour régler le proxy du Mac (le mot de passe administrateur est demandé). On le retire
-avec Réglages → Général → « Retirer le proxy ».
+Pour essayer : `brew install privoxy`, ouvrir l'app, puis cliquer sur « Configurer ».
+
+**Le Mac ne doit jamais perdre sa connexion** :
+- au lancement, KidSafe démarre Privoxy (service launchd s'il existe, sinon processus de l'app), puis remet
+  le proxy si le parent l'avait activé ;
+- en quittant, KidSafe retire d'abord le proxy, puis arrête Privoxy. Si le proxy ne peut pas être retiré,
+  Privoxy reste allumé ;
+- toutes les 5 s, si le proxy pointe vers un Privoxy qui ne répond plus, KidSafe le relance ; s'il ne repart pas,
+  le proxy est retiré (puis remis quand Privoxy revient) ;
+- seul le proxy 127.0.0.1:<port de Privoxy> est retiré : un proxy configuré par ailleurs n'est jamais touché ;
+- Réglages → Général → « Désinstaller KidSafe… » remet le Mac dans son état d'origine.
 
 Développement : les variables `KIDSAFE_SUPPORT_DIR` et `KIDSAFE_PRIVOXY_CONF` isolent l'app de la vraie configuration.
 

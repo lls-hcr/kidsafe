@@ -34,6 +34,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // Pas de fenêtre au lancement : KidSafe vit dans la barre de menus.
         // Un double-clic sur l'app déjà ouverte affiche les réglages (applicationShouldHandleReopen).
         model.openSettingsHandler = { [weak self] in self?.showSettings() }
+        model.startUp()
+    }
+
+    /// Quitter retire le proxy puis arrête Privoxy (voir AppModel.shutDown).
+    func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
+        model.shutDown()
+        return .terminateNow
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {

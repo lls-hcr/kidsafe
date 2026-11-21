@@ -45,6 +45,19 @@ final class AppModel: ObservableObject {
     /// Un changement du parent attend d'être appliqué : après l'application, Privoxy est
     /// redémarré pour couper les connexions déjà ouvertes vers les sites désormais bloqués.
     private var reconnectAfterApply = false
+    /// Privoxy, démarré par l'app au lancement et arrêté quand elle quitte.
+    private(set) var privoxy: PrivoxyController?
+    private var healthTimer: Timer?
+    private var healthBusy = false
+    private var lastAutoProxyFailure: Date?
+    private var safetyNoticeShown = false
+    private var uninstalling = false
+    /// Le parent a branché le Mac sur Privoxy : KidSafe remet le proxy à chaque lancement
+    /// et le retire toujours en quittant, avant d'arrêter Privoxy.
+    private var proxyWanted: Bool {
+        get { UserDefaults.standard.bool(forKey: "proxyWanted") }
+        set { UserDefaults.standard.set(newValue, forKey: "proxyWanted") }
+    }
     /// Réseaux sociaux bloqués lors de la dernière vérification des plages horaires.
     private var lastBlockedServiceIDs: Set<String> = []
     private var timer: Timer?
@@ -89,7 +102,7 @@ final class AppModel: ObservableObject {
     var isLocked: Bool { hasPassword && (unlockedUntil.map { $0 <= now } ?? true) }
 
     func refreshSystemStatus() {
-        installer = installer ?? Self.detectInstaller()
+        makeController()
         guard let e = endpoint else { privoxyRunning = false; systemProxyOK = false; return }
         privoxyRunning = SystemStatus.isListening(e)
         systemProxyOK = SystemStatus.systemProxyPointsTo(e)
@@ -104,7 +117,7 @@ final class AppModel: ObservableObject {
                 if try engine.refreshServices(catalog, installer: installer, date: now) {
                     // Un réseau vient d'être bloqué : on coupe ses connexions déjà ouvertes.
                     let ids = Set(blockedServicesNow.map(\.id))
-                    if !ids.isSubset(of: lastBlockedServiceIDs) { PrivoxyService.restart() }
+                    if !ids.isSubset(of: lastBlockedServiceIDs) { restartPrivoxy() }
                     lastBlockedServiceIDs = ids
                 }
             } catch { lastError = "\(error)" }
@@ -318,7 +331,7 @@ final class AppModel: ObservableObject {
                 self.lastBlockedServiceIDs = Set(catalog.blockedServices(at: Date()).map(\.id))
                 if self.reconnectAfterApply, catalog == self.catalog {
                     self.reconnectAfterApply = false
-                    PrivoxyService.restart()
+                    self.restartPrivoxy()
                 }
                 if !result.update.failed.isEmpty {
                     self.lastError = result.update.failed.map { "\($0.id) : \($0.error)" }.joined(separator: "\n")
@@ -336,16 +349,149 @@ final class AppModel: ObservableObject {
     }
 
     func configureSystemProxy(_ enable: Bool) {
-        guard let e = endpoint else { lastError = L("app.error.noPrivoxy"); return }
+        makeController()
+        guard let e = endpoint, let privoxy else { lastError = L("app.error.noPrivoxy"); return }
         if !enable {
             guard requireUnlock() else { return }
             guard confirm(title: L("app.alert.proxyOff.title"), message: L("app.alert.proxyOff.message"),
                           ok: L("app.alert.proxyOff.ok"), style: .warning) else { return }
+            proxyWanted = false
+            if let err = SystemStatus.setSystemProxy(e, enable: false, prompt: L("app.proxy.adminPromptOff")),
+               !err.contains("-128") { lastError = L("app.error.proxy", err) }
+            refreshSystemStatus()
+            return
         }
-        if let err = SystemStatus.setSystemProxy(enable ? e : nil, prompt: L("app.proxy.adminPrompt")) {
+        // Jamais de proxy vers un Privoxy arrêté : on le démarre d'abord.
+        guard privoxy.start() else { lastError = L("app.error.privoxyStart"); refreshSystemStatus(); return }
+        if let err = SystemStatus.setSystemProxy(e, enable: true, prompt: L("app.proxy.adminPrompt")) {
             if !err.contains("-128") { lastError = L("app.error.proxy", err) }   // -128 : annulé par l'utilisateur
+        } else {
+            proxyWanted = true
+            lastError = nil
         }
         refreshSystemStatus()
+    }
+
+    // MARK: - Cycle de vie de Privoxy
+
+    private func makeController() {
+        installer = installer ?? Self.detectInstaller()
+        guard privoxy == nil, let installer, let e = endpoint else { return }
+        privoxy = PrivoxyController(binary: installer.privoxyBinary, configFile: installer.configFile, host: e.host, port: e.port)
+    }
+
+    /// Au lancement : démarre Privoxy puis, si le parent l'avait activé, remet le proxy du Mac.
+    func startUp() {
+        makeController()
+        guard let privoxy, let e = endpoint else { return }
+        let wanted = proxyWanted
+        healthBusy = true
+        Task.detached {
+            let ok = privoxy.start()
+            let err = ok && wanted ? SystemStatus.setSystemProxy(e, enable: true, prompt: nil) : nil
+            await MainActor.run {
+                self.healthBusy = false
+                if !ok { self.lastError = L("app.error.privoxyStart") }
+                if err != nil { self.lastError = L("app.error.proxyAuto") }
+                self.refreshSystemStatus()
+            }
+        }
+        healthTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.healthCheck() }
+        }
+    }
+
+    /// En quittant : retire d'abord le proxy, puis arrête Privoxy. Si le proxy ne peut pas
+    /// être retiré, Privoxy reste allumé : le Mac ne doit jamais se retrouver sans connexion.
+    func shutDown() {
+        healthTimer?.invalidate()
+        pendingApply?.cancel()
+        guard !uninstalling, let e = endpoint else { return }
+        if !SystemStatus.servicesUsingProxy(e).isEmpty,
+           SystemStatus.setSystemProxy(e, enable: false, prompt: L("app.proxy.adminPromptOff")) != nil {
+            return
+        }
+        privoxy?.stop()
+    }
+
+    /// Toutes les 5 s. Proxy actif mais Privoxy arrêté = plus de connexion : on relance Privoxy,
+    /// et s'il ne repart pas, on retire le proxy. Le proxy est remis dès que Privoxy répond.
+    private func healthCheck() {
+        guard !healthBusy, !uninstalling, let e = endpoint, let privoxy else { return }
+        let listening = SystemStatus.isListening(e)
+        let pointing = SystemStatus.systemProxyPointsTo(e)
+        privoxyRunning = listening
+        systemProxyOK = pointing
+        let wanted = proxyWanted
+        let mayRetryProxy = lastAutoProxyFailure.map { Date().timeIntervalSince($0) > 300 } ?? true
+
+        if pointing && !listening {
+            healthBusy = true
+            Task.detached {
+                let ok = privoxy.start(timeout: 4)
+                if !ok { SystemStatus.setSystemProxy(e, enable: false, prompt: nil) }
+                await MainActor.run {
+                    self.healthBusy = false
+                    self.refreshSystemStatus()
+                    if !ok { self.safetyNotice() }
+                }
+            }
+        } else if wanted && !pointing && mayRetryProxy {
+            healthBusy = true
+            Task.detached {
+                let ok = privoxy.start(timeout: 4)
+                let err = ok ? SystemStatus.setSystemProxy(e, enable: true, prompt: nil) : "privoxy"
+                await MainActor.run {
+                    self.healthBusy = false
+                    if err != nil { self.lastAutoProxyFailure = Date() }
+                    self.refreshSystemStatus()
+                }
+            }
+        }
+    }
+
+    private func safetyNotice() {
+        lastError = L("app.safety.removed")
+        guard !safetyNoticeShown else { return }
+        safetyNoticeShown = true
+        notice(L("app.safety.removed"))
+    }
+
+    private func restartPrivoxy() {
+        guard let privoxy else { return }
+        healthBusy = true
+        Task.detached {
+            privoxy.restart()
+            await MainActor.run { self.healthBusy = false; self.refreshSystemStatus() }
+        }
+    }
+
+    /// Remet le Mac dans son état d'origine et place KidSafe dans la corbeille.
+    func uninstall() {
+        guard requireUnlock() else { return }
+        guard confirm(title: L("app.uninstall.title"), message: L("app.uninstall.message"),
+                      ok: L("app.uninstall.ok"), style: .critical) else { return }
+        healthTimer?.invalidate()
+        pendingApply?.cancel()
+        if let e = endpoint, !SystemStatus.servicesUsingProxy(e).isEmpty,
+           let err = SystemStatus.setSystemProxy(e, enable: false, prompt: L("app.proxy.adminPromptOff")) {
+            // Sans retrait du proxy, on n'arrête pas Privoxy (sinon plus de connexion).
+            notice(L("app.uninstall.proxyFailed", err))
+            healthTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
+                Task { @MainActor in self?.healthCheck() }
+            }
+            return
+        }
+        uninstalling = true
+        privoxy?.stop()
+        _ = try? installer?.uninstall()
+        try? SMAppService.mainApp.unregister()
+        try? FileManager.default.removeItem(at: engine.paths.supportDir)
+        if let id = Bundle.main.bundleIdentifier { UserDefaults.standard.removePersistentDomain(forName: id) }
+        let app = Bundle.main.bundleURL
+        if app.pathExtension == "app" { NSWorkspace.shared.recycle([app]) { _, _ in } }
+        notice(L("app.uninstall.done"))
+        NSApp.terminate(nil)
     }
 
     /// Fourni par l'AppDelegate.
