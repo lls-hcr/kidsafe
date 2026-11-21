@@ -521,6 +521,10 @@ final class AppModel: ObservableObject {
     // MARK: - Nouvelles versions de KidSafe
 
     let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "dev"
+    /// Étiquette de version (clé `KidSafeReleaseLabel`, ex. « beta » ; vide pour une version finale).
+    let releaseLabel = Bundle.main.object(forInfoDictionaryKey: "KidSafeReleaseLabel") as? String ?? ""
+    /// « KidSafe 0.3.3 (beta) », affiché en bas du menu.
+    var versionLabel: String { "KidSafe \(appVersion)" + (releaseLabel.isEmpty ? "" : " (\(releaseLabel))") }
     private let updateChecker: UpdateChecker? = (Bundle.main.object(forInfoDictionaryKey: "KidSafeUpdateAPI") as? String)
         .flatMap { $0.isEmpty ? nil : URL(string: $0) }.map(UpdateChecker.init)
     @Published private(set) var isCheckingUpdates = false

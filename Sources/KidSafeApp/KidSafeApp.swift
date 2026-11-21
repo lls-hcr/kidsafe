@@ -126,6 +126,11 @@ struct MenuView: View {
                 }
                 Divider().padding(.vertical, 4)
                 MenuRow(title: L("app.quit"), symbol: "power") { model.quit() }
+                Text(model.versionLabel)
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.top, 6)
             }
         }
         .padding(14)
@@ -170,7 +175,7 @@ struct MenuRow: View {
     var body: some View {
         Button(action: action) {
             HStack {
-                Label(title, systemImage: symbol)
+                MenuLabel(title: title, symbol: symbol)
                 Spacer()
                 if busy { ProgressView().controlSize(.small) }
             }
@@ -395,7 +400,7 @@ struct FeedbackRow: View {
                 Button(L("app.feedback.email")) { panel.close(); model.sendFeedbackByEmail() }
                 Button(L("app.feedback.github")) { panel.close(); model.sendFeedbackOnGitHub() }
             } label: {
-                Label(L("app.feedback"), systemImage: "envelope").frame(maxWidth: .infinity, alignment: .leading)
+                MenuLabel(title: L("app.feedback"), symbol: "envelope").frame(maxWidth: .infinity, alignment: .leading)
             }
             .menuStyle(.borderlessButton)
             .menuIndicator(.hidden)
@@ -405,6 +410,18 @@ struct FeedbackRow: View {
                 panel.close()
                 if model.feedbackEmail != nil { model.sendFeedbackByEmail() } else { model.sendFeedbackOnGitHub() }
             }
+        }
+    }
+}
+
+/// Icône de largeur fixe + texte : toutes les lignes du menu restent alignées.
+struct MenuLabel: View {
+    var title: String
+    var symbol: String
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: symbol).frame(width: 20, alignment: .center)
+            Text(title)
         }
     }
 }
