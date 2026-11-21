@@ -116,7 +116,9 @@ struct MenuView: View {
                 if model.donateURL != nil {
                     MenuRow(title: L("app.donate"), symbol: "heart") { panel.close(); model.donate() }
                 }
-                if let update = model.availableUpdate {
+                if model.isInstallingUpdate {
+                    MenuRow(title: L("autoupdate.installing"), symbol: "arrow.down.app", busy: true) {}
+                } else if let update = model.availableUpdate {
                     MenuRow(title: L("updates.menuAvailable", update.version), symbol: "sparkles") { panel.close(); model.offerUpdate(update) }
                 }
                 if model.canCheckUpdates {

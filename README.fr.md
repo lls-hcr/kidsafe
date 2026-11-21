@@ -19,7 +19,10 @@ Tout se fait depuis [`KidSafe.dmg`](https://github.com/lls-hcr/kidsafe/releases/
 1. Glissez **KidSafe** dans **Applications** et ouvrez-le. La première fois : Réglages Système →
    Confidentialité et sécurité → **Ouvrir quand même** (l'app n'est pas encore signée par Apple).
 2. Bouclier dans la barre de menus → **Configurer**.
-3. Pour tout enlever : double-cliquez sur **Désinstaller KidSafe** dans le `.dmg` (ou Réglages → Général →
+3. Mises à jour : KidSafe cherche les nouvelles versions chaque semaine (ou via « Rechercher des mises à jour… »)
+   et peut s'installer tout seul : téléchargement, vérification de l'empreinte SHA-256 publiée par GitHub,
+   puis remplacement et relance. Les réglages sont conservés.
+4. Pour tout enlever : double-cliquez sur **Désinstaller KidSafe** dans le `.dmg` (ou Réglages → Général →
    « Désinstaller KidSafe… »). Le mot de passe parent est demandé s'il existe.
 
 ## Construire et lancer
@@ -103,7 +106,6 @@ $B uninstall
 - Helper root (LaunchDaemon installé par le .pkg) protégé par un mot de passe parent. Le catalogue passera
   alors dans `/Library/Application Support/KidSafe`, où l'enfant ne peut rien modifier.
 - Signature et notarisation Apple (compte Apple Developer) : plus besoin d'« Ouvrir quand même ».
-- Recherche de nouvelles versions de l'app avec Sparkle.
 - Journal des sites bloqués, page de blocage locale.
 - Protections contre le contournement : compte enfant standard, profil qui verrouille le proxy, mot de passe parent.
 

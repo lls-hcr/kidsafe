@@ -23,6 +23,14 @@ gambling, scams, social networks on a schedule, and any domain you choose.
 Nothing else to install: Privoxy is built into the app. Quitting KidSafe removes the filter and gives
 the Mac its normal connection back.
 
+## Updates
+
+KidSafe checks GitHub for new versions once a week (or on demand: shield menu → **Check for Updates…**).
+With **Install and Relaunch** (or automatically, if enabled in Settings → General), it downloads the new
+`.dmg`, verifies its SHA-256 fingerprint against the one GitHub publishes, checks that it really is a newer
+KidSafe with an intact signature, then quits (filter removed, Privoxy stopped), replaces itself and relaunches.
+Settings are kept. Filtering pauses for a few seconds during the update.
+
 ## Uninstall
 
 Open `KidSafe.dmg` and double-click **Uninstall KidSafe** (or, in the app, **Settings → General →
@@ -60,7 +68,7 @@ scripts/test.sh                      # unit tests
 scripts/build-app.sh                 # build/KidSafe.app for this Mac
 scripts/build-app.sh --universal     # Apple Silicon + Intel
 scripts/build-privoxy.sh             # Privoxy 4.2.0 + PCRE2 from source, universal (called by build-app.sh)
-scripts/make-dmg.sh                  # build/KidSafe.dmg (app, uninstaller, Applications link, read me)
+scripts/make-dmg.sh                  # build/KidSafe.dmg with a designed window (uses dmgbuild in build/venv)
 swift scripts/make-icon.swift Resources/AppIcon.png   # redraws the icon
 ```
 
@@ -120,7 +128,6 @@ The CLI follows the system language; `KIDSAFE_LANG=en` or `KIDSAFE_LANG=fr` forc
 - Root helper (LaunchDaemon) protected by the parent password, so filtering and time slots keep running
   even when the app is closed; settings moved to
   `/Library/Application Support/KidSafe`, where a child can't change them.
-- In-app updates with Sparkle.
 - Log of blocked attempts, local block page.
 
 ## Feedback and support

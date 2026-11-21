@@ -498,6 +498,35 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         let r = try UpdateChecker.parse(Data(json.utf8))
         #expect(r.version == "0.3.2")
         #expect(r.downloadURL?.absoluteString == "https://x/KidSafe.dmg")
+        #expect(r.dmgSHA256 == nil)   // ni « digest » ni empreinte dans les notes
         #expect(throws: UpdateChecker.CheckError.self) { try UpdateChecker.parse(Data("{}".utf8)) }
+    }
+}
+
+@Suite struct AutoUpdateTests {
+    @Test func checksumFromGitHubDigestOrReleaseNotes() throws {
+        let h = String(repeating: "ab", count: 32)
+        let withDigest = #"{"tag_name":"v0.4.0","html_url":"https://g/r","assets":[{"name":"KidSafe.dmg","browser_download_url":"https://g/KidSafe.dmg","digest":"sha256:"# + h + #""}]}"#
+        #expect(try UpdateChecker.parse(Data(withDigest.utf8)).dmgSHA256 == h)
+        let inNotes = #"{"tag_name":"v0.4.0","html_url":"https://g/r","body":"Notes\nSHA-256 `KidSafe.dmg`: `"# + h.uppercased() + #"`","assets":[{"name":"KidSafe.dmg","browser_download_url":"https://g/KidSafe.dmg"}]}"#
+        #expect(try UpdateChecker.parse(Data(inNotes.utf8)).dmgSHA256 == h)
+    }
+
+    @Test func refusesWithoutChecksumOrWithWrongOne() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-upd-\(UUID().uuidString)")
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let fake = dir.appendingPathComponent("KidSafe.dmg")
+        try "pas un vrai dmg".write(to: fake, atomically: true, encoding: .utf8)
+        let page = URL(string: "https://g/r")!
+        await #expect(throws: AppUpdater.UpdateError.self) {
+            try await AppUpdater.prepare(.init(version: "9.9", pageURL: page, downloadURL: fake), currentVersion: "0.1",
+                                         bundleID: "app.kidsafe.KidSafe", stagingDir: dir.appendingPathComponent("s1"))
+        }
+        await #expect(throws: AppUpdater.UpdateError.self) {
+            try await AppUpdater.prepare(.init(version: "9.9", pageURL: page, downloadURL: fake, dmgSHA256: String(repeating: "0", count: 64)),
+                                         currentVersion: "0.1", bundleID: "app.kidsafe.KidSafe", stagingDir: dir.appendingPathComponent("s2"))
+        }
+        #expect(!AppUpdater.canReplace(URL(fileURLWithPath: "/Volumes/KidSafe/KidSafe.app")))
     }
 }

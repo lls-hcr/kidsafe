@@ -324,6 +324,11 @@ struct GeneralTab: View {
                 LabeledContent(L("updates.current")) { Text(model.appVersion) }
                 if model.canCheckUpdates {
                     Toggle(L("updates.auto"), isOn: $model.autoUpdateCheck)
+                    Toggle(L("autoupdate.toggle"), isOn: $model.autoInstallUpdates)
+                        .disabled(!model.autoUpdateCheck || !model.canAutoInstall)
+                    if !model.canAutoInstall {
+                        Text(L("autoupdate.cannot")).font(.caption).foregroundStyle(.secondary)
+                    }
                     HStack {
                         Button(L("updates.checkNow")) { model.checkForUpdates() }.disabled(model.isCheckingUpdates)
                         if model.isCheckingUpdates { ProgressView().controlSize(.small) }
@@ -333,7 +338,9 @@ struct GeneralTab: View {
                                 .font(.caption).foregroundStyle(.secondary)
                         }
                     }
-                    if let u = model.availableUpdate {
+                    if model.isInstallingUpdate {
+                        HStack { ProgressView().controlSize(.small); Text(L("autoupdate.installing")) }
+                    } else if let u = model.availableUpdate {
                         Button { model.offerUpdate(u) } label: { Label(L("updates.menuAvailable", u.version), systemImage: "sparkles") }
                     }
                 }

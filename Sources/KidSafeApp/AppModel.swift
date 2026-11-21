@@ -420,6 +420,7 @@ final class AppModel: ObservableObject {
         healthTimer = Timer.scheduledTimer(withTimeInterval: 5, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.healthCheck() }
         }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in self?.announceUpdateIfNeeded() }
     }
 
     /// En quittant : retire d'abord le proxy, puis arrête Privoxy. Si le proxy ne peut pas
@@ -525,8 +526,17 @@ final class AppModel: ObservableObject {
     let releaseLabel = Bundle.main.object(forInfoDictionaryKey: "KidSafeReleaseLabel") as? String ?? ""
     /// « KidSafe 0.3.3 (beta) », affiché en bas du menu.
     var versionLabel: String { "KidSafe \(appVersion)" + (releaseLabel.isEmpty ? "" : " (\(releaseLabel))") }
-    private let updateChecker: UpdateChecker? = (Bundle.main.object(forInfoDictionaryKey: "KidSafeUpdateAPI") as? String)
+    /// KIDSAFE_UPDATE_API (tests) remplace l'adresse définie à la construction.
+    private let updateChecker: UpdateChecker? = (ProcessInfo.processInfo.environment["KIDSAFE_UPDATE_API"]
+        ?? Bundle.main.object(forInfoDictionaryKey: "KidSafeUpdateAPI") as? String)
         .flatMap { $0.isEmpty ? nil : URL(string: $0) }.map(UpdateChecker.init)
+    @Published private(set) var isInstallingUpdate = false
+    /// Installer sans demander les nouvelles versions trouvées par la recherche hebdomadaire (activé par défaut).
+    @Published var autoInstallUpdates: Bool = UserDefaults.standard.object(forKey: "autoInstallUpdates") as? Bool ?? true {
+        didSet { UserDefaults.standard.set(autoInstallUpdates, forKey: "autoInstallUpdates") }
+    }
+    /// L'app installée ici peut-elle se remplacer elle-même (dossier modifiable, pas sur le .dmg) ?
+    var canAutoInstall: Bool { AppUpdater.canReplace(Bundle.main.bundleURL) }
     @Published private(set) var isCheckingUpdates = false
     @Published private(set) var availableUpdate: UpdateChecker.Release?
     @Published private(set) var lastUpdateCheck: Date? = UserDefaults.standard.object(forKey: "lastUpdateCheck") as? Date
@@ -553,7 +563,9 @@ final class AppModel: ObservableObject {
             case .success(let release) where UpdateChecker.isNewer(release.version, than: current):
                 self.availableUpdate = release
                 let notified = UserDefaults.standard.string(forKey: "notifiedVersion")
-                if manual || notified != release.version {
+                if !manual, self.autoInstallUpdates, release.dmgSHA256 != nil, self.canAutoInstall {
+                    self.installUpdate(release, silent: true)
+                } else if manual || notified != release.version {
                     UserDefaults.standard.set(release.version, forKey: "notifiedVersion")
                     self.offerUpdate(release)
                 }
@@ -568,17 +580,55 @@ final class AppModel: ObservableObject {
 
     func offerUpdate(_ release: UpdateChecker.Release) {
         NSApp.activate(ignoringOtherApps: true)
+        let canInstall = release.dmgSHA256 != nil && canAutoInstall
         let a = NSAlert()
         a.messageText = L("updates.available.title", release.version)
-        a.informativeText = L("updates.available.message", appVersion)
-        a.addButton(withTitle: L("updates.download"))
-        a.addButton(withTitle: L("updates.notes"))
-        a.addButton(withTitle: L("updates.later"))
-        switch a.runModal() {
-        case .alertFirstButtonReturn: NSWorkspace.shared.open(release.downloadURL ?? release.pageURL)
-        case .alertSecondButtonReturn: NSWorkspace.shared.open(release.pageURL)
-        default: break
+        a.informativeText = canInstall ? L("autoupdate.message", appVersion) : L("updates.available.message", appVersion)
+        var actions: [() -> Void] = []
+        if canInstall {
+            a.addButton(withTitle: L("autoupdate.install")); actions.append { self.installUpdate(release, silent: false) }
         }
+        a.addButton(withTitle: L("updates.download")); actions.append { NSWorkspace.shared.open(release.downloadURL ?? release.pageURL) }
+        a.addButton(withTitle: L("updates.notes")); actions.append { NSWorkspace.shared.open(release.pageURL) }
+        a.addButton(withTitle: L("updates.later")); actions.append {}
+        let index = a.runModal().rawValue - NSApplication.ModalResponse.alertFirstButtonReturn.rawValue
+        if actions.indices.contains(index) { actions[index]() }
+    }
+
+    /// Télécharge, vérifie, puis quitte : un script remplace l'app et la relance.
+    /// Le filtre est retiré et Privoxy arrêté pendant les quelques secondes du remplacement.
+    func installUpdate(_ release: UpdateChecker.Release, silent: Bool) {
+        guard !isInstallingUpdate else { return }
+        isInstallingUpdate = true
+        let current = appVersion, bundleID = Bundle.main.bundleIdentifier ?? KidSafeUninstaller.bundleID
+        let staging = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-update-\(release.version)")
+        Task {
+            do {
+                let staged = try await AppUpdater.prepare(release, currentVersion: current, bundleID: bundleID, stagingDir: staging)
+                let env = ProcessInfo.processInfo.environment.filter { $0.key.hasPrefix("KIDSAFE_") }
+                try AppUpdater.scheduleReplace(current: Bundle.main.bundleURL, staged: staged, stagingDir: staging,
+                                               pid: ProcessInfo.processInfo.processIdentifier, env: env)
+                UserDefaults.standard.set(current, forKey: "updatedFrom")
+                NSApp.terminate(nil)   // shutDown : filtre retiré, Privoxy arrêté ; le script fait le reste.
+            } catch {
+                self.isInstallingUpdate = false
+                try? FileManager.default.removeItem(at: staging)
+                if silent {
+                    self.lastError = L("autoupdate.failed", "\(error)")
+                } else {
+                    self.notice(L("autoupdate.failed", "\(error)"))
+                }
+            }
+        }
+    }
+
+    /// Après une mise à jour : un message discret confirme la nouvelle version.
+    func announceUpdateIfNeeded() {
+        guard let from = UserDefaults.standard.string(forKey: "updatedFrom") else { return }
+        UserDefaults.standard.removeObject(forKey: "updatedFrom")
+        guard UpdateChecker.isNewer(appVersion, than: from) else { return }
+        availableUpdate = nil
+        notice(L("autoupdate.done", appVersion, from))
     }
 
     /// Contact pour les avis, défini à la construction (clés `KidSafeFeedbackEmail` et `KidSafeIssuesURL`).
