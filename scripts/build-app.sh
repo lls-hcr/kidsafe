@@ -4,7 +4,7 @@
 # Usage : scripts/build-app.sh [--universal]
 set -eu
 cd "$(dirname "$0")/.."
-VERSION="0.6.1"
+VERSION="0.6.2"
 # Étiquette affichée après la version (« KidSafe 0.3.3 (beta) ») ; vide pour une version finale.
 RELEASE_LABEL="${KIDSAFE_RELEASE_LABEL-beta}"
 BUNDLE_ID="app.kidsafe.KidSafe"     # à remplacer par votre identifiant définitif
@@ -74,6 +74,10 @@ cat > "$APP/Contents/Info.plist" <<PLIST
   <key>CFBundleLocalizations</key><array><string>fr</string><string>en</string></array>
   <key>LSMinimumSystemVersion</key><string>14.0</string>
   <key>LSUIElement</key><true/>
+  <key>CFBundleURLTypes</key><array><dict>
+    <key>CFBundleURLName</key><string>$BUNDLE_ID</string>
+    <key>CFBundleURLSchemes</key><array><string>kidsafe</string></array>
+  </dict></array>
   <key>LSApplicationCategoryType</key><string>public.app-category.utilities</string>
   <key>NSHumanReadableCopyright</key><string>KidSafe</string>
   <key>KidSafeDonateURL</key><string>$DONATE_URL</string>

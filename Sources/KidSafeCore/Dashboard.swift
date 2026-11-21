@@ -29,12 +29,21 @@ public enum Dashboard {
         tiles += tile(L("mon.blocked"), c.map { formatCount($0.blocked) } ?? "—", since, "hl")
         tiles += tile(L("mon.percent"), pct, since, "hl")
         tiles += tile(L("mon.domains"), formatCount(d.domainsOnLists), L("mon.domains.sub"), "")
+        let logged = d.summary.perDay.map(\.count).reduce(0, +)
+        tiles += tile(L("mon.logged7"), d.logEnabled ? formatCount(logged) : "—", L("mon.logged7.sub"), "")
 
         let s = d.summary
         let hourBars = s.perHour.map { (label: time($0.hour, .dateTime.hour()), value: $0.count) }
         let dayBars = s.perDay.map { (label: time($0.day, .dateTime.weekday(.abbreviated).day()), value: $0.count) }
 
-        var body = "<div class=\"tiles\">\(tiles)</div>"
+        let stamp = time(d.generatedAt, .dateTime.day().month(.abbreviated).hour().minute())
+        // Bouton « Actualiser » : demande à KidSafe de réécrire ce fichier (lien kidsafe://), puis recharge la page.
+        var body = """
+        <div class="snap"><span>\(esc(L("mon.snapshot", stamp)))</span>
+        <a class="btn" href="kidsafe://dashboard/refresh" title="\(esc(L("mon.refresh.help")))"
+           onclick="this.textContent='\(esc(L("mon.refreshing")))';setTimeout(function(){location.reload()},2500)">↻ \(esc(L("mon.refresh")))</a></div>
+        <div class="tiles">\(tiles)</div>
+        """
         if !d.logEnabled {
             body += "<p class=\"note\">\(esc(L("mon.logOff")))</p>"
         }
@@ -47,6 +56,7 @@ public enum Dashboard {
           <section><h2>\(esc(L("mon.top")))</h2>\(table(s.topDomains.map { ($0.host, $0.count) }, emptyText: L("mon.none")))</section>
           <section><h2>\(esc(L("mon.perCategory")))</h2>\(hbars(s.perCategory, emptyText: L("mon.none")))</section>
         </div>
+        <p class="src">\(esc(L("mon.fromLog")))</p>
         <section><h2>\(esc(L("mon.recent")))</h2>\(recent(s.recent, time: { time($0, .dateTime.day().month(.abbreviated).hour().minute().second()) }))</section>
         """
 

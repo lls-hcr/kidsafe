@@ -693,6 +693,8 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
                                         summary: s, logEnabled: true, version: "0.6.0"))
         #expect(html.contains("Requêtes bloquées") && html.contains("12,0 %") && html.contains("www.bad.example"))
         #expect(!html.contains("http://") && !html.contains("https://"))   // page autonome, aucun appel externe
+        #expect(html.contains("kidsafe://dashboard/refresh") && html.contains("Instantané du"))
+        #expect(html.contains("Blocages enregistrés (7 jours)"))
         #expect(Dashboard.esc("<b>&\"") == "&lt;b&gt;&amp;&quot;")
     }
 }

@@ -29,12 +29,12 @@ public enum PageStyle {
     main{max-width:1180px;margin:0 auto;padding:16px 20px 8px}
     section{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 20px 18px;margin-bottom:16px}
     h2{font-size:15px;margin:0 0 12px;font-weight:650;letter-spacing:-.1px}
-    .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:16px}
+    .tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:14px;margin-bottom:16px}
     .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px}
-    .tt{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.2px;display:flex;align-items:center;gap:7px}
-    .tt::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--line)}
+    .tt{font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.2px;display:flex;align-items:flex-start;gap:7px;min-height:3.2em;line-height:1.55}
+    .tt::before{content:"";flex:none;width:8px;height:8px;border-radius:50%;background:var(--line);margin-top:.45em}
     .tile.hl .tt::before{background:var(--accent)}
-    .tv{font-size:32px;font-weight:700;letter-spacing:-.6px;margin:4px 0 2px;font-variant-numeric:tabular-nums}
+    .tv{font-size:30px;font-weight:700;letter-spacing:-.6px;margin:4px 0 2px;font-variant-numeric:tabular-nums}
     .tile.hl .tv{color:var(--accent-ink)}.ts{font-size:12px;color:var(--muted)}
     .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(420px,1fr));gap:16px}
     .chart{width:100%;height:auto}.axis{stroke:var(--line);stroke-width:1}.bar{fill:var(--accent)}.bar:hover{opacity:.7}
@@ -50,6 +50,11 @@ public enum PageStyle {
     .hbn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hbt{height:8px;background:var(--track);border-radius:4px}
     .hbf{display:block;height:8px;background:var(--accent);border-radius:4px}.hbv{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
     .empty{color:var(--muted)}
+    .snap{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--soft);
+      border-radius:12px;padding:10px 14px;margin-bottom:16px;color:var(--accent-ink);font-weight:600;font-size:13px}
+    .btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;font-size:13px;
+      border-radius:8px;padding:6px 12px}.btn:hover{filter:brightness(1.08)}
+    .src{color:var(--muted);font-size:12px;margin:-6px 4px 16px;text-align:right}
     .note{color:var(--muted);background:var(--soft);border-radius:10px;padding:10px 14px;margin:0 0 16px}
     footer{max-width:1180px;margin:0 auto;color:var(--muted);font-size:12px;padding:4px 20px 28px;text-align:center}
     /* Guide d'utilisation */

@@ -57,6 +57,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Liens kidsafe:// (bouton « Actualiser » de la page détaillée) :
+    ///   kidsafe://dashboard/refresh → régénère la page sur place ; kidsafe://dashboard → la régénère et l'ouvre.
+    func application(_ application: NSApplication, open urls: [URL]) {
+        for url in urls where url.scheme?.lowercased() == "kidsafe" && url.host?.lowercased() == "dashboard" {
+            model.openDashboard(open: url.path != "/refresh")
+        }
+    }
+
     /// Quitter retire le proxy puis arrête Privoxy (voir AppModel.shutDown).
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         model.shutDown()
@@ -455,7 +463,9 @@ struct FeedbackRow: View {
                 let menu = NSMenu()
                 let mail = FeedbackChoice(title: L("app.feedback.email")) { panel.close(); model.sendFeedbackByEmail() }
                 let gh = FeedbackChoice(title: L("app.feedback.github")) { panel.close(); model.sendFeedbackOnGitHub() }
-                menu.addItem(mail.item); menu.addItem(gh.item)
+                // Secours si aucune messagerie n'est réglée (liens mailto: envoyés à un navigateur, par exemple).
+                let copy = FeedbackChoice(title: L("app.feedback.copy")) { model.copyFeedbackEmail() }
+                menu.addItem(mail.item); menu.addItem(gh.item); menu.addItem(.separator()); menu.addItem(copy.item)
                 menu.popUp(positioning: nil, at: NSEvent.mouseLocation, in: nil)
             } else {
                 panel.close()

@@ -42,7 +42,9 @@ extension AppModel {
     }
 
     /// Génère la page détaillée (fichier HTML autonome) et l'ouvre dans le navigateur.
-    func openDashboard() {
+    /// `open` : ouvre la page dans le navigateur. Faux pour le bouton « Actualiser » de la page :
+    /// le fichier est réécrit sur place et la page se recharge elle-même.
+    func openDashboard(open: Bool = true) {
         guard !monitorBusy, let e = endpoint else { return }
         monitorBusy = true
         let file = blockLogFile, dir = confDir, domains = domainsOnListsNow, logOn = catalog.advanced.logBlocked
@@ -57,7 +59,7 @@ extension AppModel {
             let ok = (try? html.write(to: out, atomically: true, encoding: .utf8)) != nil
             await MainActor.run {
                 self.monitorBusy = false
-                if ok { NSWorkspace.shared.open(out) } else { self.lastError = L("mon.error") }
+                if !ok { self.lastError = L("mon.error") } else if open { NSWorkspace.shared.open(out) }
             }
         }
     }

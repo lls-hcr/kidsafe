@@ -720,6 +720,14 @@ final class AppModel: ObservableObject {
         if let url = c.url { NSWorkspace.shared.open(url) }
     }
 
+    /// Copie l'adresse dans le presse-papiers (si les liens e-mail n'ouvrent pas de messagerie).
+    func copyFeedbackEmail() {
+        guard let to = feedbackEmail else { return }
+        NSPasteboard.general.clearContents()
+        NSPasteboard.general.setString(to, forType: .string)
+        notice(L("app.feedback.copied", to))
+    }
+
     func sendFeedbackOnGitHub() {
         if let issuesURL { NSWorkspace.shared.open(issuesURL) }
     }
