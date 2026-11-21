@@ -18,7 +18,8 @@ Tout se fait depuis [`KidSafe.dmg`](https://github.com/lls-hcr/kidsafe/releases/
 
 1. Glissez **KidSafe** dans **Applications** et ouvrez-le. La première fois : Réglages Système →
    Confidentialité et sécurité → **Ouvrir quand même** (l'app n'est pas encore signée par Apple).
-2. Bouclier dans la barre de menus → **Configurer**.
+2. C'est tout : au premier lancement, KidSafe active la protection tout seul (bouclier vert dans la barre de
+   menus). Sur un compte standard, macOS demande une fois le mot de passe administrateur.
 3. Mises à jour : KidSafe cherche les nouvelles versions chaque semaine (ou via « Rechercher des mises à jour… »)
    et peut s'installer tout seul : téléchargement, vérification de l'empreinte SHA-256 publiée par GitHub,
    puis remplacement et relance. Les réglages sont conservés.

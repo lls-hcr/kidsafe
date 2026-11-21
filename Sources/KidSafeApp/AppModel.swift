@@ -27,12 +27,15 @@ final class AppModel: ObservableObject {
     @Published private(set) var unlockedUntil: Date?
     @Published var language: Language {
         didSet {
-            UserDefaults.standard.set(language.rawValue, forKey: "language")
+            AppModel.prefs.set(language.rawValue, forKey: "language")
             Localization.forcedLanguage = language == .system ? nil : language.rawValue
         }
     }
 
     let engine: KidSafeEngine
+    /// Préférences de l'app. KIDSAFE_DEFAULTS_SUITE (tests) les isole de celles de l'utilisateur.
+    nonisolated(unsafe) static let prefs: UserDefaults =
+        ProcessInfo.processInfo.environment["KIDSAFE_DEFAULTS_SUITE"].flatMap { UserDefaults(suiteName: $0) } ?? .standard
     /// Durée de déverrouillage après saisie du mot de passe parent.
     static let unlockDuration: TimeInterval = 5 * 60
     /// Lien de don, défini à la construction (clé `KidSafeDonateURL` de l'Info.plist).
@@ -55,8 +58,8 @@ final class AppModel: ObservableObject {
     /// Le parent a branché le Mac sur Privoxy : KidSafe remet le proxy à chaque lancement
     /// et le retire toujours en quittant, avant d'arrêter Privoxy.
     private var proxyWanted: Bool {
-        get { UserDefaults.standard.bool(forKey: "proxyWanted") }
-        set { UserDefaults.standard.set(newValue, forKey: "proxyWanted") }
+        get { AppModel.prefs.bool(forKey: "proxyWanted") }
+        set { AppModel.prefs.set(newValue, forKey: "proxyWanted") }
     }
     /// Réseaux sociaux bloqués lors de la dernière vérification des plages horaires.
     private var lastBlockedServiceIDs: Set<String> = []
@@ -86,7 +89,7 @@ final class AppModel: ObservableObject {
     }
 
     init() {
-        let saved = Language(rawValue: UserDefaults.standard.string(forKey: "language") ?? "") ?? .system
+        let saved = Language(rawValue: AppModel.prefs.string(forKey: "language") ?? "") ?? .system
         Localization.forcedLanguage = saved == .system ? nil : saved.rawValue
         language = saved
         engine = KidSafeEngine(paths: Self.env["KIDSAFE_SUPPORT_DIR"].map { KidSafePaths(supportDir: URL(fileURLWithPath: $0)) } ?? .user)
@@ -405,15 +408,26 @@ final class AppModel: ObservableObject {
     func startUp() {
         makeController()
         guard let privoxy, let e = endpoint else { return }
-        let wanted = proxyWanted
+        // Premier lancement (aucun choix enregistré) : la protection s'active toute seule.
+        // Un retrait volontaire du proxy par le parent (proxyWanted = false) est respecté.
+        let firstLaunch = Self.prefs.object(forKey: "proxyWanted") == nil
+        let wanted = proxyWanted || firstLaunch
+        let prompt: String? = firstLaunch ? L("app.proxy.adminPrompt") : nil
         healthBusy = true
         Task.detached {
             let ok = privoxy.start()
-            let err = ok && wanted ? SystemStatus.setSystemProxy(e, enable: true, prompt: nil) : nil
+            let err = ok && wanted ? SystemStatus.setSystemProxy(e, enable: true, prompt: prompt) : nil
             await MainActor.run {
                 self.healthBusy = false
                 if !ok { self.lastError = L("app.error.privoxyStart") }
-                if err != nil { self.lastError = L("app.error.proxyAuto") }
+                if firstLaunch {
+                    // Activée : on s'en souvient. Annulée ou refusée : on ne redemande pas à chaque lancement.
+                    self.proxyWanted = ok && err == nil
+                    if ok && err == nil { self.notice(L("app.welcome.enabled")) }
+                    else if ok, let err, !err.contains("-128") { self.lastError = L("app.error.proxy", err) }
+                } else if err != nil {
+                    self.lastError = L("app.error.proxyAuto")
+                }
                 self.refreshSystemStatus()
             }
         }
@@ -532,17 +546,17 @@ final class AppModel: ObservableObject {
         .flatMap { $0.isEmpty ? nil : URL(string: $0) }.map(UpdateChecker.init)
     @Published private(set) var isInstallingUpdate = false
     /// Installer sans demander les nouvelles versions trouvées par la recherche hebdomadaire (activé par défaut).
-    @Published var autoInstallUpdates: Bool = UserDefaults.standard.object(forKey: "autoInstallUpdates") as? Bool ?? true {
-        didSet { UserDefaults.standard.set(autoInstallUpdates, forKey: "autoInstallUpdates") }
+    @Published var autoInstallUpdates: Bool = AppModel.prefs.object(forKey: "autoInstallUpdates") as? Bool ?? true {
+        didSet { AppModel.prefs.set(autoInstallUpdates, forKey: "autoInstallUpdates") }
     }
     /// L'app installée ici peut-elle se remplacer elle-même (dossier modifiable, pas sur le .dmg) ?
     var canAutoInstall: Bool { AppUpdater.canReplace(Bundle.main.bundleURL) }
     @Published private(set) var isCheckingUpdates = false
     @Published private(set) var availableUpdate: UpdateChecker.Release?
-    @Published private(set) var lastUpdateCheck: Date? = UserDefaults.standard.object(forKey: "lastUpdateCheck") as? Date
+    @Published private(set) var lastUpdateCheck: Date? = AppModel.prefs.object(forKey: "lastUpdateCheck") as? Date
     /// Recherche automatique, une fois par semaine (activée par défaut).
-    @Published var autoUpdateCheck: Bool = UserDefaults.standard.object(forKey: "autoUpdateCheck") as? Bool ?? true {
-        didSet { UserDefaults.standard.set(autoUpdateCheck, forKey: "autoUpdateCheck") }
+    @Published var autoUpdateCheck: Bool = AppModel.prefs.object(forKey: "autoUpdateCheck") as? Bool ?? true {
+        didSet { AppModel.prefs.set(autoUpdateCheck, forKey: "autoUpdateCheck") }
     }
     static let updateCheckInterval: TimeInterval = 7 * 24 * 3600
     var canCheckUpdates: Bool { updateChecker != nil }
@@ -558,15 +572,15 @@ final class AppModel: ObservableObject {
             do { result = .success(try await updateChecker.latest(userAgent: "KidSafe/\(current)")) } catch { result = .failure(error) }
             self.isCheckingUpdates = false
             self.lastUpdateCheck = Date()
-            UserDefaults.standard.set(self.lastUpdateCheck, forKey: "lastUpdateCheck")
+            AppModel.prefs.set(self.lastUpdateCheck, forKey: "lastUpdateCheck")
             switch result {
             case .success(let release) where UpdateChecker.isNewer(release.version, than: current):
                 self.availableUpdate = release
-                let notified = UserDefaults.standard.string(forKey: "notifiedVersion")
+                let notified = AppModel.prefs.string(forKey: "notifiedVersion")
                 if !manual, self.autoInstallUpdates, release.dmgSHA256 != nil, self.canAutoInstall {
                     self.installUpdate(release, silent: true)
                 } else if manual || notified != release.version {
-                    UserDefaults.standard.set(release.version, forKey: "notifiedVersion")
+                    AppModel.prefs.set(release.version, forKey: "notifiedVersion")
                     self.offerUpdate(release)
                 }
             case .success:
@@ -608,7 +622,7 @@ final class AppModel: ObservableObject {
                 let env = ProcessInfo.processInfo.environment.filter { $0.key.hasPrefix("KIDSAFE_") }
                 try AppUpdater.scheduleReplace(current: Bundle.main.bundleURL, staged: staged, stagingDir: staging,
                                                pid: ProcessInfo.processInfo.processIdentifier, env: env)
-                UserDefaults.standard.set(current, forKey: "updatedFrom")
+                AppModel.prefs.set(current, forKey: "updatedFrom")
                 NSApp.terminate(nil)   // shutDown : filtre retiré, Privoxy arrêté ; le script fait le reste.
             } catch {
                 self.isInstallingUpdate = false
@@ -624,8 +638,8 @@ final class AppModel: ObservableObject {
 
     /// Après une mise à jour : un message discret confirme la nouvelle version.
     func announceUpdateIfNeeded() {
-        guard let from = UserDefaults.standard.string(forKey: "updatedFrom") else { return }
-        UserDefaults.standard.removeObject(forKey: "updatedFrom")
+        guard let from = AppModel.prefs.string(forKey: "updatedFrom") else { return }
+        AppModel.prefs.removeObject(forKey: "updatedFrom")
         guard UpdateChecker.isNewer(appVersion, than: from) else { return }
         availableUpdate = nil
         notice(L("autoupdate.done", appVersion, from))

@@ -297,3 +297,4 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "autoupdate.error.notKidSafe" = "le fichier téléchargé ne contient pas KidSafe";
 "autoupdate.error.notNewer" = "la version téléchargée (%@) n'est pas plus récente";
 "autoupdate.error.notWritable" = "impossible de remplacer %@ (droits insuffisants)";
+"app.welcome.enabled" = "Bienvenue dans KidSafe ! La protection est activée : le Mac passe maintenant par le filtre (bouclier vert dans la barre de menus).\n\nPar défaut, les contenus pour adultes sont bloqués. Réglez les catégories, les réseaux sociaux et un mot de passe parent dans Réglages.\n\nPour retirer le filtre : Réglages → Général → « Retirer le proxy », ou quittez KidSafe.";

@@ -18,7 +18,8 @@ gambling, scams, social networks on a schedule, and any domain you choose.
 1. Open `KidSafe.dmg` and drag **KidSafe** to **Applications**.
 2. Open KidSafe. The first time, macOS blocks it because it isn't signed yet: go to
    **System Settings → Privacy & Security → Open Anyway**.
-3. Click the shield in the menu bar, then **Set up** to route the Mac through the filter.
+3. That's it: on first launch, KidSafe turns protection on by itself (green shield in the menu bar).
+   On a standard account, macOS asks once for an administrator password.
 
 Nothing else to install: Privoxy is built into the app. Quitting KidSafe removes the filter and gives
 the Mac its normal connection back.

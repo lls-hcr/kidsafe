@@ -297,3 +297,4 @@ Language: the system's, or KIDSAFE_LANG=fr|en.";
 "autoupdate.error.notKidSafe" = "the downloaded file doesn't contain KidSafe";
 "autoupdate.error.notNewer" = "the downloaded version (%@) isn't newer";
 "autoupdate.error.notWritable" = "can't replace %@ (insufficient permissions)";
+"app.welcome.enabled" = "Welcome to KidSafe! Protection is on: the Mac now goes through the filter (green shield in the menu bar).\n\nAdult content is blocked by default. Set categories, social networks and a parent password in Settings.\n\nTo remove the filter: Settings → General → “Remove proxy”, or quit KidSafe.";
