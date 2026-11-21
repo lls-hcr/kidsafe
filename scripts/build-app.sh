@@ -4,7 +4,7 @@
 # Usage : scripts/build-app.sh [--universal]
 set -eu
 cd "$(dirname "$0")/.."
-VERSION="0.3.0"
+VERSION="0.3.1"
 BUNDLE_ID="app.kidsafe.KidSafe"     # à remplacer par votre identifiant définitif
 # Lien du bouton « Soutenir KidSafe » (Buy Me a Coffee, Ko-fi, PayPal, Liberapay…). KIDSAFE_DONATE_URL= (vide) masque le bouton.
 DONATE_URL="${KIDSAFE_DONATE_URL-https://github.com/sponsors/lls-hcr}"
