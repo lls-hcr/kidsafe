@@ -1,5 +1,5 @@
 #!/bin/sh
-# Crée build/KidSafe.dmg (app universelle + raccourci Applications + mode d'emploi).
+# Crée build/KidSafe.dmg : KidSafe (Privoxy intégré), désinstalleur, raccourci Applications, mode d'emploi.
 # Le nom ne change pas d'une version à l'autre, pour que le lien
 # https://github.com/lls-hcr/kidsafe/releases/latest/download/KidSafe.dmg reste valable.
 set -eu
@@ -11,6 +11,7 @@ STAGE=build/dmg
 rm -rf "$STAGE" build/KidSafe.dmg
 mkdir -p "$STAGE"
 ditto build/KidSafe.app "$STAGE/KidSafe.app"
+ditto "build/Uninstall KidSafe.app" "$STAGE/Uninstall KidSafe.app"
 ln -s /Applications "$STAGE/Applications"
 cp scripts/dmg-readme.txt "$STAGE/Lisez-moi - Read me.txt"
 

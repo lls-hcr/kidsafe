@@ -1,13 +1,16 @@
 import Foundation
 import Darwin
-import KidSafeCore
 
 /// État du système vu par l'app : Privoxy répond-il, le proxy système pointe-t-il dessus ?
-enum SystemStatus {
-    struct Endpoint: Equatable { var host: String; var port: Int }
+public enum SystemStatus {
+    public struct Endpoint: Equatable, Sendable {
+        public var host: String
+        public var port: Int
+        public init(host: String, port: Int) { self.host = host; self.port = port }
+    }
 
     /// Adresse d'écoute de Privoxy (`listen-address` de la config, 127.0.0.1:8118 par défaut).
-    static func listenAddress(configFile: URL) -> Endpoint {
+    public static func listenAddress(configFile: URL) -> Endpoint {
         let fallback = Endpoint(host: "127.0.0.1", port: 8118)
         guard let text = try? String(contentsOf: configFile, encoding: .utf8) else { return fallback }
         for line in text.split(separator: "\n") {
@@ -23,10 +26,10 @@ enum SystemStatus {
     }
 
     /// Vrai si quelque chose écoute sur l'adresse (connexion TCP de test).
-    static func isListening(_ e: Endpoint) -> Bool { PrivoxyController.isListening(host: e.host, port: e.port) }
+    public static func isListening(_ e: Endpoint) -> Bool { PrivoxyController.isListening(host: e.host, port: e.port) }
 
     /// Le proxy HTTP et HTTPS du système pointe-t-il vers Privoxy ? (`scutil --proxy`, sans droits admin)
-    static func systemProxyPointsTo(_ e: Endpoint) -> Bool {
+    public static func systemProxyPointsTo(_ e: Endpoint) -> Bool {
         guard let out = run("/usr/sbin/scutil", ["--proxy"]) else { return false }
         var v: [String: String] = [:]
         for line in out.split(separator: "\n") {
@@ -40,7 +43,7 @@ enum SystemStatus {
     }
 
     /// Services réseau actifs (Wi-Fi, Ethernet…).
-    static func networkServices() -> [String] {
+    public static func networkServices() -> [String] {
         guard let list = run("/usr/sbin/networksetup", ["-listallnetworkservices"]) else { return [] }
         return list.split(separator: "\n").dropFirst()            // 1re ligne : explication
             .map(String.init).filter { !$0.hasPrefix("*") }        // `*` = service désactivé
@@ -48,7 +51,7 @@ enum SystemStatus {
 
     /// Services dont le proxy web (HTTP ou HTTPS) est activé et pointe vers Privoxy.
     /// Seuls ceux-là sont modifiés au retrait : un proxy configuré par ailleurs n'est jamais touché.
-    static func servicesUsingProxy(_ e: Endpoint) -> [String] {
+    public static func servicesUsingProxy(_ e: Endpoint) -> [String] {
         let hosts: Set<String> = [e.host, "127.0.0.1", "localhost"]
         return networkServices().filter { s in
             ["-getwebproxy", "-getsecurewebproxy"].contains { flag in
@@ -67,7 +70,7 @@ enum SystemStatus {
     /// Essaie d'abord sans mot de passe (suffit pour un compte administrateur) ; sinon, si `prompt`
     /// est fourni, macOS demande le mot de passe administrateur. Renvoie un message d'erreur ou nil.
     @discardableResult
-    static func setSystemProxy(_ e: Endpoint, enable: Bool, prompt: String?) -> String? {
+    public static func setSystemProxy(_ e: Endpoint, enable: Bool, prompt: String?) -> String? {
         let services = enable ? networkServices() : servicesUsingProxy(e)
         let cmds: [[String]] = services.flatMap { s -> [[String]] in
             enable ? [["-setwebproxy", s, e.host, "\(e.port)"], ["-setsecurewebproxy", s, e.host, "\(e.port)"],

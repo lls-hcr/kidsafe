@@ -62,11 +62,27 @@ final class AppModel: ObservableObject {
     private var lastBlockedServiceIDs: Set<String> = []
     private var timer: Timer?
 
-    private static func detectInstaller() -> PrivoxyInstaller? {
-        if let dir = env["KIDSAFE_PRIVOXY_CONF"] {
-            return PrivoxyInstaller(confDir: URL(fileURLWithPath: dir), privoxyBinary: PrivoxyInstaller.detect()?.privoxyBinary)
+    /// Vrai quand KidSafe utilise le Privoxy intégré à l'app (cas normal pour l'utilisateur).
+    private(set) var usesBundledPrivoxy = false
+
+    /// Privoxy intégré à l'app (installé dans le dossier de KidSafe au premier lancement) ;
+    /// à défaut (développement), un Privoxy existant comme celui de Homebrew.
+    private func detectInstaller() -> PrivoxyInstaller? {
+        if let dir = Self.env["KIDSAFE_PRIVOXY_CONF"] {
+            return PrivoxyInstaller(confDir: URL(fileURLWithPath: dir),
+                                    privoxyBinary: BundledPrivoxy.binary(in: .main) ?? PrivoxyInstaller.detectExternal()?.privoxyBinary)
         }
-        return PrivoxyInstaller.detect()
+        if BundledPrivoxy.binary(in: .main) != nil {
+            do {
+                if let inst = try BundledPrivoxy.prepare(supportDir: engine.paths.supportDir) {
+                    usesBundledPrivoxy = true
+                    return inst
+                }
+            } catch {
+                lastError = L("app.error.privoxyStart") + " (\(error.localizedDescription))"
+            }
+        }
+        return PrivoxyInstaller.detectExternal()
     }
 
     init() {
@@ -76,7 +92,7 @@ final class AppModel: ObservableObject {
         engine = KidSafeEngine(paths: Self.env["KIDSAFE_SUPPORT_DIR"].map { KidSafePaths(supportDir: URL(fileURLWithPath: $0)) } ?? .user)
         catalog = (try? engine.loadCatalog()) ?? .default
         status = engine.loadStatus()
-        installer = Self.detectInstaller()
+        installer = detectInstaller()
         refreshSystemStatus()
         timer = Timer.scheduledTimer(withTimeInterval: 30, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.tick() }
@@ -375,9 +391,10 @@ final class AppModel: ObservableObject {
     // MARK: - Cycle de vie de Privoxy
 
     private func makeController() {
-        installer = installer ?? Self.detectInstaller()
+        installer = installer ?? detectInstaller()
         guard privoxy == nil, let installer, let e = endpoint else { return }
-        privoxy = PrivoxyController(binary: installer.privoxyBinary, configFile: installer.configFile, host: e.host, port: e.port)
+        privoxy = PrivoxyController(binary: installer.privoxyBinary, configFile: installer.configFile, host: e.host, port: e.port,
+                                    useLaunchAgent: !usesBundledPrivoxy)
     }
 
     /// Au lancement : démarre Privoxy puis, si le parent l'avait activé, remet le proxy du Mac.
@@ -484,10 +501,9 @@ final class AppModel: ObservableObject {
         }
         uninstalling = true
         privoxy?.stop()
-        _ = try? installer?.uninstall()
+        let endpoints = [endpoint].compactMap { $0 }
+        _ = KidSafeUninstaller.perform(paths: engine.paths, endpoints: endpoints, adminPrompt: nil)
         try? SMAppService.mainApp.unregister()
-        try? FileManager.default.removeItem(at: engine.paths.supportDir)
-        if let id = Bundle.main.bundleIdentifier { UserDefaults.standard.removePersistentDomain(forName: id) }
         let app = Bundle.main.bundleURL
         if app.pathExtension == "app" { NSWorkspace.shared.recycle([app]) { _, _ in } }
         notice(L("app.uninstall.done"))

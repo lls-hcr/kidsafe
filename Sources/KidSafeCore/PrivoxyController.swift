@@ -14,12 +14,15 @@ public final class PrivoxyController: @unchecked Sendable {
     public let configFile: URL
     public let host: String
     public let port: Int
+    /// Faux pour le Privoxy intégré : on ne passe jamais par un service Homebrew.
+    public let useLaunchAgent: Bool
     public private(set) var mode: Mode = .none
     private var child: Process?
     private let lock = NSLock()
 
-    public init(binary: URL?, configFile: URL, host: String, port: Int) {
+    public init(binary: URL?, configFile: URL, host: String, port: Int, useLaunchAgent: Bool = true) {
         self.binary = binary; self.configFile = configFile; self.host = host; self.port = port
+        self.useLaunchAgent = useLaunchAgent
     }
 
     public var isListening: Bool { Self.isListening(host: host, port: port) }
@@ -29,10 +32,10 @@ public final class PrivoxyController: @unchecked Sendable {
     public func start(timeout: TimeInterval = 8) -> Bool {
         lock.lock(); defer { lock.unlock() }
         if isListening {
-            if case .none = mode { mode = loadedLabel().map { .launchd($0) } ?? .external }
+            if case .none = mode { mode = (useLaunchAgent ? loadedLabel() : nil).map { .launchd($0) } ?? .external }
             return true
         }
-        if let (label, plist) = launchAgent() {
+        if useLaunchAgent, let (label, plist) = launchAgent() {
             let target = "gui/\(getuid())/\(label)"
             if run("/bin/launchctl", ["print", target]) == nil {
                 _ = run("/bin/launchctl", ["bootstrap", "gui/\(getuid())", plist.path])
@@ -57,7 +60,7 @@ public final class PrivoxyController: @unchecked Sendable {
     /// Arrête Privoxy, quelle que soit la façon dont il a été lancé.
     public func stop(timeout: TimeInterval = 5) {
         lock.lock(); defer { lock.unlock() }
-        if case .none = mode, isListening { mode = loadedLabel().map { .launchd($0) } ?? .external }
+        if case .none = mode, isListening { mode = (useLaunchAgent ? loadedLabel() : nil).map { .launchd($0) } ?? .external }
         switch mode {
         case .child:
             child?.terminate()
@@ -70,7 +73,8 @@ public final class PrivoxyController: @unchecked Sendable {
             break
         }
         if !waitUntil(listening: false, timeout: timeout) {
-            _ = run("/usr/bin/pkill", ["-U", "\(getuid())", "-x", "privoxy"])
+            // Seulement le Privoxy qui utilise notre config, jamais un autre.
+            _ = run("/usr/bin/pkill", ["-U", "\(getuid())", "-f", configFile.path])
             _ = waitUntil(listening: false, timeout: 2)
         }
         mode = .none

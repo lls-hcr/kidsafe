@@ -444,3 +444,43 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(PrivoxyConfigEditor.managedActionFiles(in: try cfg()).first == "kidsafe-cat-a.action")
     }
 }
+
+@Suite struct BundledPrivoxyTests {
+    @Test func adaptsTemplate() {
+        let dir = URL(fileURLWithPath: "/Users/x/Library/Application Support/KidSafe/privoxy")
+        let out = BundledPrivoxy.adapt("confdir .\nlogdir .\n#listen-address [::1]:8118\nlisten-address  127.0.0.1:8118\ntoggle 1", dir: dir)
+        #expect(out == "confdir \(dir.path)\nlogdir \(dir.path)/log\n#listen-address [::1]:8118\nlisten-address  127.0.0.1:\(BundledPrivoxy.port)\ntoggle 1")
+    }
+
+    @Test func prepareCopiesAndKeepsKidSafeBlock() throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-bundle-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        // Faux KidSafe.app : Helpers/privoxy + Resources/privoxy-conf
+        let app = root.appendingPathComponent("KidSafe.app/Contents")
+        let conf = app.appendingPathComponent("Resources/privoxy-conf")
+        try FileManager.default.createDirectory(at: conf.appendingPathComponent("templates"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: app.appendingPathComponent("Helpers"), withIntermediateDirectories: true)
+        try "#!/bin/sh\n".write(to: app.appendingPathComponent("Helpers/privoxy"), atomically: true, encoding: .utf8)
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: app.appendingPathComponent("Helpers/privoxy").path)
+        try "<?xml version=\"1.0\"?><plist version=\"1.0\"><dict><key>CFBundleVersion</key><string>1</string></dict></plist>"
+            .write(to: app.appendingPathComponent("Info.plist"), atomically: true, encoding: .utf8)
+        for f in ["match-all.action", "default.action", "default.filter", "trust", "user.action", "user.filter", "VERSION", "templates/blocked"] {
+            try f.write(to: conf.appendingPathComponent(f), atomically: true, encoding: .utf8)
+        }
+        try "confdir .\nlogdir .\nactionsfile user.action\nlisten-address 127.0.0.1:8118\n".write(to: conf.appendingPathComponent("config"), atomically: true, encoding: .utf8)
+        let bundle = try #require(Bundle(url: root.appendingPathComponent("KidSafe.app")))
+        let support = root.appendingPathComponent("support")
+
+        let inst = try #require(try BundledPrivoxy.prepare(bundle: bundle, supportDir: support))
+        #expect(FileManager.default.isExecutableFile(atPath: inst.privoxyBinary!.path))
+        var cfg = try String(contentsOf: inst.configFile, encoding: .utf8)
+        #expect(cfg.contains("listen-address  127.0.0.1:\(BundledPrivoxy.port)"))
+
+        // KidSafe installe ses listes, puis une nouvelle version de l'app réinstalle Privoxy.
+        cfg = PrivoxyConfigEditor.apply(actionFiles: ["kidsafe-cat-adult.action"], to: cfg)
+        try cfg.write(to: inst.configFile, atomically: true, encoding: .utf8)
+        try "2".write(to: support.appendingPathComponent("privoxy/.kidsafe-bundle"), atomically: true, encoding: .utf8)
+        let again = try #require(try BundledPrivoxy.prepare(bundle: bundle, supportDir: support))
+        #expect(PrivoxyConfigEditor.managedActionFiles(in: try String(contentsOf: again.configFile, encoding: .utf8)) == ["kidsafe-cat-adult.action"])
+    }
+}

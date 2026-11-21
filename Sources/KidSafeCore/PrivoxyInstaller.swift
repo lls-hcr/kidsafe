@@ -17,8 +17,19 @@ public struct PrivoxyInstaller: Sendable {
         self.privoxyBinary = privoxyBinary
     }
 
-    /// Emplacements habituels sur macOS (installeur officiel, Homebrew Apple Silicon et Intel).
+    /// Privoxy intégré de KidSafe s'il est installé, sinon un Privoxy existant (Homebrew…).
     public static func detect() -> PrivoxyInstaller? {
+        let dir = BundledPrivoxy.installDir(supportDir: KidSafePaths.user.supportDir)
+        let bin = dir.appendingPathComponent("bin/privoxy")
+        if FileManager.default.fileExists(atPath: dir.appendingPathComponent("config").path),
+           FileManager.default.isExecutableFile(atPath: bin.path) {
+            return PrivoxyInstaller(confDir: dir, privoxyBinary: bin)
+        }
+        return detectExternal()
+    }
+
+    /// Emplacements habituels sur macOS (installeur officiel, Homebrew Apple Silicon et Intel).
+    public static func detectExternal() -> PrivoxyInstaller? {
         let fm = FileManager.default
         let candidates: [(conf: String, bin: String)] = [
             ("/usr/local/etc/privoxy", "/usr/local/sbin/privoxy"),

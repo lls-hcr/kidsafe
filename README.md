@@ -6,8 +6,8 @@
 A menu bar app (English and French) that blocks unwanted websites for the whole Mac: adult content,
 gambling, scams, social networks on a schedule, and any domain you choose.
 
-> **Test version.** KidSafe is not yet signed by Apple and still needs Privoxy from Homebrew.
-> A signed `.pkg` that installs everything is planned.
+> **Test version.** Everything installs and uninstalls from the `.dmg`, with Privoxy built in.
+> KidSafe is not yet signed by Apple, so macOS asks for confirmation the first time.
 
 **[⬇︎ Download KidSafe.dmg](https://github.com/lls-hcr/kidsafe/releases/latest/download/KidSafe.dmg)** ·
 [Release notes](https://github.com/lls-hcr/kidsafe/releases) ·
@@ -15,15 +15,19 @@ gambling, scams, social networks on a schedule, and any domain you choose.
 
 ## Install
 
-1. Install Privoxy once with [Homebrew](https://brew.sh): `brew install privoxy`
-   (KidSafe starts and stops Privoxy itself).
-2. Open `KidSafe.dmg` and drag KidSafe to **Applications**.
-3. Open KidSafe. The first time, macOS blocks it because it isn't signed yet: go to
+1. Open `KidSafe.dmg` and drag **KidSafe** to **Applications**.
+2. Open KidSafe. The first time, macOS blocks it because it isn't signed yet: go to
    **System Settings → Privacy & Security → Open Anyway**.
-4. Click the shield in the menu bar, then **Set up** to route the Mac through the filter.
+3. Click the shield in the menu bar, then **Set up** to route the Mac through the filter.
 
-Quitting KidSafe removes the filter and gives the Mac its normal connection back.
-To remove everything: **Settings → General → Uninstall KidSafe…**
+Nothing else to install: Privoxy is built into the app. Quitting KidSafe removes the filter and gives
+the Mac its normal connection back.
+
+## Uninstall
+
+Open `KidSafe.dmg` and double-click **Uninstall KidSafe** (or, in the app, **Settings → General →
+Uninstall KidSafe…**). It removes the filter, stops Privoxy, deletes all KidSafe settings and moves the app
+to the Trash. If a parent password is set, it is required.
 
 ## Features
 
@@ -48,13 +52,15 @@ administrator account can still change system settings; use a standard account f
 
 ## Build from source
 
-Requires macOS 14+ and the Xcode Command Line Tools (full Xcode not needed).
+Requires macOS 14+, the Xcode Command Line Tools (full Xcode not needed) and `autoconf`
+(`brew install autoconf`, only to build Privoxy).
 
 ```sh
 scripts/test.sh                      # unit tests
 scripts/build-app.sh                 # build/KidSafe.app for this Mac
 scripts/build-app.sh --universal     # Apple Silicon + Intel
-scripts/make-dmg.sh                  # build/KidSafe.dmg (universal app + Applications link + read me)
+scripts/build-privoxy.sh             # Privoxy 4.2.0 + PCRE2 from source, universal (called by build-app.sh)
+scripts/make-dmg.sh                  # build/KidSafe.dmg (app, uninstaller, Applications link, read me)
 swift scripts/make-icon.swift Resources/AppIcon.png   # redraws the icon
 ```
 
@@ -62,7 +68,13 @@ swift scripts/make-icon.swift Resources/AppIcon.png   # redraws the icon
 |---|---|
 | `KidSafeCore` | Blocklist parsing, Privoxy file generation, install with config test and rollback, catalog, schedules, translations |
 | `KidSafeApp` (product `KidSafe`) | SwiftUI menu bar app and settings window |
+| `KidSafeUninstaller` (`Uninstall KidSafe.app`) | Uninstaller shipped in the `.dmg` |
 | `kidsafe-blocklist` | Command-line tool (replaces the old `privoxy-blocklist.sh` and `blocklist2privoxy.sh` scripts) |
+
+**Built-in Privoxy**: the app contains Privoxy (`Contents/Helpers/privoxy`) and its default files
+(`Contents/Resources/privoxy-conf`). On first launch they are installed in
+`~/Library/Application Support/KidSafe/privoxy/` and Privoxy listens on `127.0.0.1:8128`, a dedicated port that
+never conflicts with another Privoxy. KidSafe starts it on launch and stops it on quit.
 
 The app and the CLI share the same catalog: `~/Library/Application Support/KidSafe/catalog.json`.
 For development, `KIDSAFE_SUPPORT_DIR` and `KIDSAFE_PRIVOXY_CONF` isolate the app from your real configuration.
@@ -104,8 +116,9 @@ The CLI follows the system language; `KIDSAFE_LANG=en` or `KIDSAFE_LANG=fr` forc
 
 ## Roadmap
 
-- Signed and notarized `.pkg` that installs Privoxy (built from source, GPL sources provided) as a system service.
-- Root helper (LaunchDaemon) protected by the parent password; settings moved to
+- Apple signature and notarization (no more “Open Anyway”).
+- Root helper (LaunchDaemon) protected by the parent password, so filtering and time slots keep running
+  even when the app is closed; settings moved to
   `/Library/Application Support/KidSafe`, where a child can't change them.
 - In-app updates with Sparkle.
 - Log of blocked attempts, local block page.
@@ -117,6 +130,9 @@ The CLI follows the system language; `KIDSAFE_LANG=en` or `KIDSAFE_LANG=fr` forc
 
 ## License
 
-KidSafe is released under the GNU GPL v3 (see [LICENSE](LICENSE)). Privoxy is GPL v2 or later.
+KidSafe is released under the GNU GPL v3 (see [LICENSE](LICENSE)). The built-in Privoxy is GPL v2 or later:
+its exact source code is downloaded and verified by `scripts/build-privoxy.sh`
+([Privoxy 4.2.0 sources](https://sourceforge.net/projects/ijbswa/files/Sources/4.2.0%20%28stable%29/),
+[PCRE2 10.49](https://github.com/PCRE2Project/pcre2/releases/tag/pcre2-10.49), BSD license).
 Blocklists keep their own licenses (listed in the catalog): HaGeZi (GPL-3.0), UT1 Toulouse Capitole (CC BY-SA 4.0),
 StevenBlack (MIT), Block List Project (Unlicense), EasyList (GPL-3.0 / CC BY-SA 3.0).

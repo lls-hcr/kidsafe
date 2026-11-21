@@ -12,6 +12,16 @@ Contrôle parental pour macOS basé sur Privoxy : une app dans la barre de menus
 
 L'app et la CLI partagent le même catalogue : `~/Library/Application Support/KidSafe/catalog.json`.
 
+## Installer et désinstaller (utilisateurs)
+
+Tout se fait depuis [`KidSafe.dmg`](https://github.com/lls-hcr/kidsafe/releases/latest/download/KidSafe.dmg), Privoxy est intégré :
+
+1. Glissez **KidSafe** dans **Applications** et ouvrez-le. La première fois : Réglages Système →
+   Confidentialité et sécurité → **Ouvrir quand même** (l'app n'est pas encore signée par Apple).
+2. Bouclier dans la barre de menus → **Configurer**.
+3. Pour tout enlever : double-cliquez sur **Désinstaller KidSafe** dans le `.dmg` (ou Réglages → Général →
+   « Désinstaller KidSafe… »). Le mot de passe parent est demandé s'il existe.
+
 ## Construire et lancer
 
 ```sh
@@ -22,10 +32,12 @@ swift scripts/make-icon.swift Resources/AppIcon.png   # redessine l'icône (puis
 open build/KidSafe.app
 ```
 
-Pour essayer : `brew install privoxy`, ouvrir l'app, puis cliquer sur « Configurer ».
+Privoxy intégré : `scripts/build-privoxy.sh` compile Privoxy 4.2.0 et PCRE2 depuis leurs sources (universel,
+`brew install autoconf` nécessaire sur la machine de construction). L'app l'installe dans
+`~/Library/Application Support/KidSafe/privoxy/` et l'écoute se fait sur `127.0.0.1:8128`, un port dédié.
 
 **Le Mac ne doit jamais perdre sa connexion** :
-- au lancement, KidSafe démarre Privoxy (service launchd s'il existe, sinon processus de l'app), puis remet
+- au lancement, KidSafe démarre son Privoxy intégré, puis remet
   le proxy si le parent l'avait activé ;
 - en quittant, KidSafe retire d'abord le proxy, puis arrête Privoxy. Si le proxy ne peut pas être retiré,
   Privoxy reste allumé ;
@@ -90,7 +102,7 @@ $B uninstall
 
 - Helper root (LaunchDaemon installé par le .pkg) protégé par un mot de passe parent. Le catalogue passera
   alors dans `/Library/Application Support/KidSafe`, où l'enfant ne peut rien modifier.
-- .pkg contenant Privoxy compilé (sources GPL fournies), puis signature et notarisation (compte Apple Developer).
+- Signature et notarisation Apple (compte Apple Developer) : plus besoin d'« Ouvrir quand même ».
 - Recherche de nouvelles versions de l'app avec Sparkle.
 - Journal des sites bloqués, page de blocage locale.
 - Protections contre le contournement : compte enfant standard, profil qui verrouille le proxy, mot de passe parent.
