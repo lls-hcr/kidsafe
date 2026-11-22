@@ -12,6 +12,8 @@ public struct BlocklistUpdater: Sendable {
         public var blockedCount: Int
         public var stats: ParsedBlocklist.Stats
         public var warnings: [String]
+        /// Dates et état du téléchargement (`delta` est calculé par le moteur).
+        public var list = ListStatus()
         /// Liste assez lourde pour ralentir Privoxy (voir `Catalog.heavyListThreshold`).
         public var heavy: Bool { blockedCount > Catalog.heavyListThreshold }
     }
@@ -25,7 +27,8 @@ public struct BlocklistUpdater: Sendable {
 
     /// Une catégorie en échec n'est pas retirée : si son fichier existe déjà dans `confDir`,
     /// il est conservé tel quel plutôt que de laisser l'enfant sans protection.
-    public func prepare(_ catalog: Catalog, existingConfDir: URL?, date: Date = Date()) async -> Result {
+    public func prepare(_ catalog: Catalog, existingConfDir: URL?, date: Date = Date(),
+                        progress: (@Sendable (String, ListProgress) -> Void)? = nil) async -> Result {
         var files: [(name: String, content: String)] = []
         var results: [CategoryResult] = []
         var failed: [(String, String)] = []
@@ -38,16 +41,35 @@ public struct BlocklistUpdater: Sendable {
                 var merged = ParsedBlocklist()
                 var warnings: [String] = []
                 var ok = 0
+                var list = ListStatus(checked: date)
+                var anyChanged = false
+                let id = cat.id
                 for src in cat.sources {
                     do {
-                        let fetched = try await fetcher.fetch(src)
+                        progress?(id, .downloading(received: 0, expected: 0))
+                        var bytes: SourceFetcher.Progress?
+                        if let progress {
+                            bytes = { received, expected in progress(id, .downloading(received: received, expected: expected)) }
+                        }
+                        let fetched = try await fetcher.fetch(src, progress: bytes)
                         if let w = fetched.warning { warnings.append(w) }
+                        if fetched.fromCache {
+                            // La plus ancienne copie utilisée ; la raison est gardée pour le survol.
+                            list.cacheUsed = min(list.cacheUsed ?? .distantFuture, fetched.dataDate ?? .distantPast)
+                            list.error = fetched.warning
+                            list.checked = nil
+                        } else if !fetched.unchanged {
+                            anyChanged = true
+                        }
+                        if let c = fetched.changed { list.changed = max(list.changed ?? .distantPast, c) }
+                        progress?(id, .converting)
                         merged.merge(BlocklistParser.parse(fetched.data))
                         ok += 1
                     } catch {
                         warnings.append("\(error)")
                     }
                 }
+                list.changedNow = anyChanged
                 if ok > 0, !merged.blocked.isEmpty {
                     if merged.blocked.count > Catalog.heavyListThreshold {
                         warnings.append(cat.displayWarning ?? L("warning.heavy.generic", formatCount(merged.blocked.count)))
@@ -56,7 +78,7 @@ public struct BlocklistUpdater: Sendable {
                                                               sources: cat.sources.map(\.url), list: merged)
                     files.append((name, content))
                     results.append(CategoryResult(id: cat.id, fileName: name, blockedCount: merged.blocked.count,
-                                                  stats: merged.stats, warnings: warnings))
+                                                  stats: merged.stats, warnings: warnings, list: list))
                 } else if let dir = existingConfDir,
                           let previous = try? String(contentsOf: dir.appendingPathComponent(name), encoding: .utf8) {
                     files.append((name, previous))

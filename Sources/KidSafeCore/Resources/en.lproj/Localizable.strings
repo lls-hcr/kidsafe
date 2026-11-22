@@ -246,7 +246,7 @@ Language: the system's, or KIDSAFE_LANG=fr|en.";
 "cli.paused" = "Filtering paused.";
 "cli.resumed" = "Filtering resumed.";
 "app.login.toggle" = "Open KidSafe when the Mac starts";
-"app.login.help" = "KidSafe opens at every login so time slots keep applying. Privoxy will start with the Mac through the service installed by the .pkg.";
+"app.login.help" = "KidSafe opens at every login, with its filtering: without it, the Mac isn't filtered and time slots don't apply.";
 "app.general.notify" = "Show a message when a site is blocked";
 "app.general.notifyHelp" = "On most sites, the browser shows its own error message (“connection refused by the proxy server”). KidSafe then shows the site and the reason in the middle of the screen; the message goes away at the first click. Ads and tracking blocked in the background are not reported, and the same site at most once every 10 minutes.";
 "splash.title" = "Site blocked by KidSafe";
@@ -453,3 +453,17 @@ Language: the system's, or KIDSAFE_LANG=fr|en.";
 "protect.cleanup.firefox" = "Remove the Firefox rule (administrator password)";
 "protect.cleanup.ok" = "Turn off";
 "protect.cleanup.keep" = "Keep everything";
+
+/* 0.7.3: status of each list */
+"lists.progress.download" = "Downloading… %@";
+"lists.progress.convert" = "Converting to Privoxy's format…";
+"lists.progress.install" = "Replacing the list in Privoxy…";
+"lists.updated" = "updated %@";
+"lists.lastChange" = "Content last changed: %@";
+"lists.cacheUsed" = "Download failed · copy from %@ used";
+"lists.cacheUsedNoDate" = "Download failed · previous copy used";
+"lists.file" = "File: %@";
+"lists.updating" = "Updating lists…";
+"lists.summary" = "Checked at %@: %d list(s) changed, %d unchanged, %@";
+"lists.summary.noFailure" = "no failures";
+"lists.summary.failures" = "%d failed";

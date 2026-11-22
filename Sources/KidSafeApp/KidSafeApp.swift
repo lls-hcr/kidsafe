@@ -367,8 +367,15 @@ struct CategoryToggle: View {
                                 .help(model.status.failures[category.id] ?? "")
                         }
                     }
-                    if let n = model.status.domainCounts[category.id], category.enabled {
-                        Text(L("app.lists.domains", formatCount(n))).font(.caption2).foregroundStyle(.secondary)
+                    if category.enabled, let step = model.listProgress[category.id] {
+                        ListProgressLine(step: step, file: model.confDir?.appendingPathComponent(PrivoxyActions.fileName(forCategory: category.id)))
+                    } else if let n = model.status.domainCounts[category.id], category.enabled {
+                        if compact {
+                            Text(L("app.lists.domains", formatCount(n))).font(.caption2).foregroundStyle(.secondary)
+                        } else {
+                            ListStatusLine(count: n, list: model.status.lists[category.id],
+                                           file: model.confDir?.appendingPathComponent(PrivoxyActions.fileName(forCategory: category.id)))
+                        }
                     }
                     if !compact, let src = category.sources.first {
                         Text(src.url.hasPrefix("file://") ? L("app.lists.localFile", src.license ?? "") : src.url)
@@ -383,6 +390,78 @@ struct CategoryToggle: View {
                     .buttonStyle(.borderless).help(L("app.lists.remove"))
             }
         }
+    }
+}
+
+/// Étape en cours pendant la mise à jour : téléchargement (pourcentage ou taille), conversion, remplacement.
+struct ListProgressLine: View {
+    var step: ListProgress
+    var file: URL?
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ProgressView().controlSize(.mini)
+            Text(verbatim: text)
+        }
+        .font(.caption2).foregroundStyle(.secondary)
+        .help(file.map { L("lists.file", $0.path) } ?? "")
+    }
+
+    private var text: String {
+        switch step {
+        case .downloading(let received, let expected):
+            let loc = Locale(identifier: Localization.currentLanguage)
+            if expected > 0 {
+                let f = min(1, Double(received) / Double(expected))
+                return L("lists.progress.download", f.formatted(.percent.precision(.fractionLength(0)).locale(loc)))
+            }
+            return L("lists.progress.download", received > 0 ? ByteCountFormatter.string(fromByteCount: received, countStyle: .file) : "")
+        case .converting: return L("lists.progress.convert")
+        case .installing: return L("lists.progress.install")
+        }
+    }
+}
+
+/// « 87 389 domaines · mise à jour le … (+312) », ou en orange si le téléchargement a échoué.
+struct ListStatusLine: View {
+    var count: Int
+    var list: ListStatus?
+    var file: URL?
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 1) {
+            Text(verbatim: summary).foregroundStyle(.secondary)
+                .help(list?.changed.map { L("lists.lastChange", Self.short($0)) } ?? "")
+            if let used = list?.cacheUsed {
+                Text(verbatim: used.timeIntervalSince1970 > 0 ? L("lists.cacheUsed", Self.short(used))
+                                                             : L("lists.cacheUsedNoDate"))
+                    .foregroundStyle(.orange)
+                    .help(list?.error ?? "")
+            }
+        }
+        .font(.caption2)
+        .help(file.map { L("lists.file", $0.path) } ?? "")
+    }
+
+    /// « 23 nov. à 7:30 » (l'année seulement si ce n'est pas l'année en cours).
+    static func short(_ d: Date) -> String {
+        let loc = Locale(identifier: Localization.currentLanguage)
+        let sameYear = Calendar.current.isDate(d, equalTo: Date(), toGranularity: .year)
+        let style = sameYear ? Date.FormatStyle().day().month(.abbreviated).hour().minute()
+                             : Date.FormatStyle().day().month(.abbreviated).year().hour().minute()
+        return d.formatted(style.locale(loc))
+    }
+
+    private var summary: String {
+        var parts = [L("app.lists.domains", formatCount(count))]
+        guard let list else { return parts[0] }
+        // Une seule date : la dernière mise à jour réussie (le dernier changement du contenu s'affiche au survol).
+        if let d = list.checked {
+            var s = L("lists.updated", Self.short(d))
+            if list.changedNow, let delta = list.delta, delta != 0 { s += " (\(delta > 0 ? "+" : "−")\(formatCount(abs(delta))))" }
+            parts.append(s)
+        }
+        return parts.joined(separator: " · ")
     }
 }
 

@@ -25,7 +25,66 @@ public struct KidSafeStatus: Codable, Sendable, Equatable {
     public var domainCounts: [String: Int] = [:]
     public var failures: [String: String] = [:]
     public var warnings: [String: [String]] = [:]
+    /// État de chaque liste cochée lors de la dernière mise à jour (clé : identifiant de la catégorie).
+    public var lists: [String: ListStatus] = [:]
     public init() {}
+
+    private enum CodingKeys: String, CodingKey { case lastApplied, domainCounts, failures, warnings, lists }
+
+    /// Les champs ajoutés après la première version sont facultatifs dans le fichier.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        lastApplied = try c.decodeIfPresent(Date.self, forKey: .lastApplied)
+        domainCounts = try c.decodeIfPresent([String: Int].self, forKey: .domainCounts) ?? [:]
+        failures = try c.decodeIfPresent([String: String].self, forKey: .failures) ?? [:]
+        warnings = try c.decodeIfPresent([String: [String]].self, forKey: .warnings) ?? [:]
+        lists = try c.decodeIfPresent([String: ListStatus].self, forKey: .lists) ?? [:]
+    }
+
+    /// Résumé de la dernière mise à jour des listes cochées.
+    public struct Summary: Equatable, Sendable {
+        public var checked = 0, updated = 0, unchanged = 0, failed = 0
+    }
+
+    public func summary(for ids: [String]) -> Summary? {
+        guard lastApplied != nil else { return nil }
+        var s = Summary()
+        for id in ids {
+            if failures[id] != nil || lists[id]?.cacheUsed != nil { s.failed += 1; continue }
+            guard let l = lists[id] else { continue }
+            s.checked += 1
+            if l.changedNow { s.updated += 1 } else { s.unchanged += 1 }
+        }
+        return s.checked + s.failed > 0 ? s : nil
+    }
+}
+
+/// État d'une liste après une mise à jour.
+public struct ListStatus: Codable, Sendable, Equatable {
+    /// Dernière vérification en ligne réussie.
+    public var checked: Date?
+    /// Dernier changement du contenu.
+    public var changed: Date?
+    /// Le contenu a changé lors de cette mise à jour.
+    public var changedNow = false
+    /// Variation du nombre de domaines lors de cette mise à jour (nil : première fois).
+    public var delta: Int?
+    /// Téléchargement impossible : date de la copie utilisée à la place.
+    public var cacheUsed: Date?
+    /// Raison de l'échec, si elle est connue.
+    public var error: String?
+    public init(checked: Date? = nil, changed: Date? = nil, changedNow: Bool = false, delta: Int? = nil,
+                cacheUsed: Date? = nil, error: String? = nil) {
+        self.checked = checked; self.changed = changed; self.changedNow = changedNow; self.delta = delta
+        self.cacheUsed = cacheUsed; self.error = error
+    }
+}
+
+/// Étape en cours pour une liste, affichée pendant la mise à jour.
+public enum ListProgress: Sendable, Equatable {
+    case downloading(received: Int64, expected: Int64)
+    case converting
+    case installing
 }
 
 /// Importe une liste depuis le disque : elle est vérifiée puis copiée dans `listsDir`,
@@ -136,9 +195,14 @@ public struct KidSafeEngine: Sendable {
     }
 
     /// Télécharge, convertit et installe les listes cochées, puis enregistre l'état.
-    public func apply(_ catalog: Catalog, installer: PrivoxyInstaller, date: Date = Date()) async throws -> ApplyResult {
+    /// `progress` : étape de chaque liste (téléchargement, conversion, remplacement dans Privoxy).
+    public func apply(_ catalog: Catalog, installer: PrivoxyInstaller, date: Date = Date(),
+                      progress: (@Sendable (String, ListProgress) -> Void)? = nil) async throws -> ApplyResult {
+        let previous = loadStatus()
         let updater = BlocklistUpdater(fetcher: SourceFetcher(cacheDir: paths.cacheDir))
-        let prepared = await updater.prepare(catalog, existingConfDir: installer.confDir, date: date)
+        let prepared = await updater.prepare(catalog, existingConfDir: installer.confDir, date: date, progress: progress)
+        for c in prepared.categories { progress?(c.id, .installing) }
+        for f in prepared.failed { progress?(f.id, .installing) }
         let report = try installer.install(prepared.plan)
 
         var status = KidSafeStatus()
@@ -146,8 +210,20 @@ public struct KidSafeEngine: Sendable {
         for c in prepared.categories {
             status.domainCounts[c.id] = c.blockedCount
             if !c.warnings.isEmpty { status.warnings[c.id] = c.warnings }
+            var l = c.list
+            l.delta = previous.domainCounts[c.id].map { c.blockedCount - $0 }
+            if l.cacheUsed != nil, l.checked == nil { l.checked = previous.lists[c.id]?.checked }
+            status.lists[c.id] = l
         }
-        for f in prepared.failed { status.failures[f.id] = f.error }
+        for f in prepared.failed {
+            status.failures[f.id] = f.error
+            // Liste précédente conservée : même nombre de domaines, date de la dernière vérification réussie.
+            if let n = previous.domainCounts[f.id], f.error.contains(L("warning.previousKept")) {
+                status.domainCounts[f.id] = n
+                status.lists[f.id] = ListStatus(checked: previous.lists[f.id]?.checked, changed: previous.lists[f.id]?.changed,
+                                                cacheUsed: previous.lists[f.id]?.checked ?? previous.lastApplied, error: f.error)
+            }
+        }
         let enc = JSONEncoder(); enc.dateEncodingStrategy = .iso8601; enc.outputFormatting = .prettyPrinted
         try? FileManager.default.createDirectory(at: paths.supportDir, withIntermediateDirectories: true)
         try? enc.encode(status).write(to: paths.statusFile, options: .atomic)

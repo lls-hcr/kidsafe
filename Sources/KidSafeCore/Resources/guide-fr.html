@@ -79,6 +79,13 @@
 </div>
 <figure class="shot">{{shot:lists}}<figcaption>Les catégories et le nombre de domaines bloqués</figcaption></figure>
 </div>
+<h3>Mise à jour des listes</h3>
+<p>Automatique selon l'intervalle choisi dans <span class="ui">Général</span> (compté depuis la dernière mise à jour, tant que KidSafe est ouvert), ou immédiate avec <span class="ui">Mettre à jour les listes</span>. Pendant la mise à jour, chaque liste affiche son étape : téléchargement, conversion au format de Privoxy, remplacement dans Privoxy.</p>
+<dl class="kv">
+<dt>mise à jour le…</dt><dd>Dernière mise à jour réussie, avec le nombre de domaines ajoutés ou retirés s'il a changé. Au survol : le dernier changement du contenu.</dd>
+<dt>En orange</dt><dd>Téléchargement impossible : la copie précédente reste utilisée, l'enfant reste protégé. La raison s'affiche au survol.</dd>
+</dl>
+<p>En bas de l'onglet, un résumé : listes modifiées, inchangées, échecs. Une liste inchangée n'est pas retéléchargée : le site confirme simplement qu'elle n'a pas changé.</p>
 </section>
 
 <section id="site-bloque">

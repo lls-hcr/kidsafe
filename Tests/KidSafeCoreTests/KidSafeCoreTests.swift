@@ -779,7 +779,8 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         let s = Monitor.summarize([e("www.bad.example", 60), e("www.bad.example", 120), e("tiktok.com", 7200), e("old.example", 9 * 86400)],
                                   index: index, now: now)
         #expect(s.total == 4)
-        #expect(s.perHour.count == 24 && s.perHour.last?.count ?? 0 >= 2)
+        // Les deux blocages d'il y a 1 et 2 min : heure en cours, ou la précédente juste après l'heure pile.
+        #expect(s.perHour.count == 24 && s.perHour.suffix(2).map(\.count).reduce(0, +) >= 2)
         #expect(s.perDay.count == 7 && s.perDay.map(\.count).reduce(0, +) == 3)   // la ligne d'il y a 9 jours est hors période
         #expect(s.topDomains.first?.host == "www.bad.example" && s.topDomains.first?.count == 2)
         #expect(s.perCategory.first?.name == "Contenus pour adultes")
@@ -923,5 +924,76 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         Localization.forcedLanguage = "fr"
         defer { Localization.forcedLanguage = nil }
         #expect(EventLog.describe(recent[0], locale: Locale(identifier: "fr")).contains("inattendue"))
+    }
+}
+
+@Suite struct ListStatusTests {
+    @Test func fetcherKnowsWhenAListChanged() async throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-fetch-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let file = dir.appendingPathComponent("list.txt")
+        let src = Catalog.Source(url: file.absoluteString)
+        let fetcher = SourceFetcher(cacheDir: dir.appendingPathComponent("cache"))
+        let t0 = Date(timeIntervalSince1970: 1_800_000_000)
+
+        try "a.example\nb.example\n".write(to: file, atomically: true, encoding: .utf8)
+        let first = try await fetcher.fetch(src, now: t0)
+        #expect(!first.unchanged && !first.fromCache && first.changed == t0)
+
+        // Même contenu : inchangée, la date de changement reste celle du premier téléchargement.
+        let same = try await fetcher.fetch(src, now: t0.addingTimeInterval(3600))
+        #expect(same.unchanged && same.changed == t0 && same.dataDate == t0.addingTimeInterval(3600))
+
+        try "a.example\nc.example\n".write(to: file, atomically: true, encoding: .utf8)
+        let t2 = t0.addingTimeInterval(7200)
+        let changed = try await fetcher.fetch(src, now: t2)
+        #expect(!changed.unchanged && changed.changed == t2)
+
+        // Source disparue : copie du cache, datée de la dernière vérification réussie.
+        try FileManager.default.removeItem(at: file)
+        let cached = try await fetcher.fetch(src, now: t0.addingTimeInterval(9000))
+        #expect(cached.fromCache && cached.dataDate == t2 && cached.warning != nil)
+        #expect(String(decoding: cached.data, as: UTF8.self).contains("c.example"))
+    }
+
+    @Test func engineReportsStepsAndStatus() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-lists-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let conf = root.appendingPathComponent("conf")
+        try FileManager.default.createDirectory(at: conf, withIntermediateDirectories: true)
+        try "listen-address 127.0.0.1:8118\nactionsfile user.action\n".write(to: conf.appendingPathComponent("config"), atomically: true, encoding: .utf8)
+        let list = root.appendingPathComponent("adult.txt")
+        try "a.example\nb.example\n".write(to: list, atomically: true, encoding: .utf8)
+        var catalog = Catalog(categories: [.init(id: "t", name: "Test", enabled: true, sources: [.init(url: list.absoluteString)])])
+        catalog.hardenPrivoxy = false
+        let engine = KidSafeEngine(paths: KidSafePaths(supportDir: root.appendingPathComponent("support")))
+        let installer = PrivoxyInstaller(confDir: conf, privoxyBinary: nil)
+
+        final class Steps: @unchecked Sendable { var all: [ListProgress] = []; let lock = NSLock() }
+        let steps = Steps()
+        let r1 = try await engine.apply(catalog, installer: installer) { _, s in steps.lock.lock(); steps.all.append(s); steps.lock.unlock() }
+        #expect(steps.all.contains(.converting) && steps.all.last == .installing)
+        #expect(steps.all.contains { if case .downloading = $0 { true } else { false } })
+        #expect(r1.status.lists["t"]?.changedNow == true && r1.status.lists["t"]?.delta == nil)   // première fois
+
+        let r2 = try await engine.apply(catalog, installer: installer)
+        #expect(r2.status.lists["t"]?.changedNow == false && r2.status.lists["t"]?.delta == 0)
+        #expect(r2.status.summary(for: ["t"]) == .init(checked: 1, updated: 0, unchanged: 1, failed: 0))
+
+        try "a.example\nb.example\nc.example\n".write(to: list, atomically: true, encoding: .utf8)
+        let r3 = try await engine.apply(catalog, installer: installer)
+        #expect(r3.status.lists["t"]?.changedNow == true && r3.status.lists["t"]?.delta == 1)
+
+        // Téléchargement impossible : copie utilisée, comptée comme échec dans le résumé.
+        try FileManager.default.removeItem(at: list)
+        let r4 = try await engine.apply(catalog, installer: installer)
+        #expect(r4.status.lists["t"]?.cacheUsed != nil && r4.status.lists["t"]?.error != nil)
+        #expect(r4.status.domainCounts["t"] == 3)
+        #expect(r4.status.summary(for: ["t"])?.failed == 1)
+
+        // Fichier d'état d'une version précédente : lisible, sans état par liste.
+        let old = try JSONDecoder().decode(KidSafeStatus.self, from: Data(#"{"domainCounts":{"t":3},"failures":{},"warnings":{}}"#.utf8))
+        #expect(old.lists.isEmpty && old.domainCounts["t"] == 3)
     }
 }

@@ -79,6 +79,13 @@
 </div>
 <figure class="shot">{{shot:lists}}<figcaption>Categories and the number of blocked domains</figcaption></figure>
 </div>
+<h3>Updating lists</h3>
+<p>Automatic, at the interval chosen in <span class="ui">General</span> (counted from the last update, while KidSafe is open), or right away with <span class="ui">Update lists</span>. During the update, each list shows its step: downloading, converting to Privoxy's format, replacing in Privoxy.</p>
+<dl class="kv">
+<dt>updated…</dt><dd>Last successful update, with the number of domains added or removed if it changed. Hover: when the content last changed.</dd>
+<dt>In orange</dt><dd>Download failed: the previous copy is still used, so the child stays protected. Hover to see why.</dd>
+</dl>
+<p>At the bottom of the tab, a summary: lists changed, unchanged, failed. An unchanged list isn't downloaded again: the website just confirms it hasn't changed.</p>
 </section>
 
 <section id="blocked-site">

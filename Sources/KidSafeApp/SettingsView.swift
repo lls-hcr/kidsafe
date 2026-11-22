@@ -77,7 +77,13 @@ struct ListsTab: View {
             HStack {
                 AddListMenu()
                 Spacer()
-                if model.isApplying { ProgressView().controlSize(.small) }
+                if model.isApplying {
+                    ProgressView().controlSize(.small)
+                    Text(L("lists.updating")).font(.caption).foregroundStyle(.secondary)
+                } else if let line = model.listsSummaryLine {
+                    Text(verbatim: line.text).font(.caption).foregroundStyle(line.failed ? Color.orange : Color.secondary)
+                        .multilineTextAlignment(.trailing)
+                }
                 Button(L("app.updateNow")) { model.refreshListsManually() }
                     .disabled(model.isApplying || model.installer == nil || !model.catalog.filteringEnabled)
             }

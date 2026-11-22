@@ -18,6 +18,8 @@ final class AppModel: ObservableObject {
     @Published private(set) var privoxyRunning = false
     @Published private(set) var systemProxyOK = false
     @Published private(set) var isApplying = false
+    /// Étape en cours de chaque liste pendant une mise à jour (vide le reste du temps).
+    @Published private(set) var listProgress: [String: ListProgress] = [:]
     @Published var lastError: String?
     /// Heure courante, rafraîchie toutes les 30 s (état « bloqué maintenant » des réseaux sociaux).
     @Published private(set) var now = Date()
@@ -154,6 +156,11 @@ final class AppModel: ObservableObject {
         var s = KidSafeStatus()
         s.lastApplied = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date())
         s.domainCounts = ["adult": 87_887, "bypass": 24_014, "security": 206_194, "gambling": 95_194]
+        let checked = s.lastApplied, day: TimeInterval = 86_400
+        s.lists = ["adult": .init(checked: checked, changed: checked, changedNow: true, delta: 312),
+                   "bypass": .init(checked: checked, changed: checked?.addingTimeInterval(-2 * day)),
+                   "security": .init(checked: checked, changed: checked?.addingTimeInterval(-day)),
+                   "gambling": .init(checked: checked, changed: checked?.addingTimeInterval(-5 * day))]
         status = s
         now = Calendar.current.date(bySettingHour: 15, minute: 10, second: 0, of: Date()) ?? Date()
         installer = PrivoxyInstaller(confDir: BundledPrivoxy.installDir(supportDir: KidSafePaths.user.supportDir))
@@ -610,9 +617,14 @@ final class AppModel: ObservableObject {
         isApplying = true
         lastError = nil
         let catalog = self.catalog, engine = self.engine
+        // File principale (dans l'ordre d'envoi) : la dernière étape ne peut pas arriver après la fin.
+        let progress: @Sendable (String, ListProgress) -> Void = { id, step in
+            DispatchQueue.main.async { MainActor.assumeIsolated { self.listProgress[id] = step } }
+        }
         Task {
+            defer { DispatchQueue.main.async { MainActor.assumeIsolated { self.listProgress = [:] } } }
             do {
-                let result = try await engine.apply(catalog, installer: installer)
+                let result = try await engine.apply(catalog, installer: installer, progress: progress)
                 self.status = result.status
                 self.lastBlockedServiceIDs = Set(catalog.blockedServices(at: Date()).map(\.id))
                 if self.reconnectAfterApply, catalog == self.catalog {
@@ -632,6 +644,15 @@ final class AppModel: ObservableObject {
 
     func refreshListsManually() {
         applyNow()
+    }
+
+    /// Résumé de la dernière mise à jour, en bas de l'onglet Listes.
+    var listsSummaryLine: (text: String, failed: Bool)? {
+        guard !catalog.strictMode, let when = status.lastApplied,
+              let s = status.summary(for: catalog.categories.filter(\.enabled).map(\.id)) else { return nil }
+        let failures = s.failed == 0 ? L("lists.summary.noFailure") : L("lists.summary.failures", s.failed)
+        let time = formatDate(when, date: Calendar.current.isDateInToday(when) ? .omitted : .abbreviated, time: .shortened)
+        return (L("lists.summary", time, s.updated, s.unchanged, failures), s.failed > 0)
     }
 
     func configureSystemProxy(_ enable: Bool) {

@@ -246,7 +246,7 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "cli.paused" = "Filtrage en pause.";
 "cli.resumed" = "Filtrage repris.";
 "app.login.toggle" = "Ouvrir KidSafe au démarrage du Mac";
-"app.login.help" = "KidSafe s'ouvre à chaque ouverture de session, pour que les plages horaires restent appliquées. Privoxy démarrera avec le Mac grâce au service installé par le .pkg.";
+"app.login.help" = "KidSafe s'ouvre à chaque ouverture de session, avec son filtrage : sans lui, le Mac n'est pas filtré et les plages horaires ne s'appliquent pas.";
 "app.general.notify" = "Message à l’écran quand un site est bloqué";
 "app.general.notifyHelp" = "Sur la plupart des sites, le navigateur affiche son propre message d’erreur (« connexion refusée par le serveur proxy »). KidSafe affiche alors au centre de l’écran le site et la raison ; le message disparaît au premier clic. Les publicités et le pistage bloqués en arrière-plan ne sont pas signalés, et un même site au plus une fois toutes les 10 minutes.";
 "splash.title" = "Site bloqué par KidSafe";
@@ -453,3 +453,17 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "protect.cleanup.firefox" = "Retirer la règle Firefox (mot de passe administrateur)";
 "protect.cleanup.ok" = "Désactiver";
 "protect.cleanup.keep" = "Tout garder";
+
+/* 0.7.3 : état de chaque liste */
+"lists.progress.download" = "Téléchargement… %@";
+"lists.progress.convert" = "Conversion au format de Privoxy…";
+"lists.progress.install" = "Remplacement de la liste dans Privoxy…";
+"lists.updated" = "mise à jour le %@";
+"lists.lastChange" = "Dernier changement du contenu : %@";
+"lists.cacheUsed" = "Téléchargement impossible · copie du %@ utilisée";
+"lists.cacheUsedNoDate" = "Téléchargement impossible · copie précédente utilisée";
+"lists.file" = "Fichier : %@";
+"lists.updating" = "Mise à jour des listes…";
+"lists.summary" = "Vérification de %@ : %d liste(s) modifiée(s), %d inchangée(s), %@";
+"lists.summary.noFailure" = "aucun échec";
+"lists.summary.failures" = "%d échec(s)";
