@@ -589,6 +589,19 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(unhardened.contains("\ntoggle  1\n") && !unhardened.contains("toggle 0"))
     }
 
+    @Test func relayKeepsListsButFiltersNothing() {
+        let base = ConfigEditorTests.config
+        for harden in [true, false] {
+            let relay = PrivoxyConfigEditor.apply(actionFiles: ["a.action"], to: base, options: .init(harden: harden, relay: true))
+            let toggles = relay.split(separator: "\n").filter { PrivoxyConfigEditor.directiveName(String($0)) == "toggle" }
+            #expect(toggles == ["toggle 0"])
+            // Pas une pause : les listes restent déclarées, et KidSafe les réactive sans rien réinstaller.
+            #expect(!PrivoxyConfigEditor.isPaused(relay))
+            #expect(PrivoxyConfigEditor.managedActionFiles(in: relay) == ["a.action"])
+            #expect(PrivoxyConfigEditor.remove(from: relay) == base)
+        }
+    }
+
     @Test func editorClosesAfterDelay() {
         let now = Date()
         #expect(AdvancedSettings(editorUntil: now.addingTimeInterval(60)).editorActive(at: now))
@@ -642,6 +655,41 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         let d = out.fileHandleForReading.readDataToEndOfFile()
         p.waitUntilExit()
         return String(decoding: d, as: UTF8.self)
+    }
+
+    /// KidSafe fermé : Privoxy reste allumé en simple relais (rien n'est bloqué), puis filtre de nouveau au relancement.
+    @Test(.enabled(if: FileManager.default.isExecutableFile(atPath: privoxy.appendingPathComponent("privoxy").path)))
+    func relayAfterQuit() async throws {
+        let root = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-relay-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: root) }
+        let app = root.appendingPathComponent("KidSafe.app/Contents")
+        try FileManager.default.createDirectory(at: app.appendingPathComponent("Helpers"), withIntermediateDirectories: true)
+        try FileManager.default.createDirectory(at: app.appendingPathComponent("Resources"), withIntermediateDirectories: true)
+        try FileManager.default.copyItem(at: Self.privoxy.appendingPathComponent("privoxy"), to: app.appendingPathComponent("Helpers/privoxy"))
+        try FileManager.default.copyItem(at: Self.privoxy.appendingPathComponent("conf"), to: app.appendingPathComponent("Resources/privoxy-conf"))
+        try FileManager.default.copyItem(at: Self.privoxy.appendingPathComponent("VERSION"), to: app.appendingPathComponent("Resources/privoxy-conf/VERSION"))
+        try "<?xml version=\"1.0\"?><plist version=\"1.0\"><dict><key>CFBundleVersion</key><string>1</string></dict></plist>"
+            .write(to: app.appendingPathComponent("Info.plist"), atomically: true, encoding: .utf8)
+        let bundle = try #require(Bundle(url: root.appendingPathComponent("KidSafe.app")))
+        let inst = try #require(try BundledPrivoxy.prepare(bundle: bundle, supportDir: root.appendingPathComponent("support"), port: 8143))
+        _ = try inst.install(.init(files: [("kidsafe-cat-t.action", "{ +block{test} }\n.bad.example\n")], options: .init()))
+        let ctl = PrivoxyController(binary: inst.privoxyBinary, configFile: inst.configFile, host: "127.0.0.1", port: 8143, useLaunchAgent: false)
+        #expect(ctl.start())
+        defer { ctl.stop() }
+        let status = { self.curl(["-x", "http://127.0.0.1:8143", "-o", "/dev/null", "-w", "%{http_code}", "http://bad.example/"]) }
+        #expect(status() == "403")   // bloqué
+
+        // Fermeture de KidSafe : relais. Privoxy répond toujours, mais ne bloque plus rien.
+        try inst.updateOptions(.init(relay: true))
+        try await Task.sleep(for: .seconds(1))
+        #expect(ctl.isListening)
+        #expect(status() != "403")
+        #expect(!inst.isPaused())
+
+        // Relancement : options normales, le filtrage reprend sans réinstaller les listes.
+        try inst.updateOptions(.init())
+        try await Task.sleep(for: .seconds(1))
+        #expect(status() == "403")
     }
 
     @Test(.enabled(if: FileManager.default.isExecutableFile(atPath: privoxy.appendingPathComponent("privoxy").path)))

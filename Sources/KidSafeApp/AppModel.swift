@@ -705,8 +705,8 @@ final class AppModel: ObservableObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in self?.announceUpdateIfNeeded() }
     }
 
-    /// En quittant : retire d'abord le proxy, puis arrête Privoxy. Si le proxy ne peut pas
-    /// être retiré, Privoxy reste allumé : le Mac ne doit jamais se retrouver sans connexion.
+    /// En quittant : retire d'abord le proxy, puis laisse Privoxy en simple relais (sans filtrer). Si le proxy
+    /// ne peut pas être retiré, Privoxy reste allumé et filtre : le Mac ne doit jamais se retrouver sans connexion.
     /// Exception : le parent a choisi de couper internet sans KidSafe. Le proxy et Privoxy restent
     /// alors en place (déconnexion, redémarrage, mise à jour) ; seul « Quitter » avec le mot de passe les retire.
     func shutDown() {
@@ -718,6 +718,14 @@ final class AppModel: ObservableObject {
         // setSystemProxy ne touche que les services qui pointent vers Privoxy (aucun : rien à faire).
         if SystemStatus.setSystemProxy(e, enable: false, prompt: L("app.proxy.adminPromptOff")) != nil {
             return
+        }
+        // Simple relais : certaines apps (Claude, VS Code…) mémorisent l'adresse du proxy à leur lancement
+        // et perdraient internet si Privoxy s'arrêtait. Il reste allumé sans rien filtrer jusqu'à la fin
+        // de la session ; KidSafe le reprend au lancement suivant, le désinstalleur l'arrête.
+        if usesBundledPrivoxy, let installer {
+            var relay = PrivoxyConfigEditor.Options(catalog: catalog)
+            relay.relay = true
+            if (try? installer.updateOptions(relay)) != nil { return }
         }
         privoxy?.stop()
     }

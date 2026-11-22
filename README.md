@@ -68,7 +68,8 @@ to the Trash. If a parent password is set, it is required.
 - **Automatic list updates**, from every hour to every week (or never).
 - **The Mac never loses its connection**: if Privoxy stops, KidSafe restarts it, or removes the proxy
   if it can't (unless the parent chose to cut internet when KidSafe isn't filtering). Only KidSafe's own
-  proxy setting is ever changed.
+  proxy setting is ever changed. When you quit KidSafe, Privoxy stays on as a pass-through relay until the
+  end of the session, so apps that remembered the proxy address at launch keep their connection.
 
 - **Monitor** (shield menu): a small floating window with live counters (requests filtered, blocked, percentage,
   domains on lists, last block), and a **detailed view**: a self-contained local HTML page with tiles, hourly and

@@ -33,13 +33,18 @@ public enum PrivoxyConfigEditor {
         public var editActions = false
         /// Journal des requêtes bloquées (`debug 1024`), lu par l'onglet Avancé.
         public var logBlocked = false
+        /// KidSafe est fermé : Privoxy reste allumé en simple relais (`toggle 0`), listes toujours déclarées.
+        /// Les apps qui ont mémorisé l'adresse du proxy à leur lancement gardent internet ; au lancement
+        /// suivant, KidSafe remet `toggle 1` sans rien réinstaller.
+        public var relay = false
         public init(harden: Bool = true, removeLegacyBlocklist: Bool = false, active: Bool = true,
-                    editActions: Bool = false, logBlocked: Bool = false) {
+                    editActions: Bool = false, logBlocked: Bool = false, relay: Bool = false) {
             self.harden = harden
             self.removeLegacyBlocklist = removeLegacyBlocklist
             self.active = active
             self.editActions = editActions
             self.logBlocked = logBlocked
+            self.relay = relay
         }
 
         /// Options issues des réglages du parent.
@@ -53,11 +58,12 @@ public enum PrivoxyConfigEditor {
     /// En pause, `toggle 0` : Privoxy transmet tout sans rien bloquer ni modifier, y compris
     /// ses propres règles (default.action), et http://p.p affiche « disabled ».
     static func directives(_ options: Options) -> [(String, String)] {
-        guard options.harden else { return options.active ? [] : [("toggle", "0")] }
+        let filtering = options.active && !options.relay
+        guard options.harden else { return filtering ? [] : [("toggle", "0")] }
         return hardening.map {
             switch $0.0 {
             case "enable-edit-actions": return ($0.0, options.editActions ? "1" : "0")
-            case "toggle": return ($0.0, options.active ? "1" : "0")
+            case "toggle": return ($0.0, filtering ? "1" : "0")
             default: return $0
             }
         }

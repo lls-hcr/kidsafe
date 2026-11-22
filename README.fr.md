@@ -45,8 +45,10 @@ Privoxy intégré : `scripts/build-privoxy.sh` compile Privoxy 4.2.0 et PCRE2 de
 **Le Mac ne doit jamais perdre sa connexion** :
 - au lancement, KidSafe démarre son Privoxy intégré, puis remet
   le proxy si le parent l'avait activé ;
-- en quittant, KidSafe retire d'abord le proxy, puis arrête Privoxy. Si le proxy ne peut pas être retiré,
-  Privoxy reste allumé ;
+- en quittant, KidSafe retire d'abord le proxy, puis laisse Privoxy en simple relais (`toggle 0`, rien n'est
+  bloqué) jusqu'à la fin de la session : les apps qui ont mémorisé l'adresse du proxy à leur lancement gardent
+  internet. KidSafe le reprend au lancement suivant ; le désinstalleur l'arrête. Si le proxy ne peut pas être
+  retiré, Privoxy reste allumé et filtre ;
 - toutes les 5 s, si le proxy pointe vers un Privoxy qui ne répond plus, KidSafe le relance ; s'il ne repart pas,
   le proxy est retiré (puis remis quand Privoxy revient), sauf si le parent a choisi de couper internet quand KidSafe ne filtre pas ;
 - seul le proxy 127.0.0.1:<port de Privoxy> est retiré : un proxy configuré par ailleurs n'est jamais touché ;
