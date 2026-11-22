@@ -32,8 +32,17 @@ if let hash = (try? Catalog.load(from: paths.catalogFile))?.parentPassword {
     var ok = false
     for _ in 0..<3 {
         let field = NSSecureTextField(string: "")
-        guard show(L("app.lock.title"), L("uninstaller.password"), buttons: [L("app.uninstall.ok"), L("app.cancel")],
-                   field: field) == .alertFirstButtonReturn else { exit(0) }
+        let answer = show(L("app.lock.title"), L("uninstaller.password"),
+                          buttons: [L("app.uninstall.ok"), L("app.cancel"), L("app.lock.forgot")], field: field)
+        if answer == .alertThirdButtonReturn {
+            // Mot de passe oublié : le mot de passe d'un administrateur du Mac (fenêtre de macOS) suffit.
+            if let err = AdminShell.run([["/usr/bin/true"]], prompt: L("uninstaller.forgotPrompt")) {
+                if !AdminShell.isCancel(err) { _ = show(L("app.lock.title"), L("app.lock.forgotFailed"), buttons: ["OK"], style: .warning) }
+                continue
+            }
+            ok = true; break
+        }
+        guard answer == .alertFirstButtonReturn else { exit(0) }
         if hash.verify(field.stringValue) { ok = true; break }
         NSSound.beep()
     }
@@ -43,7 +52,7 @@ if let hash = (try? Catalog.load(from: paths.catalogFile))?.parentPassword {
     }
 }
 
-// 3. Quitter KidSafe s'il tourne : il retire lui-même le proxy puis arrête Privoxy.
+// 3. Quitter KidSafe s'il tourne (le nettoyage ci-dessous retire le proxy et arrête Privoxy dans tous les cas).
 for running in NSRunningApplication.runningApplications(withBundleIdentifier: KidSafeUninstaller.bundleID) {
     running.terminate()
     let end = Date().addingTimeInterval(10)
@@ -64,6 +73,9 @@ if let err = KidSafeUninstaller.perform(paths: paths, endpoints: endpoints, admi
     _ = show(L("app.uninstall.title"), L("app.uninstall.proxyFailed", err), buttons: ["OK"], style: .critical)
     exit(1)
 }
+
+// Règle Firefox installée par KidSafe (macOS demande le mot de passe administrateur).
+if FirefoxPolicy.isInstalled { _ = FirefoxPolicy.remove(prompt: L("firefox.adminPromptOff")) }
 
 // 5. KidSafe à la corbeille (sauf la copie du .dmg, en lecture seule).
 var apps = Set(NSWorkspace.shared.urlsForApplications(withBundleIdentifier: KidSafeUninstaller.bundleID).map(\.standardizedFileURL))

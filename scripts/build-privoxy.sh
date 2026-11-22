@@ -58,6 +58,8 @@ P="$WORK/arm64/privoxy-$PRIVOXY_VERSION-stable"
 cp "$P"/config "$P"/match-all.action "$P"/default.action "$P"/user.action "$P"/default.filter "$P"/user.filter "$P"/trust "$OUT/conf/"
 cp -R "$P/templates" "$OUT/conf/templates"
 cp "$P/LICENSE" "$OUT/LICENSE-privoxy.txt" 2>/dev/null || cp "$P/LICENSE.GPLv3" "$OUT/LICENSE-privoxy.txt" 2>/dev/null || true
+# Licence BSD de PCRE2, intégrée en statique dans Privoxy : son texte doit accompagner l'app.
+for f in "$WORK/arm64/pcre2-$PCRE2_VERSION"/LICENCE*; do [ -f "$f" ] && cp "$f" "$OUT/LICENSE-pcre2.txt" && break; done
 echo "$PRIVOXY_VERSION" > "$OUT/VERSION"
 rm -rf "$WORK"
 echo "OK : $OUT/privoxy ($(lipo -archs "$OUT/privoxy")), Privoxy $PRIVOXY_VERSION + PCRE2 $PCRE2_VERSION"

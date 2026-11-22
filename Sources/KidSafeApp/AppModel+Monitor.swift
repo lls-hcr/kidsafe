@@ -19,6 +19,7 @@ extension AppModel {
 
     /// Appelé toutes les 5 s tant que la fenêtre du moniteur est ouverte.
     func refreshMonitor() {
+        loadEvents()
         guard let e = endpoint else { return }
         let file = blockLogFile
         Task {
@@ -49,13 +50,14 @@ extension AppModel {
         monitorBusy = true
         let file = blockLogFile, dir = confDir, domains = domainsOnListsNow, logOn = catalog.recordsBlocks
         let out = engine.paths.supportDir.appendingPathComponent("dashboard.html"), version = appVersion
+        let events = EventLog.load(eventsFile).reversed().map { $0 }
         Task.detached {
             let counters = await Monitor.counters(host: e.host, port: e.port)
             let entries = file.map(BlockLog.all) ?? []
             let index = dir.map { Monitor.CategoryIndex(confDir: $0) }
             let html = Dashboard.html(.init(counters: counters, domainsOnLists: domains,
                                             summary: Monitor.summarize(entries, index: index),
-                                            logEnabled: logOn, version: version))
+                                            logEnabled: logOn, version: version, events: events))
             let ok = (try? html.write(to: out, atomically: true, encoding: .utf8)) != nil
             await MainActor.run {
                 self.monitorBusy = false

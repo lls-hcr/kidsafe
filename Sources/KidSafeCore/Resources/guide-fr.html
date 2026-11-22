@@ -20,6 +20,7 @@
 <li><a href="#moniteur">Le moniteur</a></li>
 <li><a href="#avance">Réglages avancés</a></li>
 <li><a href="#conseils">Conseils</a></li>
+<li><a href="#limites">Limites</a></li>
 <li><a href="#problemes">Problèmes fréquents</a></li>
 <li><a href="#desinstaller">Désinstaller</a></li>
 <li><a href="#vie-privee">Confidentialité</a></li>
@@ -155,9 +156,20 @@
 <dt>Langue</dt><dd>Système, français ou English.</dd>
 </dl>
 <div class="box ok"><b class="tag">Mot de passe</b>Déverrouillé 5 minutes après saisie. Le cadenas du menu reverrouille tout de suite.</div>
+<div class="box tip"><b class="tag">Oublié ?</b>Cliquez sur <span class="ui">Mot de passe oublié ?</span> dans la fenêtre du mot de passe. Le mot de passe d'un administrateur du Mac permet d'en choisir un nouveau, ou de le supprimer. <span class="ui">Supprimer le mot de passe</span> propose aussi de désactiver les protections ajoutées avec lui.</div>
 </div>
 <figure class="shot">{{shot:general}}<figcaption>Protection, mot de passe, Privoxy</figcaption></figure>
 </div>
+<h3>Protection contre les contournements</h3>
+<p>Proposée à la création du mot de passe parent, modifiable ensuite dans l'onglet <span class="ui">Général</span>. Mot de passe parent demandé.</p>
+<div class="split">
+<dl class="kv">
+<dt>Couper internet quand KidSafe est fermé</dt><dd>Si KidSafe est fermé sans le mot de passe (ouverture au démarrage désactivée, déconnexion, arrêt forcé), aucun site ne s'ouvre, au lieu d'un accès sans filtre. Pour rétablir internet : relancez KidSafe, ou <span class="ui">Quitter</span> avec le mot de passe.</dd>
+<dt>Firefox</dt><dd>Firefox peut ignorer le proxy du Mac. <span class="ui">Verrouiller…</span> installe la règle officielle de Firefox : il utilise toujours le proxy du système, pour tous les comptes. macOS demande le mot de passe administrateur. Relancez Firefox ; la règle s'affiche à l'adresse <code>about:policies</code>.</dd>
+</dl>
+<figure class="shot">{{shot:protection}}<figcaption>Protection contre les contournements</figcaption></figure>
+</div>
+<div class="box warn"><b class="tag">Plusieurs comptes</b>Le proxy vaut pour tout le Mac. Avec <em>Couper internet</em>, un compte où KidSafe n'est pas ouvert n'a pas internet tant que le proxy est en place. Ouvrez aussi KidSafe dans ce compte, ou retirez le proxy dans Réglages Système → Réseau → Wi-Fi → Détails → Proxys.</div>
 <h3>Mises à jour de KidSafe</h3>
 <p>KidSafe cherche les nouvelles versions chaque semaine. Il peut s'installer tout seul : téléchargement, vérification, relance. Vos réglages restent.</p>
 </section>
@@ -172,6 +184,7 @@
 <li>Domaines dans les listes</li>
 <li>Réseaux bloqués maintenant</li>
 <li>Dernier blocage</li>
+<li>Événements : arrêt inattendu de KidSafe, ouverture au démarrage désactivée</li>
 </ul>
 <p>Les compteurs repartent à zéro quand Privoxy redémarre.</p>
 <div class="box tip"><b class="tag">Léger</b>Fenêtre fermée, le moniteur ne fait rien.</div>
@@ -179,7 +192,8 @@
 <figure class="shot small">{{shot:monitor}}<figcaption>La fenêtre du moniteur</figcaption></figure>
 </div>
 <h3>Mode détaillé</h3>
-<p>Une page locale avec graphiques et tableaux : blocages par heure et par jour, sites les plus bloqués, catégories.</p>
+<p>Une page locale avec graphiques et tableaux : blocages par heure et par jour, sites les plus bloqués, catégories, événements.</p>
+<div class="box tip"><b class="tag">Événements</b>KidSafe note s'il a été arrêté sans passer par <span class="ui">Quitter</span> (arrêt forcé, plantage, coupure de courant), et si son ouverture au démarrage a été désactivée dans Réglages Système. Le moniteur l'affiche pendant une semaine.</div>
 <figure class="shot wide">{{shot:dashboard}}<figcaption>Le mode détaillé</figcaption></figure>
 </section>
 
@@ -208,14 +222,33 @@
 <li>Un <strong>mot de passe parent</strong>.</li>
 <li><strong>Ouverture au démarrage</strong> activée.</li>
 <li>Catégorie <strong>Contournement</strong> cochée : elle bloque VPN et proxys.</li>
-<li>Firefox : gardez <em>Utiliser les paramètres proxy du système</em>.</li>
+<li><strong>Couper internet quand KidSafe est fermé</strong> (section 7).</li>
+<li>Firefox : proxy <strong>verrouillé</strong> (section 7).</li>
+<li>Un coup d'œil au <strong>moniteur</strong> de temps en temps : il signale les arrêts inattendus.</li>
 </ul>
 <div class="box tip"><b class="tag">Bon à savoir</b>Un site bloqué affiche une erreur de connexion, et KidSafe un message (section 4). C'est normal : KidSafe filtre par domaine, sans lire vos pages.</div>
 </section>
 
+<section id="limites">
+<div class="sec-head"><span class="num">11</span><h2>Limites</h2></div>
+<p class="lead">KidSafe rend le contournement difficile, pas impossible. Ce qu'il ne couvre pas, et les parades.</p>
+<table>
+<tr><th>Limite</th><th>Parade</th></tr>
+<tr><td><strong>Compte administrateur.</strong> L'enfant peut tout défaire : proxy, réglages, désinstallation.</td><td>Un compte standard pour l'enfant. Gardez le mot de passe administrateur pour vous.</td></tr>
+<tr><td><strong>VPN, extensions VPN, Tor.</strong> Une app VPN déjà installée, une extension VPN ou proxy dans Chrome, Edge ou Brave, le VPN intégré d'Opera, les fenêtres Tor de Brave, Tor Browser.</td><td>Catégorie <strong>Contournement</strong> : elle bloque le téléchargement et la plupart de ces services. Temps d'écran de macOS pour limiter les apps.</td></tr>
+<tr><td><strong>Apps qui ignorent le proxy.</strong> Certains jeux et messageries se connectent directement.</td><td>Temps d'écran : Réglages Système → Temps d'écran → Limites d'apps.</td></tr>
+<tr><td><strong>Arrêt forcé.</strong> Le filtrage continue, mais les horaires des réseaux sociaux restent figés jusqu'à la relance.</td><td>Le moniteur signale l'arrêt. Avec <em>Couper internet</em>, l'enfant n'a rien à y gagner.</td></tr>
+<tr><td><strong>Fichiers de KidSafe.</strong> Les réglages sont dans le dossier de l'utilisateur. Un enfant averti, dans ce compte, peut les modifier.</td><td>Pas de parade complète aujourd'hui. Il faut des connaissances techniques ; le mot de passe parent protège l'app, pas ses fichiers.</td></tr>
+<tr><td><strong>Autres comptes du Mac.</strong> KidSafe filtre quand il est ouvert dans la session.</td><td>Ouvrez KidSafe dans chaque compte à protéger.</td></tr>
+<tr><td><strong>Nouvelle connexion</strong> (iPhone en USB, adaptateur réseau).</td><td>Vérifiez le bouclier. Si besoin : <span class="ui">Général</span> → <span class="ui">Proxy</span> → <span class="ui">Configurer</span>.</td></tr>
+</table>
+<div class="box tip"><b class="tag">En pratique</b>Compte standard, mot de passe parent, catégorie Contournement, <em>Couper internet</em> et Firefox verrouillé ferment les contournements les plus courants.</div>
+</section>
+
 <section id="problemes">
-<div class="sec-head"><span class="num">11</span><h2>Problèmes fréquents</h2></div>
+<div class="sec-head"><span class="num">12</span><h2>Problèmes fréquents</h2></div>
 <div class="faq"><b>Plus d'internet ?</b>KidSafe corrige seul en quelques secondes. Sinon : <span class="ui">Général</span> → <span class="ui">Retirer le proxy</span>, ou quittez KidSafe.</div>
+<div class="faq"><b>Plus d'internet alors que KidSafe est fermé ?</b>C'est <em>Couper internet quand KidSafe est fermé</em>. Ouvrez KidSafe : le filtrage et internet reviennent.</div>
 <div class="faq"><b>Un site est bloqué à tort ?</b>Ajoutez-le à la liste blanche (onglet Domaines).</div>
 <div class="faq"><b>Un site devrait être bloqué ?</b>Rechargez la page. Puis vérifiez avec <span class="ui">Tester Privoxy</span>.</div>
 <div class="faq"><b>Une app n'a plus internet après avoir quitté KidSafe ?</b>Quittez-la et rouvrez-la.</div>
@@ -223,18 +256,18 @@
 </section>
 
 <section id="desinstaller">
-<div class="sec-head"><span class="num">12</span><h2>Désinstaller</h2></div>
+<div class="sec-head"><span class="num">13</span><h2>Désinstaller</h2></div>
 <p class="lead">Deux façons, même résultat.</p>
 <ul>
 <li>Dans le <code>.dmg</code> : double-cliquez sur <strong>Désinstaller KidSafe</strong>.</li>
 <li>Dans l'app : <span class="ui">Général</span> → <span class="ui">Désinstaller KidSafe…</span></li>
 </ul>
-<p>Le filtre est retiré, les réglages supprimés, l'app mise à la corbeille.</p>
+<p>Le filtre est retiré, les réglages supprimés, l'app mise à la corbeille. Le mot de passe parent est demandé ; s'il est oublié, celui d'un administrateur du Mac suffit.</p>
 <div class="box ok"><b class="tag">Mise à jour</b>Pas besoin de désinstaller. Remplacez l'app, ou laissez KidSafe se mettre à jour.</div>
 </section>
 
 <section id="vie-privee">
-<div class="sec-head"><span class="num">13</span><h2>Confidentialité</h2></div>
+<div class="sec-head"><span class="num">14</span><h2>Confidentialité</h2></div>
 <p class="lead">Vos données restent sur votre Mac.</p>
 <ul>
 <li>Aucune donnée personnelle envoyée.</li>

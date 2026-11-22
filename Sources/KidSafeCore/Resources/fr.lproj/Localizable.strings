@@ -407,3 +407,49 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "mon.fromLog" = "Graphiques et tableaux : d'après le journal des sites bloqués (7 derniers jours). Tuiles « requêtes » : depuis le démarrage de Privoxy.";
 "app.feedback.copy" = "Copier l'adresse e-mail";
 "app.feedback.copied" = "Adresse copiée : %@\n\nCollez-la dans votre messagerie habituelle (Gmail, Outlook…).";
+
+/* 0.7.2 : protection contre les contournements */
+"protect.section" = "Protection contre les contournements";
+"protect.blockWhenClosed" = "Couper internet quand KidSafe est fermé";
+"protect.blockWhenClosedHelp" = "Si KidSafe est fermé sans le mot de passe (ouverture au démarrage désactivée, déconnexion, arrêt forcé), aucun site ne s'ouvre au lieu d'un accès sans filtre. « Quitter » avec le mot de passe rétablit internet. Sur un Mac à plusieurs comptes, les comptes où KidSafe n'est pas ouvert n'ont pas internet tant que le proxy est en place (voir le guide, « Limites »).";
+"protect.needsPassword" = "Nécessite un mot de passe parent : sans lui, n'importe qui peut quitter KidSafe depuis le menu.";
+"protect.limitsNote" = "KidSafe ne peut pas tout empêcher, surtout si l'enfant a un compte administrateur. Le guide d'utilisation détaille les limites et les parades (section « Limites »).";
+"protect.offer.title" = "Renforcer la protection ?";
+"protect.offer.message" = "Ces réglages ferment les contournements les plus simples. Vous pourrez les modifier dans Réglages → Général.";
+"protect.offer.bypass" = "Bloquer les moyens de contournement (VPN, proxys, DNS chiffré)";
+"protect.offer.blockWhenClosed" = "Couper internet quand KidSafe est fermé sans le mot de passe";
+"protect.offer.firefox" = "Verrouiller le proxy dans Firefox (mot de passe administrateur)";
+"protect.offer.apply" = "Appliquer";
+"protect.offer.later" = "Plus tard";
+"app.safety.kept" = "Privoxy ne répond plus et ne redémarre pas. Comme vous avez choisi de couper internet quand KidSafe ne filtre pas, le proxy reste en place : aucun site ne s'ouvre. Pour rétablir internet : Quitter KidSafe (avec le mot de passe), puis le rouvrir.";
+
+"firefox.lock" = "Verrouiller…";
+"firefox.unlock" = "Retirer la règle…";
+"firefox.locked" = "Proxy verrouillé";
+"firefox.unlocked" = "Non verrouillé";
+"firefox.help" = "Firefox peut ignorer le proxy du Mac (Paramètres → Réseau → « Pas de proxy »). La règle officielle de Firefox l'oblige à utiliser le proxy du système, pour tous les comptes. macOS demande le mot de passe administrateur. Relancez Firefox pour l'appliquer.";
+"firefox.adminPrompt" = "KidSafe veut obliger Firefox à utiliser le proxy du Mac.";
+"firefox.adminPromptOff" = "KidSafe veut retirer sa règle de Firefox.";
+"firefox.done" = "Firefox utilisera toujours le proxy du Mac. Si Firefox est ouvert, quittez-le et rouvrez-le. La règle est visible à l'adresse about:policies.";
+"firefox.error" = "La règle de Firefox n'a pas pu être modifiée : %@";
+
+"event.unexpectedStop" = "KidSafe s'est arrêté de façon inattendue (vers %@) et a été relancé le %@. Arrêt forcé, plantage ou coupure de courant.";
+"event.loginItemDisabled" = "L'ouverture de KidSafe au démarrage a été désactivée dans Réglages Système (constaté le %@).";
+"mon.events" = "Événements";
+"mon.events.none" = "Aucun événement : KidSafe ne s'est jamais arrêté de façon inattendue.";
+"mon.events.more" = "(+ %d autres : voir le mode détaillé)";
+
+/* 0.7.2 : mot de passe oublié, retour au fonctionnement sans mot de passe */
+"app.lock.forgot" = "Mot de passe oublié ?";
+"app.lock.forgotPrompt" = "Pour réinitialiser le mot de passe parent de KidSafe, saisissez le nom et le mot de passe d'un administrateur de ce Mac.";
+"app.lock.forgotFailed" = "L'authentification administrateur a échoué. Le mot de passe parent n'a pas été modifié.";
+"app.lock.resetTitle" = "Réinitialiser le mot de passe parent";
+"app.lock.resetMessage" = "Administrateur vérifié. Choisissez un nouveau mot de passe parent, ou supprimez-le.";
+"app.lock.resetNew" = "Nouveau mot de passe…";
+"uninstaller.forgotPrompt" = "Pour désinstaller KidSafe sans le mot de passe parent, saisissez le nom et le mot de passe d'un administrateur de ce Mac.";
+"protect.cleanup.title" = "Désactiver aussi les protections ajoutées ?";
+"protect.cleanup.message" = "Sans mot de passe parent, KidSafe retrouve son fonctionnement normal. Décochez ce que vous voulez garder.";
+"protect.cleanup.bypass" = "Ne plus bloquer les VPN et proxys (catégorie Contournement)";
+"protect.cleanup.firefox" = "Retirer la règle Firefox (mot de passe administrateur)";
+"protect.cleanup.ok" = "Désactiver";
+"protect.cleanup.keep" = "Tout garder";

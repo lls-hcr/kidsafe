@@ -71,6 +71,17 @@ final class AppModel: ObservableObject {
     private var lastAutoProxyFailure: Date?
     private var safetyNoticeShown = false
     private var uninstalling = false
+    /// « Quitter » choisi dans le menu (mot de passe saisi) : seul cas où le proxy est retiré
+    /// quand le parent a choisi de couper internet sans KidSafe.
+    private var quitByParent = false
+    private var privoxyDownNoticeShown = false
+    /// Proposition de protection à montrer au prochain passage de la minuterie (pas au milieu d'une action).
+    private var protectionOfferPending = false
+    /// Règle « proxy du système » verrouillée dans Firefox (voir FirefoxPolicy).
+    @Published private(set) var firefoxLocked = FirefoxPolicy.isInstalled
+    @Published private(set) var firefoxBusy = false
+    /// Événements récents (arrêts inattendus…), affichés dans le moniteur.
+    @Published private(set) var recentEvents: [EventLog.Event] = []
     /// Le parent a branché le Mac sur Privoxy : KidSafe remet le proxy à chaque lancement
     /// et le retire toujours en quittant, avant d'arrêter Privoxy.
     var proxyWanted: Bool {
@@ -153,6 +164,13 @@ final class AppModel: ObservableObject {
         monitorLastBlock = .init(date: Date().addingTimeInterval(-120), target: "www.tiktok.com:443", host: "www.tiktok.com")
     }
 
+    /// Captures d'écran : mot de passe parent et protections activées (rien n'est enregistré).
+    func loadDemoProtection() {
+        catalog.parentPassword = PasswordHash.make("demo")
+        catalog.blockWhenClosed = true
+        firefoxLocked = true
+    }
+
     // MARK: - État
 
     var endpoint: SystemStatus.Endpoint? {
@@ -193,9 +211,15 @@ final class AppModel: ObservableObject {
                 }
             } catch { lastError = "\(error)" }
         }
+        if heartbeatStarted { Heartbeat.beat(heartbeatFile, now: now) }
+        if protectionOfferPending, NSApp.modalWindow == nil, !uninstalling {
+            protectionOfferPending = false
+            offerProtection()
+        }
         if Int(now.timeIntervalSince1970) % 300 < 30 {
             refreshSystemStatus()
-            loginItemStatus = SMAppService.mainApp.status
+            noteLoginItemStatus(SMAppService.mainApp.status)
+            firefoxLocked = FirefoxPolicy.isInstalled
         }
         if autoUpdateCheck, !isCheckingUpdates,
            lastUpdateCheck.map({ now.timeIntervalSince($0) > Self.updateCheckInterval }) ?? true {
@@ -216,13 +240,21 @@ final class AppModel: ObservableObject {
     func requireUnlock() -> Bool {
         guard isLocked, let hash = catalog.parentPassword else { return true }
         while true {
-            guard let pw = askSecret(title: L("app.lock.title"), message: L("app.lock.message"), ok: L("app.lock.unlock")) else {
+            let answer = askSecret(title: L("app.lock.title"), message: L("app.lock.message"), ok: L("app.lock.unlock"),
+                                   extra: L("app.lock.forgot"))
+            if answer.extra {
+                if resetForgottenPassword() { return true }
+                continue
+            }
+            guard let pw = answer.value else {
                 objectWillChange.send()
                 return false
             }
             if hash.verify(pw) {
                 unlockedUntil = Date().addingTimeInterval(Self.unlockDuration)
                 now = Date()
+                // Parents qui avaient déjà un mot de passe : la proposition s'affiche une fois, après l'action en cours.
+                if !Self.prefs.bool(forKey: "protectionOffered") { protectionOfferPending = true }
                 return true
             }
             NSSound.beep()
@@ -233,18 +265,171 @@ final class AppModel: ObservableObject {
 
     func setPassword() {
         guard requireUnlock() else { return }
+        chooseNewPassword()
+    }
+
+    /// Saisie et confirmation du nouveau mot de passe (le droit de le changer a déjà été vérifié).
+    @discardableResult
+    private func chooseNewPassword() -> Bool {
         guard let pw = askSecret(title: L("app.password.newTitle"), message: L("app.password.newMessage"), ok: L("app.password.save")),
-              !pw.isEmpty else { return }
-        guard let again = askSecret(title: L("app.password.confirmTitle"), message: "", ok: L("app.password.save")) else { return }
-        guard pw == again else { notice(L("app.password.mismatch")); return }
+              !pw.isEmpty else { return false }
+        guard let again = askSecret(title: L("app.password.confirmTitle"), message: "", ok: L("app.password.save")) else { return false }
+        guard pw == again else { notice(L("app.password.mismatch")); return false }
         let hash = PasswordHash.make(pw)
+        let first = !hasPassword
         mutate(locked: false, apply: false) { $0.parentPassword = hash }
         unlockedUntil = Date().addingTimeInterval(Self.unlockDuration)
+        if first { offerProtection(force: true) }
+        return true
+    }
+
+    /// « Mot de passe oublié ? » : le mot de passe d'un administrateur du Mac (fenêtre de macOS, jamais vue par KidSafe)
+    /// permet de choisir un nouveau mot de passe parent ou de le supprimer. Un enfant avec un compte standard
+    /// ne le connaît pas ; un enfant administrateur peut de toute façon tout défaire.
+    /// Renvoie vrai si KidSafe est déverrouillé ensuite.
+    private func resetForgottenPassword() -> Bool {
+        if let err = AdminShell.run([["/usr/bin/true"]], prompt: L("app.lock.forgotPrompt")) {
+            if !AdminShell.isCancel(err) { notice(L("app.lock.forgotFailed")) }
+            return false
+        }
+        NSApp.activate(ignoringOtherApps: true)
+        let a = NSAlert()
+        a.messageText = L("app.lock.resetTitle")
+        a.informativeText = L("app.lock.resetMessage")
+        a.addButton(withTitle: L("app.lock.resetNew"))
+        a.addButton(withTitle: L("app.password.remove"))
+        a.addButton(withTitle: L("app.cancel"))
+        switch a.runModal() {
+        case .alertFirstButtonReturn:
+            return chooseNewPassword()
+        case .alertSecondButtonReturn:
+            removePasswordUnlocked()
+            return true
+        default:
+            return false
+        }
+    }
+
+    /// Proposée à la création du mot de passe parent (et une fois aux parents qui en avaient déjà un) :
+    /// les protections contre les contournements les plus simples, cochées par défaut.
+    func offerProtection(force: Bool = false) {
+        guard hasPassword, force || !Self.prefs.bool(forKey: "protectionOffered") else { return }
+        Self.prefs.set(true, forKey: "protectionOffered")
+        let bypass = catalog.categories.first { $0.id == "bypass" }
+        var choices: [(title: String, apply: () -> Void)] = []
+        if let bypass, !bypass.enabled {
+            choices.append((L("protect.offer.bypass"), { self.mutate(locked: false) { try $0.setEnabled(bypass.id, true) } }))
+        }
+        if !catalog.blockWhenClosed {
+            choices.append((L("protect.offer.blockWhenClosed"), { self.setBlockWhenClosed(true, locked: false) }))
+        }
+        if firefoxInstalled, !firefoxLocked {
+            choices.append((L("protect.offer.firefox"), { self.setFirefoxLock(true, locked: false) }))
+        }
+        guard !choices.isEmpty,
+              let picked = checkboxAlert(title: L("protect.offer.title"), message: L("protect.offer.message"),
+                                         choices: choices.map(\.title), ok: L("protect.offer.apply"), cancel: L("protect.offer.later"))
+        else { return }
+        for (on, choice) in zip(picked, choices) where on { choice.apply() }
+    }
+
+    // MARK: - Protection contre les contournements
+
+    /// Couper internet quand KidSafe est fermé (seulement avec un mot de passe parent).
+    func setBlockWhenClosed(_ on: Bool, locked: Bool = true) {
+        mutate(locked: locked, apply: false) { $0.blockWhenClosed = on }
+    }
+
+    var firefoxInstalled: Bool { NSWorkspace.shared.urlForApplication(withBundleIdentifier: FirefoxPolicy.bundleID) != nil }
+
+    /// Verrouille (ou libère) le proxy dans Firefox. macOS demande le mot de passe administrateur.
+    func setFirefoxLock(_ on: Bool, locked: Bool = true) {
+        if locked { guard requireUnlock() else { objectWillChange.send(); return } }
+        guard !firefoxBusy else { return }
+        firefoxBusy = true
+        let prompt = on ? L("firefox.adminPrompt") : L("firefox.adminPromptOff")
+        Task.detached {
+            let err = on ? FirefoxPolicy.install(prompt: prompt) : FirefoxPolicy.remove(prompt: prompt)
+            let state = FirefoxPolicy.isInstalled
+            await MainActor.run {
+                self.firefoxBusy = false
+                self.firefoxLocked = state
+                if let err, !AdminShell.isCancel(err) { self.lastError = L("firefox.error", err) }
+                else if err == nil, on, state { self.notice(L("firefox.done")) }
+            }
+        }
+    }
+
+    // MARK: - Événements (moniteur)
+
+    var heartbeatFile: URL { Heartbeat.file(supportDir: engine.paths.supportDir) }
+    var eventsFile: URL { EventLog.file(supportDir: engine.paths.supportDir) }
+    private var heartbeatStarted = false
+
+    /// Au lancement : si le signe de vie de la session précédente est resté, KidSafe ne s'est pas arrêté normalement.
+    private func startHeartbeat() {
+        if let last = Heartbeat.lastBeat(heartbeatFile) {
+            EventLog.append(.init(date: Date(), kind: .unexpectedStop, lastSeen: last), to: eventsFile)
+        }
+        Heartbeat.beat(heartbeatFile)
+        heartbeatStarted = true
+        noteLoginItemStatus(SMAppService.mainApp.status)
+        loadEvents()
+    }
+
+    func loadEvents() { recentEvents = EventLog.recent(eventsFile) }
+
+    /// L'ouverture au démarrage désactivée ailleurs que dans KidSafe (Réglages Système) est notée pour le parent.
+    private func noteLoginItemStatus(_ new: SMAppService.Status) {
+        let key = "lastLoginItemStatus"
+        let old = Self.prefs.object(forKey: key) as? Int
+        if old == SMAppService.Status.enabled.rawValue, new != .enabled {
+            EventLog.append(.init(date: Date(), kind: .loginItemDisabled), to: eventsFile)
+            loadEvents()
+        }
+        Self.prefs.set(new.rawValue, forKey: key)
+        loginItemStatus = new
     }
 
     func removePassword() {
         guard requireUnlock() else { return }
-        mutate(locked: false, apply: false) { $0.parentPassword = nil }
+        removePasswordUnlocked()
+    }
+
+    /// Retour au fonctionnement sans mot de passe parent : propose aussi de désactiver
+    /// les protections ajoutées avec lui (catégorie Contournement, règle Firefox).
+    private func removePasswordUnlocked() {
+        var choices: [(title: String, apply: () -> Void)] = []
+        if let bypass = catalog.categories.first(where: { $0.id == "bypass" }), bypass.enabled {
+            choices.append((L("protect.cleanup.bypass"), { self.mutate(locked: false) { try $0.setEnabled(bypass.id, false) } }))
+        }
+        if firefoxLocked {
+            choices.append((L("protect.cleanup.firefox"), { self.setFirefoxLock(false, locked: false) }))
+        }
+        let picked = choices.isEmpty ? [] : checkboxAlert(title: L("protect.cleanup.title"), message: L("protect.cleanup.message"),
+                                                           choices: choices.map(\.title), ok: L("protect.cleanup.ok"), cancel: L("protect.cleanup.keep"))
+        mutate(locked: false, apply: false) { $0.parentPassword = nil; $0.blockWhenClosed = false }
+        for (on, choice) in zip(picked ?? [], choices) where on { choice.apply() }
+    }
+
+    /// Alerte avec des cases cochées par défaut. Renvoie l'état des cases, ou nil si annulée.
+    private func checkboxAlert(title: String, message: String, choices: [String], ok: String, cancel: String) -> [Bool]? {
+        NSApp.activate(ignoringOtherApps: true)
+        let a = NSAlert()
+        a.messageText = title
+        a.informativeText = message
+        let boxes = choices.map { NSButton(checkboxWithTitle: $0, target: nil, action: nil) }
+        boxes.forEach { $0.state = .on }
+        let stack = NSStackView(views: boxes)
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        stack.frame = NSRect(x: 0, y: 0, width: 380, height: CGFloat(boxes.count) * 26)
+        a.accessoryView = stack
+        a.addButton(withTitle: ok)
+        a.addButton(withTitle: cancel)
+        guard a.runModal() == .alertFirstButtonReturn else { return nil }
+        return boxes.map { $0.state == .on }
     }
 
     // MARK: - Ouverture au démarrage
@@ -261,6 +446,7 @@ final class AppModel: ObservableObject {
             lastError = L("app.login.error", error.localizedDescription)
         }
         loginItemStatus = SMAppService.mainApp.status
+        Self.prefs.set(loginItemStatus.rawValue, forKey: "lastLoginItemStatus")   // changement voulu : pas un événement
         if on, loginItemStatus == .requiresApproval {
             if confirm(title: L("app.login.approvalTitle"), message: L("app.login.approvalMessage"),
                        ok: L("app.login.openSettings"), style: .informational) {
@@ -483,6 +669,7 @@ final class AppModel: ObservableObject {
 
     /// Au lancement : démarre Privoxy puis, si le parent l'avait activé, remet le proxy du Mac.
     func startUp() {
+        startHeartbeat()
         ensureFreePort()
         applyPrivoxyOptions()        // ex. journal des blocages requis par les notifications (versions précédentes)
         updateBlockNotifier()
@@ -520,10 +707,14 @@ final class AppModel: ObservableObject {
 
     /// En quittant : retire d'abord le proxy, puis arrête Privoxy. Si le proxy ne peut pas
     /// être retiré, Privoxy reste allumé : le Mac ne doit jamais se retrouver sans connexion.
+    /// Exception : le parent a choisi de couper internet sans KidSafe. Le proxy et Privoxy restent
+    /// alors en place (déconnexion, redémarrage, mise à jour) ; seul « Quitter » avec le mot de passe les retire.
     func shutDown() {
         healthTimer?.invalidate()
         pendingApply?.cancel()
+        Heartbeat.clear(heartbeatFile)
         guard !uninstalling, let e = endpoint else { return }
+        if catalog.keepsProxyWhenClosed && !quitByParent { return }
         // setSystemProxy ne touche que les services qui pointent vers Privoxy (aucun : rien à faire).
         if SystemStatus.setSystemProxy(e, enable: false, prompt: L("app.proxy.adminPromptOff")) != nil {
             return
@@ -544,13 +735,15 @@ final class AppModel: ObservableObject {
 
         if pointing && !listening {
             healthBusy = true
+            // Internet coupé sans KidSafe : le proxy reste, même si Privoxy ne repart pas.
+            let keep = catalog.keepsProxyWhenClosed
             Task.detached {
                 let ok = privoxy.start(timeout: 4)
-                if !ok { SystemStatus.setSystemProxy(e, enable: false, prompt: nil) }
+                if !ok && !keep { SystemStatus.setSystemProxy(e, enable: false, prompt: nil) }
                 await MainActor.run {
                     self.healthBusy = false
                     self.refreshSystemStatus()
-                    if !ok { self.safetyNotice() }
+                    if !ok { keep ? self.privoxyDownNotice() : self.safetyNotice() }
                 }
             }
         } else if wanted && !pointing && mayRetryProxy {
@@ -565,6 +758,13 @@ final class AppModel: ObservableObject {
                 }
             }
         }
+    }
+
+    private func privoxyDownNotice() {
+        lastError = L("app.safety.kept")
+        guard !privoxyDownNoticeShown else { return }
+        privoxyDownNoticeShown = true
+        notice(L("app.safety.kept"))
     }
 
     private func safetyNotice() {
@@ -603,6 +803,7 @@ final class AppModel: ObservableObject {
         privoxy?.stop()
         let endpoints = [endpoint].compactMap { $0 }
         _ = KidSafeUninstaller.perform(paths: engine.paths, endpoints: endpoints, adminPrompt: nil)
+        if FirefoxPolicy.isInstalled { _ = FirefoxPolicy.remove(prompt: L("firefox.adminPromptOff")) }
         try? SMAppService.mainApp.unregister()
         let app = Bundle.main.bundleURL
         if app.pathExtension == "app" { NSWorkspace.shared.recycle([app]) { _, _ in } }
@@ -706,7 +907,7 @@ final class AppModel: ObservableObject {
                 try AppUpdater.scheduleReplace(current: Bundle.main.bundleURL, staged: staged, stagingDir: staging,
                                                pid: ProcessInfo.processInfo.processIdentifier, env: env)
                 AppModel.prefs.set(current, forKey: "updatedFrom")
-                NSApp.terminate(nil)   // shutDown : filtre retiré, Privoxy arrêté ; le script fait le reste.
+                NSApp.terminate(nil)   // shutDown (filtre retiré, sauf « Couper internet ») ; le script fait le reste.
             } catch {
                 self.isInstallingUpdate = false
                 try? FileManager.default.removeItem(at: staging)
@@ -779,6 +980,7 @@ final class AppModel: ObservableObject {
     /// Quitter arrête les plages horaires (le filtrage, lui, continue) : protégé par le mot de passe.
     func quit() {
         guard requireUnlock() else { return }
+        quitByParent = true
         NSApp.terminate(nil)
     }
 
@@ -843,7 +1045,15 @@ final class AppModel: ObservableObject {
         ask(title: title, message: message, ok: ok, field: NSSecureTextField(string: ""))
     }
 
-    private func ask(title: String, message: String, ok: String, field: NSTextField) -> String? {
+    /// Variante avec un troisième bouton (ex. « Mot de passe oublié ? ») : `extra` vrai s'il a été choisi.
+    private func askSecret(title: String, message: String, ok: String, extra: String) -> (value: String?, extra: Bool) {
+        var pressedExtra = false
+        let v = ask(title: title, message: message, ok: ok, field: NSSecureTextField(string: ""), extra: extra) { pressedExtra = true }
+        return (v, pressedExtra)
+    }
+
+    private func ask(title: String, message: String, ok: String, field: NSTextField,
+                     extra: String? = nil, onExtra: () -> Void = {}) -> String? {
         NSApp.activate(ignoringOtherApps: true)
         let a = NSAlert()
         a.messageText = title
@@ -852,8 +1062,11 @@ final class AppModel: ObservableObject {
         a.accessoryView = field
         a.addButton(withTitle: ok)
         a.addButton(withTitle: L("app.cancel"))
+        if let extra { a.addButton(withTitle: extra) }
         a.window.initialFirstResponder = field
-        guard a.runModal() == .alertFirstButtonReturn else { return nil }
+        let response = a.runModal()
+        if response == .alertThirdButtonReturn { onExtra(); return nil }
+        guard response == .alertFirstButtonReturn else { return nil }
         let v = field.stringValue.trimmingCharacters(in: .whitespaces)
         return v.isEmpty ? nil : v
     }

@@ -6,7 +6,7 @@
 # Usage : scripts/build-app.sh [--universal]
 set -eu
 cd "$(dirname "$0")/.."
-VERSION="0.7.1"
+VERSION="0.7.2"
 # Étiquette affichée après la version (« KidSafe 0.3.3 (beta) ») ; vide pour une version finale.
 RELEASE_LABEL="${KIDSAFE_RELEASE_LABEL-beta}"
 BUNDLE_ID="app.kidsafe.KidSafe"     # à remplacer par votre identifiant définitif
@@ -72,6 +72,7 @@ cp build/privoxy/privoxy "$APP/Contents/Helpers/privoxy"
 cp -R build/privoxy/conf "$APP/Contents/Resources/privoxy-conf"
 cp build/privoxy/VERSION "$APP/Contents/Resources/privoxy-conf/VERSION"
 cp build/privoxy/LICENSE-privoxy.txt "$APP/Contents/Resources/" 2>/dev/null || true
+cp build/privoxy/LICENSE-pcre2.txt "$APP/Contents/Resources/" 2>/dev/null || true
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>

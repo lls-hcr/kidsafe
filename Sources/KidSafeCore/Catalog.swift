@@ -20,9 +20,15 @@ public struct Catalog: Codable, Sendable, Equatable {
     public var pausedUntil: Date?
     /// Notification macOS quand un site est bloqué (nécessite le journal des blocages de Privoxy).
     public var notifyBlocked: Bool
+    /// Avec un mot de passe parent : le proxy reste en place quand KidSafe se ferme sans le mot de passe
+    /// (déconnexion, redémarrage) : sans KidSafe, plus aucun site ne s'ouvre, au lieu d'un accès sans filtre.
+    public var blockWhenClosed: Bool
 
     /// Privoxy écrit le journal des blocages : demandé par le parent, ou nécessaire aux notifications.
     public var recordsBlocks: Bool { advanced.logBlocked || notifyBlocked }
+    /// Le proxy reste en place à la fermeture : seulement s'il y a un mot de passe parent
+    /// (sans lui, n'importe qui peut quitter KidSafe depuis le menu).
+    public var keepsProxyWhenClosed: Bool { blockWhenClosed && parentPassword != nil }
     /// Mise à jour automatique des listes, en heures ; 0 = jamais.
     public var refreshHours: Int
     /// Mot de passe parent facultatif.
@@ -42,7 +48,7 @@ public struct Catalog: Codable, Sendable, Equatable {
     public init(categories: [Category], allowlist: [String] = [], strictMode: Bool = false, hardenPrivoxy: Bool = true,
                 blockedDomains: [String] = [], services: [String: ServicePolicy] = [:], filteringEnabled: Bool = true,
                 refreshHours: Int = 24, parentPassword: PasswordHash? = nil, advanced: AdvancedSettings = AdvancedSettings(),
-                pausedUntil: Date? = nil, notifyBlocked: Bool = true) {
+                pausedUntil: Date? = nil, notifyBlocked: Bool = true, blockWhenClosed: Bool = false) {
         self.categories = categories
         self.allowlist = allowlist
         self.strictMode = strictMode
@@ -55,10 +61,11 @@ public struct Catalog: Codable, Sendable, Equatable {
         self.advanced = advanced
         self.pausedUntil = pausedUntil
         self.notifyBlocked = notifyBlocked
+        self.blockWhenClosed = blockWhenClosed
     }
 
     private enum CodingKeys: String, CodingKey {
-        case categories, allowlist, strictMode, hardenPrivoxy, blockedDomains, services, filteringEnabled, refreshHours, parentPassword, advanced, pausedUntil, notifyBlocked
+        case categories, allowlist, strictMode, hardenPrivoxy, blockedDomains, services, filteringEnabled, refreshHours, parentPassword, advanced, pausedUntil, notifyBlocked, blockWhenClosed
     }
 
     /// Les champs ajoutés après la première version sont facultatifs dans le fichier.
@@ -75,7 +82,8 @@ public struct Catalog: Codable, Sendable, Equatable {
                   parentPassword: try c.decodeIfPresent(PasswordHash.self, forKey: .parentPassword),
                   advanced: try c.decodeIfPresent(AdvancedSettings.self, forKey: .advanced) ?? AdvancedSettings(),
                   pausedUntil: try c.decodeIfPresent(Date.self, forKey: .pausedUntil),
-                  notifyBlocked: try c.decodeIfPresent(Bool.self, forKey: .notifyBlocked) ?? true)
+                  notifyBlocked: try c.decodeIfPresent(Bool.self, forKey: .notifyBlocked) ?? true,
+                  blockWhenClosed: try c.decodeIfPresent(Bool.self, forKey: .blockWhenClosed) ?? false)
     }
 
     public func policy(for serviceID: String) -> ServicePolicy { services[serviceID] ?? ServicePolicy() }

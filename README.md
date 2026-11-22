@@ -62,9 +62,13 @@ to the Trash. If a parent password is set, it is required.
   it goes away at the first click (ads and tracking blocked in the background are not reported).
 - **Filtering switch** in the menu bar to pause without deleting anything, or **Disable temporarily**
   (30 s to 1 h, resumes on its own).
+- **Protection against workarounds** (with a parent password): cut internet when KidSafe is closed without
+  the password (instead of unfiltered access), lock the proxy in Firefox (Firefox's official policy,
+  administrator password), offer to block VPNs and proxies, and report unexpected stops of KidSafe in the monitor.
 - **Automatic list updates**, from every hour to every week (or never).
 - **The Mac never loses its connection**: if Privoxy stops, KidSafe restarts it, or removes the proxy
-  if it can't. Only KidSafe's own proxy setting is ever changed.
+  if it can't (unless the parent chose to cut internet when KidSafe isn't filtering). Only KidSafe's own
+  proxy setting is ever changed.
 
 - **Monitor** (shield menu): a small floating window with live counters (requests filtered, blocked, percentage,
   domains on lists, last block), and a **detailed view**: a self-contained local HTML page with tiles, hourly and
@@ -76,6 +80,7 @@ to the Trash. If a parent password is set, it is required.
 **Limits**: filtering works per domain (no HTTPS interception), so blocked HTTPS sites show a browser
 error rather than a block page. Time slots are applied while the app is running. A child with an
 administrator account can still change system settings; use a standard account for children.
+The user guide has a “Limits” section listing what KidSafe doesn't cover and what to do about it.
 
 ## Build from source
 

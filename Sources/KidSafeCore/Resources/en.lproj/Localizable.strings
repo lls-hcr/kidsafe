@@ -407,3 +407,49 @@ Language: the system's, or KIDSAFE_LANG=fr|en.";
 "mon.fromLog" = "Charts and tables: from the blocked sites log (last 7 days). “Requests” tiles: since Privoxy started.";
 "app.feedback.copy" = "Copy Email Address";
 "app.feedback.copied" = "Address copied: %@\n\nPaste it into your usual email (Gmail, Outlook…).";
+
+/* 0.7.2: protection against workarounds */
+"protect.section" = "Protection against workarounds";
+"protect.blockWhenClosed" = "Cut internet when KidSafe is closed";
+"protect.blockWhenClosedHelp" = "If KidSafe is closed without the password (open at login turned off, log out, force quit), no site opens instead of unfiltered access. “Quit” with the password restores internet. On a Mac with several accounts, accounts where KidSafe isn't open have no internet while the proxy is set (see the guide, “Limits”).";
+"protect.needsPassword" = "Requires a parent password: without it, anyone can quit KidSafe from the menu.";
+"protect.limitsNote" = "KidSafe can't prevent everything, especially if the child has an administrator account. The user guide lists the limits and what to do about them (“Limits” section).";
+"protect.offer.title" = "Strengthen protection?";
+"protect.offer.message" = "These settings close the simplest workarounds. You can change them in Settings → General.";
+"protect.offer.bypass" = "Block workarounds (VPNs, proxies, encrypted DNS)";
+"protect.offer.blockWhenClosed" = "Cut internet when KidSafe is closed without the password";
+"protect.offer.firefox" = "Lock the proxy in Firefox (administrator password)";
+"protect.offer.apply" = "Apply";
+"protect.offer.later" = "Later";
+"app.safety.kept" = "Privoxy isn't responding and won't restart. Since you chose to cut internet when KidSafe isn't filtering, the proxy stays set: no site opens. To restore internet: Quit KidSafe (with the password), then open it again.";
+
+"firefox.lock" = "Lock…";
+"firefox.unlock" = "Remove rule…";
+"firefox.locked" = "Proxy locked";
+"firefox.unlocked" = "Not locked";
+"firefox.help" = "Firefox can ignore the Mac's proxy (Settings → Network → “No proxy”). Firefox's official policy forces it to use the system proxy, for all accounts. macOS asks for the administrator password. Relaunch Firefox to apply it.";
+"firefox.adminPrompt" = "KidSafe wants to make Firefox use the Mac's proxy.";
+"firefox.adminPromptOff" = "KidSafe wants to remove its Firefox rule.";
+"firefox.done" = "Firefox will always use the Mac's proxy. If Firefox is open, quit and reopen it. The rule is shown at about:policies.";
+"firefox.error" = "The Firefox rule couldn't be changed: %@";
+
+"event.unexpectedStop" = "KidSafe stopped unexpectedly (around %@) and was restarted on %@. Force quit, crash or power cut.";
+"event.loginItemDisabled" = "Opening KidSafe at login was turned off in System Settings (noticed on %@).";
+"mon.events" = "Events";
+"mon.events.none" = "No events: KidSafe has never stopped unexpectedly.";
+"mon.events.more" = "(+ %d more: see the detailed view)";
+
+/* 0.7.2: forgotten password, back to working without a password */
+"app.lock.forgot" = "Forgot password?";
+"app.lock.forgotPrompt" = "To reset KidSafe's parent password, enter the name and password of an administrator of this Mac.";
+"app.lock.forgotFailed" = "Administrator authentication failed. The parent password wasn't changed.";
+"app.lock.resetTitle" = "Reset the parent password";
+"app.lock.resetMessage" = "Administrator verified. Choose a new parent password, or remove it.";
+"app.lock.resetNew" = "New password…";
+"uninstaller.forgotPrompt" = "To uninstall KidSafe without the parent password, enter the name and password of an administrator of this Mac.";
+"protect.cleanup.title" = "Also turn off the added protections?";
+"protect.cleanup.message" = "Without a parent password, KidSafe goes back to working normally. Untick what you want to keep.";
+"protect.cleanup.bypass" = "Stop blocking VPNs and proxies (Bypass tools category)";
+"protect.cleanup.firefox" = "Remove the Firefox rule (administrator password)";
+"protect.cleanup.ok" = "Turn off";
+"protect.cleanup.keep" = "Keep everything";

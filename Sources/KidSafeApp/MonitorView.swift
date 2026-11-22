@@ -19,6 +19,18 @@ struct MonitorView: View {
                 } ?? L("mon.noneShort"))
             }
             row(L("mon.lists"), model.status.lastApplied.map { formatDate($0, date: .abbreviated, time: .shortened) } ?? "—")
+            if let event = model.recentEvents.first {
+                // Arrêt inattendu, ouverture au démarrage désactivée… : le parent le voit ici pendant une semaine.
+                Label {
+                    Text(verbatim: EventLog.describe(event, locale: Locale(identifier: Localization.currentLanguage))
+                         + (model.recentEvents.count > 1 ? " " + L("mon.events.more", model.recentEvents.count - 1) : ""))
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange)
+                }
+                .font(.callout)
+                .padding(.top, 8)
+            }
             Divider().padding(.vertical, 8)
             HStack {
                 if let since = c?.since {

@@ -757,7 +757,7 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(en.contains("User guide") && en.contains("id=\"uninstall\"") && en.contains("lang=\"en\""))
         // Captures intégrées (une par {{shot:…}}), aucun espace réservé restant.
         for page in [fr, en] {
-            #expect(page.components(separatedBy: "data:image/png;base64,").count - 1 == 10)
+            #expect(page.components(separatedBy: "data:image/png;base64,").count - 1 == 11)
             #expect(!page.contains("{{shot:"))
         }
         // Chaque lien du sommaire pointe vers une section existante.
@@ -813,5 +813,67 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(n.poll(now: t0) == nil)
         try append(["xvideos.com:443"])
         #expect(n.poll(now: t0)?.site == "xvideos.com")
+    }
+}
+
+@Suite struct ProtectionTests {
+    @Test func blockWhenClosedNeedsPasswordAndDecodesOldFiles() throws {
+        var c = Catalog.default
+        #expect(!c.blockWhenClosed && !c.keepsProxyWhenClosed)
+        c.blockWhenClosed = true
+        #expect(!c.keepsProxyWhenClosed)   // sans mot de passe, n'importe qui peut quitter KidSafe
+        c.parentPassword = PasswordHash.make("secret")
+        #expect(c.keepsProxyWhenClosed)
+        let data = try JSONEncoder().encode(c)
+        #expect(try JSONDecoder().decode(Catalog.self, from: data).keepsProxyWhenClosed)
+        // Fichier d'une version précédente : réglage absent → désactivé.
+        var json = try JSONSerialization.jsonObject(with: data) as! [String: Any]
+        json["blockWhenClosed"] = nil
+        let old = try JSONDecoder().decode(Catalog.self, from: JSONSerialization.data(withJSONObject: json))
+        #expect(!old.blockWhenClosed)
+    }
+
+    @Test func firefoxRuleKeepsOtherPolicies() {
+        let other: [String: Any] = ["EnterprisePoliciesEnabled": true, "DisableTelemetry": true]
+        let merged = FirefoxPolicy.merged(other)
+        #expect(FirefoxPolicy.isInstalled(merged))
+        #expect(merged["DisableTelemetry"] as? Bool == true)
+        let removed = FirefoxPolicy.removed(merged)
+        #expect(!FirefoxPolicy.isInstalled(removed))
+        #expect(removed["DisableTelemetry"] as? Bool == true && removed["EnterprisePoliciesEnabled"] as? Bool == true)
+        // Seule la règle de KidSafe : tout est retiré, y compris l'activation des règles.
+        #expect(FirefoxPolicy.removed(FirefoxPolicy.merged([:])).isEmpty)
+        // Règle présente mais non verrouillée, ou règles désactivées : pas verrouillé.
+        #expect(!FirefoxPolicy.isInstalled(["EnterprisePoliciesEnabled": true, "Proxy": ["Mode": "system"]]))
+        #expect(!FirefoxPolicy.isInstalled(["Proxy": ["Mode": "system", "Locked": true]]))
+        // Liste de propriétés valide pour `defaults import`.
+        #expect((try? PropertyListSerialization.data(fromPropertyList: merged, format: .xml, options: 0)) != nil)
+    }
+
+    @Test func heartbeatAndEvents() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-events-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let beat = Heartbeat.file(supportDir: dir), events = EventLog.file(supportDir: dir)
+        #expect(Heartbeat.lastBeat(beat) == nil)
+        let t = Date(timeIntervalSince1970: 1_800_000_000)
+        Heartbeat.beat(beat, now: t)
+        Heartbeat.beat(beat, now: t.addingTimeInterval(30))
+        #expect(Heartbeat.lastBeat(beat).map { abs($0.timeIntervalSince(t.addingTimeInterval(30))) < 1 } == true)
+        Heartbeat.clear(beat)
+        #expect(Heartbeat.lastBeat(beat) == nil)   // arrêt normal : rien à signaler au lancement suivant
+
+        for i in 0..<(EventLog.keep + 5) {
+            EventLog.append(.init(date: t.addingTimeInterval(Double(i) * 60), kind: .unexpectedStop, lastSeen: t), to: events)
+        }
+        EventLog.append(.init(date: t.addingTimeInterval(-30 * 24 * 3600), kind: .loginItemDisabled), to: events)
+        let all = EventLog.load(events)
+        #expect(all.count == EventLog.keep)
+        // Récents : moins d'une semaine, du plus récent au plus ancien.
+        let recent = EventLog.recent(events, now: t.addingTimeInterval(3600 * 2))
+        #expect(recent.first?.kind == .unexpectedStop && recent.count == EventLog.keep - 1)
+        #expect(recent.first!.date > recent.last!.date)
+        Localization.forcedLanguage = "fr"
+        defer { Localization.forcedLanguage = nil }
+        #expect(EventLog.describe(recent[0], locale: Locale(identifier: "fr")).contains("inattendue"))
     }
 }

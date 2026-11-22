@@ -48,7 +48,7 @@ Privoxy intégré : `scripts/build-privoxy.sh` compile Privoxy 4.2.0 et PCRE2 de
 - en quittant, KidSafe retire d'abord le proxy, puis arrête Privoxy. Si le proxy ne peut pas être retiré,
   Privoxy reste allumé ;
 - toutes les 5 s, si le proxy pointe vers un Privoxy qui ne répond plus, KidSafe le relance ; s'il ne repart pas,
-  le proxy est retiré (puis remis quand Privoxy revient) ;
+  le proxy est retiré (puis remis quand Privoxy revient), sauf si le parent a choisi de couper internet quand KidSafe ne filtre pas ;
 - seul le proxy 127.0.0.1:<port de Privoxy> est retiré : un proxy configuré par ailleurs n'est jamais touché ;
 - Réglages → Général → « Désinstaller KidSafe… » remet le Mac dans son état d'origine.
 
@@ -58,6 +58,10 @@ Développement : les variables `KIDSAFE_SUPPORT_DIR` et `KIDSAFE_PRIVOXY_CONF` i
 
 - **Message « site bloqué »** : KidSafe affiche au centre de l'écran le site bloqué et la raison, quel que soit le navigateur ;
   il disparaît au premier clic (publicités et pistage bloqués en arrière-plan non signalés).
+- **Protection contre les contournements** (avec un mot de passe parent) : couper internet quand KidSafe est fermé
+  sans le mot de passe (au lieu d'un accès sans filtre), verrouiller le proxy dans Firefox (règle officielle de Firefox,
+  mot de passe administrateur), proposition de bloquer VPN et proxys, arrêts inattendus de KidSafe signalés dans le moniteur.
+  Le guide d'utilisation détaille les limites et les parades (section « Limites »).
 - **Barre de menus** : état de la protection, interrupteur **Filtrage** (pause sans rien supprimer), **Désactivation temporaire** (30 s à 1 h, reprise automatique),
   résumé (catégories, réseaux sociaux bloqués en ce moment, domaines perso), « Mettre à jour les listes »,
   « Réglages… », « Soutenir KidSafe » (si un lien est configuré), « Rechercher des mises à jour », « Quitter ».

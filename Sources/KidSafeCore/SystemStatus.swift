@@ -98,20 +98,8 @@ public enum SystemStatus {
         }
         guard let prompt else { return "networksetup" }
 
-        let shell = cmds.map { (["/usr/sbin/networksetup"] + $0).map(shellQuote).joined(separator: " ") }.joined(separator: " && ")
-        let script = "do shell script \"\(shell.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\""))\" "
-            + "with prompt \"\(prompt.replacingOccurrences(of: "\"", with: "'"))\" with administrator privileges"
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
-        p.arguments = ["-e", script]
-        let err = Pipe(); p.standardError = err; p.standardOutput = Pipe()
-        do { try p.run() } catch { return "\(error)" }
-        p.waitUntilExit()
-        if p.terminationStatus == 0 { return nil }
-        return String(decoding: err.fileHandleForReading.readDataToEndOfFile(), as: UTF8.self)
+        return AdminShell.run(cmds.map { ["/usr/sbin/networksetup"] + $0 }, prompt: prompt)
     }
-
-    private static func shellQuote(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
 
     private static func run(_ tool: String, _ args: [String], requireSuccess: Bool = false) -> String? {
         let p = Process()

@@ -9,10 +9,13 @@ public enum Dashboard {
         public var summary: Monitor.Summary
         public var logEnabled: Bool
         public var version: String
+        /// Événements de KidSafe, du plus récent au plus ancien.
+        public var events: [EventLog.Event]
         public var generatedAt = Date()
-        public init(counters: Monitor.Counters?, domainsOnLists: Int, summary: Monitor.Summary, logEnabled: Bool, version: String) {
+        public init(counters: Monitor.Counters?, domainsOnLists: Int, summary: Monitor.Summary, logEnabled: Bool, version: String,
+                    events: [EventLog.Event] = []) {
             self.counters = counters; self.domainsOnLists = domainsOnLists; self.summary = summary
-            self.logEnabled = logEnabled; self.version = version
+            self.logEnabled = logEnabled; self.version = version; self.events = events
         }
     }
 
@@ -57,6 +60,7 @@ public enum Dashboard {
           <section><h2>\(esc(L("mon.perCategory")))</h2>\(hbars(s.perCategory, emptyText: L("mon.none")))</section>
         </div>
         <p class="src">\(esc(L("mon.fromLog")))</p>
+        <section><h2>\(esc(L("mon.events")))</h2>\(events(d.events, locale: loc))</section>
         <section><h2>\(esc(L("mon.recent")))</h2>\(recent(s.recent, time: { time($0, .dateTime.day().month(.abbreviated).hour().minute().second()) }))</section>
         """
 
@@ -121,6 +125,11 @@ public enum Dashboard {
         var t = "<table><thead><tr><th>\(esc(L("mon.col.time")))</th><th>\(esc(L("mon.col.domain")))</th></tr></thead><tbody>"
         for e in entries { t += "<tr><td class=\"time\">\(esc(time(e.date)))</td><td class=\"dom\">\(esc(e.host))</td></tr>" }
         return t + "</tbody></table>"
+    }
+
+    private static func events(_ list: [EventLog.Event], locale: Locale) -> String {
+        guard !list.isEmpty else { return "<p class=\"empty\">\(esc(L("mon.events.none")))</p>" }
+        return "<ul class=\"events\">" + list.map { "<li>\(esc(EventLog.describe($0, locale: locale)))</li>" }.joined() + "</ul>"
     }
 
     private static func f(_ v: Double) -> String { String(format: "%.1f", locale: Locale(identifier: "en_US_POSIX"), v) }

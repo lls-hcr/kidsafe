@@ -50,6 +50,7 @@ public enum PageStyle {
     .hbn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.hbt{height:8px;background:var(--track);border-radius:4px}
     .hbf{display:block;height:8px;background:var(--accent);border-radius:4px}.hbv{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
     .empty{color:var(--muted)}
+    .events{margin:0;padding-left:1.2em;line-height:1.6}
     .snap{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;background:var(--soft);
       border-radius:12px;padding:10px 14px;margin-bottom:16px;color:var(--accent-ink);font-weight:600;font-size:13px}
     .btn{display:inline-block;background:var(--accent);color:#fff;text-decoration:none;font-weight:600;font-size:13px;

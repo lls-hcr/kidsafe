@@ -29,6 +29,9 @@ struct Screenshotter {
         shoot(AnyView(TabShot { AdvancedTab() }), "advanced", width: 620, height: 520, into: dir)
         shoot(AnyView(MonitorView().background(Color(nsColor: .windowBackgroundColor))), "monitor", width: 340, into: dir)
         dashboard(into: dir)
+        model.loadDemoProtection()   // en dernier : mot de passe de démonstration (le menu ci-dessus n'en a pas)
+        shoot(AnyView(TabShot { Form { ProtectionSettings() }.formStyle(.grouped).toggleStyle(ColorSwitchStyle()) }),
+              "protection", width: 620, height: 330, into: dir)
     }
 
     /// Fenêtre hors écran + cacheDisplay : rendu réel des contrôles AppKit, en apparence claire.

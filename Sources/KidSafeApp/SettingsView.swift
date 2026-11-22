@@ -288,6 +288,33 @@ struct BlockMessageSetting: View {
     }
 }
 
+/// Protection contre les contournements (Réglages → Général) ; aussi capturée pour le guide.
+struct ProtectionSettings: View {
+    @EnvironmentObject var model: AppModel
+    var body: some View {
+        Section(L("protect.section")) {
+            Toggle(L("protect.blockWhenClosed"), isOn: Binding(get: { model.catalog.keepsProxyWhenClosed },
+                                                               set: { model.setBlockWhenClosed($0) }))
+                .disabled(!model.hasPassword)
+            Text(L(model.hasPassword ? "protect.blockWhenClosedHelp" : "protect.needsPassword"))
+                .font(.caption).foregroundStyle(.secondary)
+            if model.firefoxInstalled || model.firefoxLocked {
+                LabeledContent("Firefox") {
+                    HStack {
+                        if model.firefoxBusy { ProgressView().controlSize(.small) }
+                        Text(L(model.firefoxLocked ? "firefox.locked" : "firefox.unlocked"))
+                            .foregroundStyle(model.firefoxLocked ? Color.secondary : Color.orange)
+                        Button(L(model.firefoxLocked ? "firefox.unlock" : "firefox.lock")) { model.setFirefoxLock(!model.firefoxLocked) }
+                            .disabled(model.firefoxBusy)
+                    }
+                }
+                Text(L("firefox.help")).font(.caption).foregroundStyle(.secondary)
+            }
+            Text(L("protect.limitsNote")).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+}
+
 struct GeneralTab: View {
     @EnvironmentObject var model: AppModel
 
@@ -317,6 +344,7 @@ struct GeneralTab: View {
                     if model.hasPassword { Button(L("app.password.remove")) { model.removePassword() } }
                 }
             }
+            ProtectionSettings()
             Section(L("app.general.proxy")) {
                 LabeledContent(L("app.general.privoxy")) {
                     Text(model.installer?.confDir.path ?? L("app.general.notFound")).textSelection(.enabled)
