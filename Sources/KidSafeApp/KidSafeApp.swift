@@ -1,4 +1,5 @@
 import AppKit
+import Combine
 import KidSafeCore
 import SwiftUI
 
@@ -29,6 +30,8 @@ struct MenuBarIcon: View {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     let model = AppModel()
     private var settingsWindow: NSWindow?
+    private let settingsTab = TabChoice(0)
+    private var settingsLanguageWatch: AnyCancellable?
     private var monitorPanel: NSPanel?
     private var monitorTimer: Timer?
 
@@ -108,15 +111,37 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func showSettings() {
         if settingsWindow == nil {
-            let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView().environmentObject(model)))
-            w.styleMask = [.titled, .closable, .miniaturizable]
-            w.isReleasedWhenClosed = false
-            w.center()
-            settingsWindow = w
+            settingsWindow = makeSettingsWindow()
+            settingsWindow?.center()
         }
-        settingsWindow?.title = L("app.settings")
         NSApp.activate(ignoringOtherApps: true)
         settingsWindow?.makeKeyAndOrderFront(nil)
+    }
+
+    private func makeSettingsWindow(scrollTo: String? = nil) -> NSWindow {
+        let w = NSWindow(contentViewController: NSHostingController(rootView: SettingsView(selection: settingsTab, generalScrollTarget: scrollTo)
+                                                                        .environmentObject(model)))
+        w.styleMask = [.titled, .closable, .miniaturizable]
+        w.isReleasedWhenClosed = false
+        w.title = L("app.settings")
+        if settingsLanguageWatch == nil {
+            // receive(on:) : la nouvelle langue est appliquée (didSet) avant de recréer la fenêtre.
+            settingsLanguageWatch = model.$language.dropFirst().removeDuplicates().receive(on: RunLoop.main)
+                .sink { [weak self] _ in self?.rebuildSettingsWindow() }
+        }
+        return w
+    }
+
+    /// Changement de langue : la fenêtre est recréée au même endroit, sur le même onglet (le choix de la langue
+    /// reste visible dans Général). Reconstruire
+    /// le TabView dans la fenêtre ouverte empilait les noms des onglets au milieu de la barre.
+    private func rebuildSettingsWindow() {
+        guard let old = settingsWindow else { return }
+        let w = makeSettingsWindow(scrollTo: settingsTab.tab == 3 ? "language" : nil)
+        w.setFrame(old.frame, display: false)
+        settingsWindow = w
+        if old.isVisible { w.makeKeyAndOrderFront(nil) }
+        old.orderOut(nil)
     }
 }
 

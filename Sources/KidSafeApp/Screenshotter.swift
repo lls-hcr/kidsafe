@@ -40,7 +40,7 @@ struct Screenshotter {
     /// coins arrondis. `keepTop` : hauteur gardée (en points, depuis le haut), pour une seule section.
     private func windowShot(tab: Int, _ name: String, scrollTo: String? = nil, keepTop: CGFloat? = nil, into dir: URL) {
         // Même construction que la vraie fenêtre (AppDelegate.showSettings).
-        let controller = NSHostingController(rootView: SettingsView(tab: tab, generalScrollTarget: scrollTo).environmentObject(model)
+        let controller = NSHostingController(rootView: SettingsView(selection: TabChoice(tab), generalScrollTarget: scrollTo).environmentObject(model)
                                                 .environment(\.colorScheme, .light).environment(\.controlActiveState, .key))
         let w = KeyWindow(contentViewController: controller)
         w.styleMask = [.titled, .closable, .miniaturizable]

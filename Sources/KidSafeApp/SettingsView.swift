@@ -3,14 +3,10 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var model: AppModel
-    @StateObject private var selection: TabChoice
+    /// Onglet affiché ; gardé par la fenêtre, pour rester sur le même onglet après un changement de langue.
+    @ObservedObject var selection: TabChoice
     /// Captures du guide : section de l'onglet Général à faire défiler en haut.
-    private let generalScrollTarget: String?
-
-    init(tab: Int = 0, generalScrollTarget: String? = nil) {
-        _selection = StateObject(wrappedValue: TabChoice(tab))
-        self.generalScrollTarget = generalScrollTarget
-    }
+    var generalScrollTarget: String? = nil
 
     var body: some View {
         VStack(spacing: 0) {
@@ -27,7 +23,6 @@ struct SettingsView: View {
         }
         .frame(width: 640, height: 590)
         .navigationTitle(L("app.settings"))
-        .id(model.language)   // tout se redessine dans la nouvelle langue
     }
 }
 
@@ -470,6 +465,7 @@ struct GeneralTab: View {
                 }
                 .labelsHidden()
             }
+            .id("language")
             if model.donateURL != nil {
                 Section(L("app.donate.section")) {
                     Text(L("app.donate.help")).font(.caption).foregroundStyle(.secondary)
