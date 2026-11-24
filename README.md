@@ -60,6 +60,7 @@ to the Trash. If a parent password is set, it is required.
   (e.g. at night) or allowed only during time slots (e.g. Wednesday afternoon).
 - **Your own domains**: block or always allow any domain (and its subdomains).
 - **Strict mode**: everything is blocked except the allowlist, for younger children.
+- **Restore Defaults…** in the Lists, Social networks, Domains and General tabs (the password and protections stay).
 - **Optional parent password** for every change, pausing and quitting.
 - **“Site blocked” message**: KidSafe shows the blocked site and the reason in the middle of the screen, whatever the browser;
   it goes away at the first click (ads and tracking blocked in the background are not reported).

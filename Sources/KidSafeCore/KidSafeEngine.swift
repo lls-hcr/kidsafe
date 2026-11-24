@@ -176,6 +176,12 @@ public struct KidSafeEngine: Sendable {
         }
     }
 
+    /// Listes par défaut : listes ajoutées retirées (avec les fichiers importés), listes principales réinitialisées.
+    public func resetLists(_ catalog: inout Catalog) throws {
+        for c in catalog.categories where c.custom == true { try removeCustomList(c.id, from: &catalog) }
+        catalog.resetMainLists()
+    }
+
     public struct ApplyResult: Sendable {
         public var update: BlocklistUpdater.Result
         public var install: PrivoxyInstaller.Report

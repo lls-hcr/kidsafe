@@ -187,6 +187,27 @@ public extension Catalog {
         }
     }
 
+    // MARK: - Réglages par défaut (bouton de chaque onglet)
+
+    /// Listes principales remises dans leur état initial (seule HaGeZi NSFW cochée, niveaux par défaut).
+    /// Les listes ajoutées restent : `KidSafeEngine.resetLists` les retire avec leurs fichiers.
+    public mutating func resetMainLists() {
+        categories = Catalog.default.categories + categories.filter { $0.custom == true }
+    }
+
+    /// Tous les réseaux sociaux autorisés, sans plage horaire.
+    public mutating func resetSocial() { services = [:] }
+
+    /// Domaines bloqués et liste blanche vidés.
+    public mutating func resetDomains() { blockedDomains = []; allowlist = [] }
+
+    /// Onglet Général : mode strict désactivé, message « site bloqué » activé, mise à jour chaque jour.
+    /// Le filtrage, l'ouverture au démarrage, le mot de passe et les protections sont gérés à part (pas touchés ici).
+    public mutating func resetGeneral() {
+        let d = Catalog.default
+        strictMode = d.strictMode; notifyBlocked = d.notifyBlocked; refreshHours = d.refreshHours
+    }
+
     // MARK: - Migration
 
     /// Met à jour un catalogue enregistré par une version précédente. Rien ne se décoche :

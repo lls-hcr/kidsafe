@@ -44,16 +44,18 @@ public enum UserGuide {
         "\"" + s.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\""
     }
 
-    /// Remplace {{shot:nom}} par la capture (Resources/shot-<langue>-<nom>.png), intégrée à la page :
-    /// le guide reste un fichier unique, lisible sans connexion. Capture absente : figure retirée.
+    /// Remplace {{shot:nom}} par la capture, intégrée à la page : le guide reste un fichier unique,
+    /// lisible sans connexion. Ordre : vraie capture de l'app (shot-<langue>-<nom>.jpg), puis capture
+    /// générée (shot-<langue>-<nom>.png), puis la version anglaise. Capture absente : figure retirée.
     static func insertScreenshots(_ html: String, lang: String) -> String {
         var out = html
         while let r = out.range(of: #"\{\{shot:([a-z\-]+)\}\}"#, options: .regularExpression) {
             let name = String(out[r].dropFirst(7).dropLast(2))
-            let file = Localization.bundle.url(forResource: "shot-\(lang)-\(name)", withExtension: "png")
-                ?? Localization.bundle.url(forResource: "shot-en-\(name)", withExtension: "png")
+            let file = [lang, "en"].lazy.flatMap { l in ["jpg", "png"].lazy.map { (l, $0) } }
+                .compactMap { l, ext in Localization.bundle.url(forResource: "shot-\(l)-\(name)", withExtension: ext) }.first
             if let file, let data = try? Data(contentsOf: file) {
-                out.replaceSubrange(r, with: "<img src=\"data:image/png;base64,\(data.base64EncodedString())\" alt=\"\(name)\" loading=\"lazy\">")
+                let mime = file.pathExtension == "jpg" ? "image/jpeg" : "image/png"
+                out.replaceSubrange(r, with: "<img src=\"data:\(mime);base64,\(data.base64EncodedString())\" alt=\"\(name)\" loading=\"lazy\">")
             } else {
                 out.replaceSubrange(r, with: "")
             }

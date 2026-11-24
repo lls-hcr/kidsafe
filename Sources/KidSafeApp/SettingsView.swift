@@ -3,16 +3,24 @@ import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var model: AppModel
+    @StateObject private var selection: TabChoice
+    /// Captures du guide : section de l'onglet Général à faire défiler en haut.
+    private let generalScrollTarget: String?
+
+    init(tab: Int = 0, generalScrollTarget: String? = nil) {
+        _selection = StateObject(wrappedValue: TabChoice(tab))
+        self.generalScrollTarget = generalScrollTarget
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             if model.isLocked { LockBanner() }
-            TabView {
-                ListsTab().tabItem { Label(L("app.tab.lists"), systemImage: "list.bullet.rectangle") }
-                SocialTab().tabItem { Label(L("app.tab.social"), systemImage: "person.2") }
-                DomainsTab().tabItem { Label(L("app.tab.domains"), systemImage: "globe") }
-                GeneralTab().tabItem { Label(L("app.tab.general"), systemImage: "gearshape") }
-                AdvancedTab().tabItem { Label(L("adv.tab"), systemImage: "wrench.and.screwdriver") }
+            TabView(selection: $selection.tab) {
+                ListsTab().tabItem { Label(L("app.tab.lists"), systemImage: "list.bullet.rectangle") }.tag(0)
+                SocialTab().tabItem { Label(L("app.tab.social"), systemImage: "person.2") }.tag(1)
+                DomainsTab().tabItem { Label(L("app.tab.domains"), systemImage: "globe") }.tag(2)
+                GeneralTab(scrollTarget: generalScrollTarget).tabItem { Label(L("app.tab.general"), systemImage: "gearshape") }.tag(3)
+                AdvancedTab().tabItem { Label(L("adv.tab"), systemImage: "wrench.and.screwdriver") }.tag(4)
             }
             .padding()
             MenuBarHint()
@@ -21,6 +29,12 @@ struct SettingsView: View {
         .navigationTitle(L("app.settings"))
         .id(model.language)   // tout se redessine dans la nouvelle langue
     }
+}
+
+/// Onglet affiché (choisi par les captures du guide ; sinon le premier).
+final class TabChoice: ObservableObject {
+    @Published var tab: Int
+    init(_ tab: Int) { self.tab = tab }
 }
 
 /// Rappelle où se trouve KidSafe : l'app vit dans la barre de menus.
@@ -64,17 +78,23 @@ struct ListsTab: View {
             Text(L("app.lists.help")).font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             List {
+                // Titres de thème en simples lignes : un en-tête de Section resterait collé en haut en défilant.
                 ForEach(ListGroup.allCases, id: \.self) { group in
                     let lists = model.catalog.categories.filter { $0.custom != true && $0.group == group }
                     if !lists.isEmpty {
-                        Section(group.title) { ForEach(lists, id: \.id) { CategoryToggle(category: $0, compact: false) } }
+                        Section {
+                            GroupTitle(text: group.title)
+                            ForEach(lists, id: \.id) { CategoryToggle(category: $0, compact: false) }
+                        }
                     }
                 }
                 let custom = model.catalog.categories.filter { $0.custom == true }
-                Section(L("app.lists.custom")) {
+                Section {
+                    GroupTitle(text: L("app.lists.custom"))
                     if custom.isEmpty { Text(L("app.lists.noCustom")).foregroundStyle(.secondary) }
                     ForEach(custom, id: \.id) { CategoryToggle(category: $0, compact: false) }
                 }
+                ResetDefaultsRow(scope: .lists)
             }
             .disabled(model.catalog.strictMode)
             HStack {
@@ -92,6 +112,35 @@ struct ListsTab: View {
             }
             ErrorLine()
         }
+    }
+}
+
+/// Titre d'un thème dans l'onglet Listes (défile avec les listes).
+struct GroupTitle: View {
+    var text: String
+    var body: some View {
+        Text(text).font(.subheadline.weight(.semibold)).foregroundStyle(.secondary)
+            .padding(.top, 8)
+    }
+}
+
+/// Bouton « Réglages par défaut… » en bas d'un onglet.
+struct ResetDefaultsButton: View {
+    @EnvironmentObject var model: AppModel
+    var scope: AppModel.DefaultsScope
+    var body: some View {
+        Button(L("reset.button")) { model.resetToDefaults(scope) }
+            .help(L("reset.\(scope.rawValue).message"))
+    }
+}
+
+/// Même bouton, en dernière ligne d'une liste.
+struct ResetDefaultsRow: View {
+    var scope: AppModel.DefaultsScope
+    var body: some View {
+        HStack { Spacer(); ResetDefaultsButton(scope: scope) }
+            .padding(.vertical, 6)
+            .listRowSeparator(.hidden)
     }
 }
 
@@ -113,7 +162,10 @@ struct SocialTab: View {
         VStack(alignment: .leading, spacing: 10) {
             Text(L("app.social.help")).font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            List(SocialService.all) { ServiceRow(service: $0) }
+            List {
+                ForEach(SocialService.all) { ServiceRow(service: $0) }
+                ResetDefaultsRow(scope: .social)
+            }
             Text(L("app.social.note")).font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             ErrorLine()
@@ -244,7 +296,7 @@ struct DomainsTab: View {
                              tint: .green, entry: allowEntry, domains: model.catalog.allowlist,
                              add: model.addAllowed, remove: model.removeAllowed)
             }
-            ErrorLine()
+            HStack { ErrorLine(); Spacer(); ResetDefaultsButton(scope: .domains) }
         }
     }
 }
@@ -321,13 +373,25 @@ struct ProtectionSettings: View {
             }
             Text(L("protect.limitsNote")).font(.caption).foregroundStyle(.secondary)
         }
+        .id("protection")
     }
 }
 
 struct GeneralTab: View {
     @EnvironmentObject var model: AppModel
+    var scrollTarget: String? = nil
 
     var body: some View {
+        ScrollViewReader { proxy in
+            form.onAppear {
+                guard let scrollTarget else { return }
+                // Après la mise en page du formulaire, sinon le défilement est ignoré.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { proxy.scrollTo(scrollTarget, anchor: .top) }
+            }
+        }
+    }
+
+    private var form: some View {
         Form {
             Section(L("app.general.protection")) {
                 Toggle(L("app.menu.filtering"), isOn: Binding(get: { model.catalog.filteringEnabled }, set: { model.setFiltering($0) }))
@@ -411,6 +475,10 @@ struct GeneralTab: View {
                     Text(L("app.donate.help")).font(.caption).foregroundStyle(.secondary)
                     Button { model.donate() } label: { Label(L("app.donate"), systemImage: "heart.fill") }
                 }
+            }
+            Section(L("reset.section")) {
+                Text(L("reset.general.help")).font(.caption).foregroundStyle(.secondary)
+                ResetDefaultsButton(scope: .general)
             }
         }
         .formStyle(.grouped)

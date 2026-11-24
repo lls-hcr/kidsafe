@@ -178,6 +178,7 @@ final class AppModel: ObservableObject {
         catalog.parentPassword = PasswordHash.make("demo")
         catalog.blockWhenClosed = true
         firefoxLocked = true
+        unlockedUntil = .distantFuture   // pas de bandeau « verrouillé » sur les captures
     }
 
     // MARK: - État
@@ -609,6 +610,30 @@ final class AppModel: ObservableObject {
             var p = c.policy(for: id)
             change(&p.windows)
             c.services[id] = p
+        }
+    }
+
+    // MARK: - Réglages par défaut
+
+    /// Onglet dont le bouton « Réglages par défaut… » a été cliqué.
+    enum DefaultsScope: String { case lists, social, domains, general }
+
+    /// Remet un onglet dans son état initial, après le mot de passe parent et une confirmation.
+    /// Le mot de passe, les protections contre les contournements et l'onglet Avancé ne sont jamais touchés.
+    func resetToDefaults(_ scope: DefaultsScope) {
+        guard requireUnlock() else { return }
+        var message = L("reset.\(scope.rawValue).message")
+        if scope == .domains, catalog.strictMode, !catalog.allowlist.isEmpty { message += "\n\n" + L("reset.domains.strict") }
+        guard confirm(title: L("reset.\(scope.rawValue).title"), message: message, ok: L("reset.ok"), style: .warning) else { return }
+        let engine = self.engine
+        switch scope {
+        case .lists: _ = mutate(locked: false) { try engine.resetLists(&$0) }
+        case .social: _ = mutate(locked: false, fast: true) { $0.resetSocial() }
+        case .domains: _ = mutate(locked: false) { $0.resetDomains() }
+        case .general:
+            _ = mutate(locked: false) { $0.resetGeneral() }
+            if !catalog.filteringEnabled { setFiltering(true, until: nil, locked: false) }
+            if !launchAtLogin { setLaunchAtLogin(true) }
         }
     }
 

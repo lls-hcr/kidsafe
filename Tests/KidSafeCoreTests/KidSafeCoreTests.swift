@@ -345,6 +345,33 @@ import Testing
         #expect(try Catalog.load(from: engine.paths.catalogFile).version == Catalog.currentVersion)
     }
 
+    @Test func restoreDefaultsTabByTab() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-reset-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let engine = KidSafeEngine(paths: KidSafePaths(supportDir: dir))
+        var c = Catalog.default
+        try c.setEnabled("adult", false)
+        try c.setEnabled("ads", true)
+        try c.setLevel("security", .strong)
+        let gambling = try #require(Catalog.library.first { $0.id == "gambling" })
+        try c.addCustomList(id: gambling.id, name: gambling.name, sources: gambling.sources, warning: gambling.warning)
+        c.services["tiktok"] = ServicePolicy(mode: .blocked)
+        c.blockedDomains = ["roblox.com"]; c.allowlist = ["wikipedia.org"]
+        c.strictMode = true; c.notifyBlocked = false; c.refreshHours = 0; c.blockWhenClosed = true
+        let edited = c
+
+        try engine.resetLists(&c)
+        #expect(c.categories == Catalog.default.categories)
+        #expect(c.blockedDomains == ["roblox.com"] && c.services == edited.services)   // les autres onglets ne bougent pas
+        c.resetSocial()
+        #expect(c.services.isEmpty && c.allowlist == ["wikipedia.org"])
+        c.resetDomains()
+        #expect(c.blockedDomains.isEmpty && c.allowlist.isEmpty && c.strictMode)
+        c.resetGeneral()
+        #expect(!c.strictMode && c.notifyBlocked && c.refreshHours == 24)
+        #expect(c.blockWhenClosed)   // les protections contre les contournements restent
+    }
+
     @Test func oldCatalogFilesStillDecode() throws {
         let json = #"{"categories":[{"id":"a","name":"A","enabled":true,"sources":[]}],"allowlist":[],"strictMode":false,"hardenPrivoxy":true}"#
         let c = try JSONDecoder().decode(Catalog.self, from: Data(json.utf8))
@@ -907,7 +934,7 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(en.contains("User guide") && en.contains("id=\"uninstall\"") && en.contains("lang=\"en\""))
         // Captures intégrées (une par {{shot:…}}), aucun espace réservé restant.
         for page in [fr, en] {
-            #expect(page.components(separatedBy: "data:image/png;base64,").count - 1 == 12)
+            #expect(page.matches(of: /data:image\/(png|jpeg);base64,/).count == 12)
             #expect(!page.contains("{{shot:"))
         }
         // Chaque lien du sommaire pointe vers une section existante.

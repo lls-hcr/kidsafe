@@ -543,3 +543,18 @@ Language: the system's, or KIDSAFE_LANG=fr|en.";
 "lists.summary" = "Checked at %@: %d list(s) changed, %d unchanged, %@";
 "lists.summary.noFailure" = "no failures";
 "lists.summary.failures" = "%d failed";
+
+/* Restore defaults (button in each tab) */
+"reset.button" = "Restore Defaults…";
+"reset.section" = "Defaults";
+"reset.ok" = "Restore";
+"reset.lists.title" = "Restore the default lists?";
+"reset.lists.message" = "Only HaGeZi NSFW stays ticked, levels go back to Light and added lists are removed.";
+"reset.social.title" = "Allow all social networks?";
+"reset.social.message" = "Every network goes back to “Allowed” and its time slots are deleted.";
+"reset.domains.title" = "Clear blocked domains and the allowlist?";
+"reset.domains.message" = "Blocked domains and the allowlist are emptied.";
+"reset.domains.strict" = "Strict mode is on: without an allowlist, no website will open.";
+"reset.general.title" = "Restore general settings?";
+"reset.general.message" = "Filtering on, strict mode off, open at login and the “site blocked” message on, lists updated every day. The parent password, bypass protection and language don't change.";
+"reset.general.help" = "Puts the Protection section back to how it was at first. The password, bypass protection and language don't change.";

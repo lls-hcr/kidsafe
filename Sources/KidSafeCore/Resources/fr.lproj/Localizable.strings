@@ -543,3 +543,18 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "lists.summary" = "Vérification de %@ : %d liste(s) modifiée(s), %d inchangée(s), %@";
 "lists.summary.noFailure" = "aucun échec";
 "lists.summary.failures" = "%d échec(s)";
+
+/* Réglages par défaut (bouton de chaque onglet) */
+"reset.button" = "Réglages par défaut…";
+"reset.section" = "Réglages par défaut";
+"reset.ok" = "Rétablir";
+"reset.lists.title" = "Rétablir les listes par défaut ?";
+"reset.lists.message" = "Seule HaGeZi NSFW reste cochée, les niveaux reviennent à Léger et les listes ajoutées sont retirées.";
+"reset.social.title" = "Autoriser tous les réseaux sociaux ?";
+"reset.social.message" = "Tous les réseaux redeviennent « Autorisé » et leurs plages horaires sont effacées.";
+"reset.domains.title" = "Vider les domaines bloqués et la liste blanche ?";
+"reset.domains.message" = "Les domaines bloqués et la liste blanche sont vidés.";
+"reset.domains.strict" = "Le mode strict est activé : sans liste blanche, plus aucun site ne s'ouvrira.";
+"reset.general.title" = "Rétablir les réglages généraux ?";
+"reset.general.message" = "Filtrage activé, mode strict désactivé, ouverture au démarrage et message « site bloqué » activés, mise à jour des listes chaque jour. Le mot de passe parent, les protections contre les contournements et la langue ne changent pas.";
+"reset.general.help" = "Remet la section Protection dans son état initial. Le mot de passe, les protections contre les contournements et la langue ne changent pas.";
