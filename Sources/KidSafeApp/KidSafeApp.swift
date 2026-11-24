@@ -358,7 +358,7 @@ struct CategoryToggle: View {
             Toggle(isOn: Binding(get: { category.enabled }, set: { model.setEnabled(category.id, $0) })) {
                 VStack(alignment: .leading, spacing: 1) {
                     HStack(spacing: 4) {
-                        Text(category.displayName)
+                        Text(category.listName)
                         if category.warning != nil {
                             Image(systemName: "tortoise.fill").foregroundStyle(.orange).help(category.displayWarning ?? "")
                         }
@@ -377,19 +377,97 @@ struct CategoryToggle: View {
                                            file: model.confDir?.appendingPathComponent(PrivoxyActions.fileName(forCategory: category.id)))
                         }
                     }
-                    if !compact, let src = category.sources.first {
-                        Text(src.url.hasPrefix("file://") ? L("app.lists.localFile", src.license ?? "") : src.url)
-                            .font(.caption2).foregroundStyle(.tertiary).lineLimit(1).truncationMode(.middle)
-                    }
                 }
             }
             .toggleStyle(.checkbox)
             Spacer()
-            if !compact, category.custom == true {
-                Button(role: .destructive) { model.remove(category.id) } label: { Image(systemName: "trash") }
-                    .buttonStyle(.borderless).help(L("app.lists.remove"))
+            if !compact {
+                if category.custom != true, Catalog.hasLevels(category.id) {
+                    Picker("", selection: Binding(get: { category.level ?? .light }, set: { model.setLevel(category.id, $0) })) {
+                        ForEach(ListLevel.allCases, id: \.self) { Text($0.title).tag($0) }
+                    }
+                    .labelsHidden().pickerStyle(.menu).fixedSize().controlSize(.small)
+                    .help(L("level.help"))
+                }
+                ListInfoButton(category: category)
+                if category.custom == true {
+                    Button(role: .destructive) { model.remove(category.id) } label: { Image(systemName: "trash") }
+                        .buttonStyle(.borderless).help(L("app.lists.remove"))
+                }
             }
         }
+    }
+}
+
+/// Bouton ⓘ : fiche de la liste dans une bulle.
+struct ListInfoButton: View {
+    @EnvironmentObject var model: AppModel
+    var category: Catalog.Category
+    @StateObject private var ui = Flag()
+
+    var body: some View {
+        Button { ui.on.toggle() } label: { Image(systemName: "info.circle") }
+            .buttonStyle(.borderless).help(L("info.button"))
+            .popover(isPresented: $ui.on, arrowEdge: .trailing) { ListInfoView(category: category).environmentObject(model) }
+    }
+}
+
+/// Fiche d'une liste : description, auteur, taille, rythme de mise à jour, risque de blocage par erreur, licence.
+struct ListInfoView: View {
+    @EnvironmentObject var model: AppModel
+    var category: Catalog.Category
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(category.listName).font(.headline)
+                if let g = category.group { Text(g.title).font(.caption).foregroundStyle(.secondary) }
+            }
+            let info = category.info
+            Text(info?.description ?? L("info.custom")).fixedSize(horizontal: false, vertical: true)
+            Grid(alignment: .leadingFirstTextBaseline, horizontalSpacing: 10, verticalSpacing: 4) {
+                if let info {
+                    GridRow {
+                        label("info.maintainer")
+                        if let url = URL(string: info.homepage) { Link(info.maintainer, destination: url) } else { Text(info.maintainer) }
+                    }
+                }
+                if let size = sizeText(info) { GridRow { label("info.size"); Text(verbatim: size) } }
+                if let info {
+                    GridRow { label("info.updates"); Text(info.updates.text).foregroundStyle(isStale(info) ? Color.orange : Color.primary) }
+                    GridRow { label("info.risk"); Text(info.risk.text).foregroundStyle(info.risk == .high ? Color.orange : Color.primary) }
+                }
+                if let lic = category.sources.compactMap(\.license).first, !category.sources[0].url.hasPrefix("file://") {
+                    GridRow { label("info.license"); Text(verbatim: lic) }
+                }
+            }
+            .font(.callout)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(L(category.sources.count > 1 ? "info.sources" : "info.source")).font(.caption).foregroundStyle(.secondary)
+                ForEach(category.sources, id: \.url) { src in
+                    Text(verbatim: src.url.hasPrefix("file://") ? L("app.lists.localFile", src.license ?? "") : src.url)
+                        .font(.caption2).foregroundStyle(.secondary).textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+        .padding(14)
+        .frame(width: 360)
+    }
+
+    private func label(_ key: String) -> some View {
+        Text(L(key)).foregroundStyle(.secondary).gridColumnAlignment(.trailing)
+    }
+
+    private func isStale(_ info: ListInfo) -> Bool {
+        if case .stale = info.updates { return true }
+        return false
+    }
+
+    /// Taille réelle si la liste est installée, sinon taille approximative.
+    private func sizeText(_ info: ListInfo?) -> String? {
+        if category.enabled, let n = model.status.domainCounts[category.id] { return L("app.lists.domains", formatCount(n)) }
+        return info?.approxDomains.map { L("info.approx", formatCount($0)) }
     }
 }
 
@@ -471,11 +549,9 @@ struct AddListMenu: View {
 
     var body: some View {
         Menu {
-            Menu(L("app.add.library")) {
-                ForEach(Catalog.library.filter { lib in !model.catalog.categories.contains { $0.id == lib.id } }, id: \.id) { lib in
-                    Button(lib.name) { model.addFromLibrary(lib) }
-                }
-            }
+            Menu(L("app.add.themes")) { items(Catalog.themeLibrary) }
+            Menu(L("app.add.others")) { items(Catalog.otherLibrary) }
+            Divider()
             Button(L("app.add.url")) { ui.showURL = true }
             Button(L("app.add.file")) { model.addFromFile() }
         } label: {
@@ -483,6 +559,13 @@ struct AddListMenu: View {
         }
         .fixedSize()
         .popover(isPresented: $ui.showURL) { AddURLForm(isPresented: $ui.showURL).environmentObject(model) }
+    }
+
+    /// Listes pas encore ajoutées.
+    @ViewBuilder private func items(_ presets: [Catalog.Category]) -> some View {
+        let missing = presets.filter { p in !model.catalog.categories.contains { $0.id == p.id } }
+        if missing.isEmpty { Text(L("app.add.allAdded")) }
+        ForEach(missing, id: \.id) { lib in Button(lib.name) { model.addFromLibrary(lib) } }
     }
 }
 
@@ -513,6 +596,7 @@ struct AddURLForm: View {
 // `@State` est une macro dans ce SDK (plugin fourni seulement avec Xcode) :
 // l'état local des vues passe par de petits ObservableObject.
 final class AddListUI: ObservableObject { @Published var showURL = false }
+final class Flag: ObservableObject { @Published var on = false }
 final class URLForm: ObservableObject {
     @Published var name = ""
     @Published var url = "https://"

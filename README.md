@@ -48,10 +48,13 @@ to the Trash. If a parent password is set, it is required.
 
 ## Features
 
-- **Blocklist categories**: adult content (on by default), bypass tools (VPNs, proxies, encrypted DNS),
-  scams and malware, gambling, violence, drugs, dating, social networks, online games, ads.
-  Plus a library of free lists, any list from a web address, or a file from your Mac
-  (Adblock, hosts and plain domain formats).
+- **Blocklists by topic**: adult content (HaGeZi NSFW on by default, OISD NSFW, full UT1), ads and tracking
+  (HaGeZi Pro, OISD Big), scams and malware (HaGeZi Threat Intelligence Feeds), bypass tools (VPNs, proxies,
+  encrypted DNS). HaGeZi Pro and Threat Intelligence Feeds come in three levels (Light, Normal, Strong).
+  More topics from the Add menu (gambling, violence, drugs, dating, social networks, online games, illegal downloads,
+  URL shorteners), other free lists (StevenBlack, EasyList…), any list from a web address, or a file from your Mac
+  (Adblock, hosts and plain domain formats). Each list has an ⓘ sheet: maintainer, update frequency,
+  how often it blocks by mistake, licence.
 - **Social networks**: Facebook, Instagram, TikTok, X, Snapchat, YouTube, Threads, WhatsApp, Telegram,
   Discord, Reddit, Twitch, Pinterest, BeReal. Each can be allowed, always blocked, blocked during time slots
   (e.g. at night) or allowed only during time slots (e.g. Wednesday afternoon).
@@ -123,10 +126,11 @@ Build options (environment variables for `scripts/build-app.sh`): `KIDSAFE_DONAT
 ```sh
 B=build/KidSafe.app/Contents/MacOS/kidsafe-blocklist
 $B lists
-$B enable gambling
+$B enable ads
+$B level security normal                        # light | normal | strong
 $B enable adult-ut1 --yes                       # large list: warning without --yes
 $B library
-$B add-list --from-library easylist
+$B add-list --from-library gambling
 $B add-list --name "My list" --url https://example.org/list.txt
 $B add-list --file ~/Documents/my-list.txt      # from disk
 $B remove-list my-list
@@ -148,6 +152,9 @@ The CLI follows the system language; `KIDSAFE_LANG=en` or `KIDSAFE_LANG=fr` forc
 |---|---|---|---|---|
 | HaGeZi NSFW + UT1 gambling | ~180,000 | 41 MB | ~36 ms (same as without lists) | instant |
 | Full UT1 adult list | 4.6 M | 786 MB | +~70 ms | ~4 s |
+| HaGeZi TIF, Normal level (2026-11-24) | 345,000 | 53 MB | +~3 ms | ~0.3 s |
+| OISD NSFW (2026-11-24) | 498,000 | 74 MB | +~3 ms | ~0.3 s |
+| HaGeZi TIF, Strong level (2026-11-24) | 2.17 M | 315 MB | +~19 ms | ~1.5 s |
 
 ## Roadmap
 
@@ -168,4 +175,4 @@ its exact source code is downloaded and verified by `scripts/build-privoxy.sh`
 ([Privoxy 4.2.0 sources](https://sourceforge.net/projects/ijbswa/files/Sources/4.2.0%20%28stable%29/),
 [PCRE2 10.49](https://github.com/PCRE2Project/pcre2/releases/tag/pcre2-10.49), BSD license).
 Blocklists keep their own licenses (listed in the catalog): HaGeZi (GPL-3.0), UT1 Toulouse Capitole (CC BY-SA 4.0),
-StevenBlack (MIT), Block List Project (Unlicense), EasyList (GPL-3.0 / CC BY-SA 3.0).
+OISD (GPL-3.0), StevenBlack (MIT), EasyList (GPL-3.0 / CC BY-SA 3.0).

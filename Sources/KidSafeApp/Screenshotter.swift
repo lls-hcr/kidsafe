@@ -22,10 +22,13 @@ struct Screenshotter {
                         .background(Color(nsColor: .windowBackgroundColor))), "splash", width: 448, into: dir)
         shoot(AnyView(TabShot { Form { Section(L("app.general.protection")) { BlockMessageSetting() } }.formStyle(.grouped).toggleStyle(ColorSwitchStyle()) }),
               "block-setting", width: 620, height: 200, into: dir)
-        shoot(AnyView(TabShot { ListsTab() }), "lists", width: 620, height: 560, into: dir)
-        shoot(AnyView(TabShot { SocialTab() }), "social", width: 620, height: 560, into: dir)
+        shoot(AnyView(TabShot { ListsTab() }), "lists", width: 620, height: 640, into: dir)
+        if let sec = model.catalog.categories.first(where: { $0.id == "security" }) {
+            shoot(AnyView(ListInfoView(category: sec).background(Color(nsColor: .windowBackgroundColor))), "list-info", width: 360, into: dir)
+        }
+        shoot(AnyView(TabShot { SocialTab() }), "social", width: 620, height: 700, into: dir)
         shoot(AnyView(TabShot { DomainsTab() }), "domains", width: 620, height: 300, into: dir)
-        shoot(AnyView(TabShot { GeneralTab() }), "general", width: 620, height: 560, into: dir)
+        shoot(AnyView(TabShot { GeneralTab() }), "general", width: 620, height: 700, into: dir)
         shoot(AnyView(TabShot { AdvancedTab() }), "advanced", width: 620, height: 520, into: dir)
         shoot(AnyView(MonitorView().background(Color(nsColor: .windowBackgroundColor))), "monitor", width: 340, into: dir)
         dashboard(into: dir)

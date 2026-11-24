@@ -64,8 +64,11 @@ struct ListsTab: View {
             Text(L("app.lists.help")).font(.callout).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             List {
-                Section(L("app.lists.builtin")) {
-                    ForEach(model.catalog.categories.filter { $0.custom != true }, id: \.id) { CategoryToggle(category: $0, compact: false) }
+                ForEach(ListGroup.allCases, id: \.self) { group in
+                    let lists = model.catalog.categories.filter { $0.custom != true && $0.group == group }
+                    if !lists.isEmpty {
+                        Section(group.title) { ForEach(lists, id: \.id) { CategoryToggle(category: $0, compact: false) } }
+                    }
                 }
                 let custom = model.catalog.categories.filter { $0.custom == true }
                 Section(L("app.lists.custom")) {

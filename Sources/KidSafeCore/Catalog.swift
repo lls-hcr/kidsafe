@@ -35,6 +35,8 @@ public struct Catalog: Codable, Sendable, Equatable {
     public var parentPassword: PasswordHash?
     /// Réglages de l'onglet Avancé.
     public var advanced: AdvancedSettings
+    /// Version du format (voir `Catalog.currentVersion` et `migrate()`) ; nil = catalogue d'avant la 0.7.4.
+    public var version: Int?
 
     public static let refreshChoices = [0, 1, 6, 12, 24, 72, 168]
     /// Durées proposées pour la désactivation temporaire, en secondes.
@@ -48,7 +50,7 @@ public struct Catalog: Codable, Sendable, Equatable {
     public init(categories: [Category], allowlist: [String] = [], strictMode: Bool = false, hardenPrivoxy: Bool = true,
                 blockedDomains: [String] = [], services: [String: ServicePolicy] = [:], filteringEnabled: Bool = true,
                 refreshHours: Int = 24, parentPassword: PasswordHash? = nil, advanced: AdvancedSettings = AdvancedSettings(),
-                pausedUntil: Date? = nil, notifyBlocked: Bool = true, blockWhenClosed: Bool = false) {
+                pausedUntil: Date? = nil, notifyBlocked: Bool = true, blockWhenClosed: Bool = false, version: Int? = nil) {
         self.categories = categories
         self.allowlist = allowlist
         self.strictMode = strictMode
@@ -62,10 +64,11 @@ public struct Catalog: Codable, Sendable, Equatable {
         self.pausedUntil = pausedUntil
         self.notifyBlocked = notifyBlocked
         self.blockWhenClosed = blockWhenClosed
+        self.version = version
     }
 
     private enum CodingKeys: String, CodingKey {
-        case categories, allowlist, strictMode, hardenPrivoxy, blockedDomains, services, filteringEnabled, refreshHours, parentPassword, advanced, pausedUntil, notifyBlocked, blockWhenClosed
+        case categories, allowlist, strictMode, hardenPrivoxy, blockedDomains, services, filteringEnabled, refreshHours, parentPassword, advanced, pausedUntil, notifyBlocked, blockWhenClosed, version
     }
 
     /// Les champs ajoutés après la première version sont facultatifs dans le fichier.
@@ -83,7 +86,8 @@ public struct Catalog: Codable, Sendable, Equatable {
                   advanced: try c.decodeIfPresent(AdvancedSettings.self, forKey: .advanced) ?? AdvancedSettings(),
                   pausedUntil: try c.decodeIfPresent(Date.self, forKey: .pausedUntil),
                   notifyBlocked: try c.decodeIfPresent(Bool.self, forKey: .notifyBlocked) ?? true,
-                  blockWhenClosed: try c.decodeIfPresent(Bool.self, forKey: .blockWhenClosed) ?? false)
+                  blockWhenClosed: try c.decodeIfPresent(Bool.self, forKey: .blockWhenClosed) ?? false,
+                  version: try c.decodeIfPresent(Int.self, forKey: .version))
     }
 
     public func policy(for serviceID: String) -> ServicePolicy { services[serviceID] ?? ServicePolicy() }
@@ -135,14 +139,28 @@ public struct Catalog: Codable, Sendable, Equatable {
         public var warning: String?
         /// Vrai pour une liste ajoutée par le parent (supprimable depuis l'interface).
         public var custom: Bool?
+        /// Thème d'une liste principale (nil pour une liste ajoutée).
+        public var group: ListGroup?
+        /// Niveau choisi, pour une liste proposée en plusieurs tailles.
+        public var level: ListLevel?
 
-        /// Nom affiché : traduit pour les catégories du catalogue par défaut, tel quel pour les listes perso.
+        /// Nom complet (page de blocage, notifications, moniteur) : traduit pour les listes connues,
+        /// tel quel pour celles que le parent a ajoutées depuis une adresse ou un fichier.
         public var displayName: String {
-            guard custom != true else { return name }
-            let key = "category." + id
+            let key = (custom == true ? "library." : "category.") + id
             let value = L(key)
             return value == key ? name : value
         }
+
+        /// Nom court dans l'onglet Listes, sous le titre du thème (« HaGeZi NSFW »).
+        public var listName: String {
+            guard group != nil else { return displayName }
+            let value = L("list." + id)
+            return value == "list." + id ? displayName : value
+        }
+
+        /// Fiche ⓘ, pour une liste connue.
+        public var info: ListInfo? { Catalog.info(for: id, level: level) }
 
         /// Avertissement traduit (clé de traduction ou texte libre).
         public var displayWarning: String? {
@@ -150,9 +168,10 @@ public struct Catalog: Codable, Sendable, Equatable {
             let value = L(warning)
             return value
         }
-        public init(id: String, name: String, enabled: Bool, sources: [Source], warning: String? = nil, custom: Bool? = nil) {
+        public init(id: String, name: String, enabled: Bool, sources: [Source], warning: String? = nil, custom: Bool? = nil,
+                    group: ListGroup? = nil, level: ListLevel? = nil) {
             self.id = id; self.name = name; self.enabled = enabled; self.sources = sources
-            self.warning = warning; self.custom = custom
+            self.warning = warning; self.custom = custom; self.group = group; self.level = level
         }
     }
 
@@ -161,12 +180,13 @@ public struct Catalog: Codable, Sendable, Equatable {
     public static let heavyListThreshold = 1_000_000
 
     public enum EditError: Error, CustomStringConvertible {
-        case duplicateID(String), unknownID(String), notCustom(String)
+        case duplicateID(String), unknownID(String), notCustom(String), noLevels(String)
         public var description: String {
             switch self {
             case .duplicateID(let id): return L("error.duplicateID", id)
             case .unknownID(let id): return L("error.unknownID", id)
             case .notCustom(let id): return L("error.notCustom", id)
+            case .noLevels(let id): return L("error.noLevels", id)
             }
         }
     }
@@ -182,6 +202,15 @@ public struct Catalog: Codable, Sendable, Equatable {
     public mutating func setEnabled(_ id: String, _ enabled: Bool) throws {
         guard let i = categories.firstIndex(where: { $0.id == id }) else { throw EditError.unknownID(id) }
         categories[i].enabled = enabled
+    }
+
+    /// Change la taille d'une liste à niveaux (HaGeZi Pro, TIF) ; elle est retéléchargée au prochain `update`.
+    public mutating func setLevel(_ id: String, _ level: ListLevel) throws {
+        guard let i = categories.firstIndex(where: { $0.id == id }) else { throw EditError.unknownID(id) }
+        guard let sources = Self.levelSources(id, level) else { throw EditError.noLevels(id) }
+        categories[i].level = level
+        categories[i].sources = sources
+        categories[i].warning = Self.levelWarning(id, level)
     }
 
     public mutating func removeCustomList(_ id: String) throws {

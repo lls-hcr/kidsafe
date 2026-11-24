@@ -146,7 +146,9 @@ public struct KidSafeEngine: Sendable {
     /// Charge le catalogue ; à la première utilisation, enregistre le catalogue par défaut.
     public func loadCatalog() throws -> Catalog {
         if FileManager.default.fileExists(atPath: paths.catalogFile.path) {
-            return try Catalog.load(from: paths.catalogFile)
+            var catalog = try Catalog.load(from: paths.catalogFile)
+            if catalog.migrate() { try save(catalog) }
+            return catalog
         }
         try save(Catalog.default)
         return Catalog.default

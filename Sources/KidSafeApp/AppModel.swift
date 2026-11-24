@@ -144,7 +144,9 @@ final class AppModel: ObservableObject {
     /// Données de démonstration pour les captures d'écran du guide (rien n'est enregistré).
     func loadDemoState() {
         var c = Catalog.default
-        for id in ["adult", "bypass", "security", "gambling"] { if let i = c.categories.firstIndex(where: { $0.id == id }) { c.categories[i].enabled = true } }
+        for id in ["adult", "bypass", "security"] { if let i = c.categories.firstIndex(where: { $0.id == id }) { c.categories[i].enabled = true } }
+        try? c.setLevel("security", .normal)
+        if let g = Catalog.library.first(where: { $0.id == "gambling" }) { c.categories.append(g) }
         c.services["tiktok"] = ServicePolicy(mode: .blocked)
         c.services["youtube"] = ServicePolicy(mode: .blockedDuring, windows: [TimeWindow(days: TimeWindow.allDays, start: 21 * 60, end: 7 * 60)])
         c.services["instagram"] = ServicePolicy(mode: .allowedOnlyDuring, windows: [TimeWindow(days: [3, 6, 7], start: 14 * 60, end: 18 * 60)])
@@ -155,7 +157,7 @@ final class AppModel: ObservableObject {
         catalog = c
         var s = KidSafeStatus()
         s.lastApplied = Calendar.current.date(bySettingHour: 7, minute: 30, second: 0, of: Date())
-        s.domainCounts = ["adult": 87_887, "bypass": 24_014, "security": 206_194, "gambling": 95_194]
+        s.domainCounts = ["adult": 81_546, "bypass": 24_014, "security": 345_250, "gambling": 95_194]
         let checked = s.lastApplied, day: TimeInterval = 86_400
         s.lists = ["adult": .init(checked: checked, changed: checked, changedNow: true, delta: 312),
                    "bypass": .init(checked: checked, changed: checked?.addingTimeInterval(-2 * day)),
@@ -514,6 +516,17 @@ final class AppModel: ObservableObject {
                           ok: L("app.alert.heavy.enable"), style: .warning) else { objectWillChange.send(); return }
         }
         mutate { try $0.setEnabled(id, on) }
+    }
+
+    /// Taille d'une liste à niveaux (léger / normal / renforcé) ; la liste est retéléchargée.
+    func setLevel(_ id: String, _ level: ListLevel) {
+        guard let cat = catalog.categories.first(where: { $0.id == id }), cat.level != level else { return }
+        guard requireUnlock() else { objectWillChange.send(); return }
+        if cat.enabled, let warning = Catalog.levelWarning(id, level) {
+            guard confirm(title: L("app.alert.heavy.title", cat.displayName), message: L(warning),
+                          ok: L("app.alert.heavy.enable"), style: .warning) else { objectWillChange.send(); return }
+        }
+        mutate(apply: cat.enabled) { try $0.setLevel(id, level) }
     }
 
     func setStrictMode(_ on: Bool) {

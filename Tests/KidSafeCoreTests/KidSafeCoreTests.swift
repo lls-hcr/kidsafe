@@ -265,6 +265,86 @@ import Testing
         #expect(c == Catalog.default)
     }
 
+    @Test func defaultListsAreGroupedWithLevels() {
+        let c = Catalog.default
+        #expect(c.version == Catalog.currentVersion)
+        #expect(c.categories.map(\.id) == ["adult", "adult-oisd", "adult-ut1", "ads", "ads-oisd", "security", "bypass"])
+        #expect(c.categories.allSatisfy { $0.group != nil && $0.custom != true })
+        #expect(c.categories.filter { $0.level != nil }.map(\.id) == ["ads", "security"])
+        #expect(c.categories.first { $0.id == "ads" }?.sources.first?.url.hasSuffix("/pro.mini-onlydomains.txt") == true)
+        // Les thèmes (jeux d'argent, violence…) ne sont plus dans la fenêtre par défaut : on les ajoute depuis le menu.
+        #expect(Catalog.themeLibrary.map(\.id).contains("gambling") && Catalog.library.allSatisfy { $0.custom == true })
+        #expect(!Catalog.library.contains { $0.id.hasPrefix("blp-") })
+    }
+
+    @Test func levelChangesSourcesAndWarning() throws {
+        var c = Catalog.default
+        try c.setLevel("security", .strong)
+        var sec = try #require(c.categories.first { $0.id == "security" })
+        #expect(sec.level == .strong && sec.sources.map(\.url) == [
+            "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/tif-onlydomains.txt"])
+        #expect(sec.warning == Catalog.heavyTIFWarning)
+        try c.setLevel("security", .normal)
+        sec = try #require(c.categories.first { $0.id == "security" })
+        #expect(sec.sources.first?.url.hasSuffix("/tif.medium-onlydomains.txt") == true && sec.warning == nil)
+        try c.setLevel("ads", .strong)
+        #expect(c.categories.first { $0.id == "ads" }?.sources.first?.url.hasSuffix("/pro.plus-onlydomains.txt") == true)
+        #expect(throws: Catalog.EditError.self) { try c.setLevel("adult", .strong) }
+        #expect(throws: Catalog.EditError.self) { try c.setLevel("inconnue", .light) }
+    }
+
+    /// Catalogue enregistré par la 0.7.3 : rien ne se décoche, les thèmes cochés deviennent des listes ajoutées.
+    @Test func migratesCatalogFrom073() throws {
+        let hz = "https://raw.githubusercontent.com/hagezi/dns-blocklists/main/wildcard/"
+        let ut1 = "https://dsi.ut-capitole.fr/blacklists/download/"
+        func cat(_ id: String, _ on: Bool, _ url: String, custom: Bool? = nil) -> Catalog.Category {
+            .init(id: id, name: id, enabled: on, sources: [.init(url: url)], custom: custom)
+        }
+        var old = Catalog(categories: [
+            cat("adult", true, hz + "nsfw-onlydomains.txt"), cat("adult-ut1", false, ut1 + "adult.tar.gz"),
+            cat("bypass", false, hz + "doh-vpn-proxy-bypass-onlydomains.txt"), cat("security", true, hz + "tif.mini-onlydomains.txt"),
+            cat("gambling", true, ut1 + "gambling.tar.gz"), cat("violence", false, ut1 + "agressif.tar.gz"),
+            cat("ads", true, hz + "pro.mini-onlydomains.txt"),
+            cat("easylist", true, "https://easylist.to/easylist/easylist.txt", custom: true),
+            cat("blp-scam", false, "https://blocklistproject.github.io/Lists/alt-version/scam-nl.txt", custom: true),
+        ], allowlist: ["wikipedia.org"])
+        let data = try JSONEncoder().encode(old)
+        old = try JSONDecoder().decode(Catalog.self, from: data)
+        #expect(old.version == nil)
+
+        var c = old
+        let changed = c.migrate()
+        #expect(changed)
+        #expect(c.version == Catalog.currentVersion && c.allowlist == ["wikipedia.org"])
+        #expect(c.categories.map(\.id) == ["adult", "adult-oisd", "adult-ut1", "ads", "ads-oisd", "security", "bypass",
+                                           "gambling", "easylist", "blp-scam"])
+        #expect(c.categories.filter(\.enabled).map(\.id) == ["adult", "ads", "security", "gambling", "easylist"])
+        let gambling = try #require(c.categories.first { $0.id == "gambling" })
+        #expect(gambling.custom == true && gambling.sources.first?.archiveMember == "gambling/domains")
+        #expect(c.categories.first { $0.id == "ads" }?.level == .light && c.categories.first { $0.id == "security" }?.level == .light)
+        #expect(c.categories.first { $0.id == "bypass" }?.sources.count == 3)
+        let again = c.migrate()
+        #expect(!again)
+
+        // Ancien niveau retrouvé d'après l'adresse.
+        var medium = old
+        medium.categories[3].sources = [.init(url: hz + "tif.medium-onlydomains.txt")]
+        medium.migrate()
+        #expect(medium.categories.first { $0.id == "security" }?.level == .normal)
+    }
+
+    @Test func engineMigratesSavedCatalog() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-mig-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        let engine = KidSafeEngine(paths: KidSafePaths(supportDir: dir))
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let json = #"{"categories":[{"id":"adult","name":"A","enabled":false,"sources":[]},{"id":"drugs","name":"D","enabled":true,"sources":[]}],"allowlist":[],"strictMode":false,"hardenPrivoxy":true}"#
+        try Data(json.utf8).write(to: engine.paths.catalogFile)
+        let c = try engine.loadCatalog()
+        #expect(c.categories.first?.enabled == false && c.categories.last?.id == "drugs" && c.categories.last?.custom == true)
+        #expect(try Catalog.load(from: engine.paths.catalogFile).version == Catalog.currentVersion)
+    }
+
     @Test func oldCatalogFilesStillDecode() throws {
         let json = #"{"categories":[{"id":"a","name":"A","enabled":true,"sources":[]}],"allowlist":[],"strictMode":false,"hardenPrivoxy":true}"#
         let c = try JSONDecoder().decode(Catalog.self, from: Data(json.utf8))
@@ -281,8 +361,29 @@ import Testing
         Localization.forcedLanguage = "en"
         #expect(L("category.adult") == "Adult content")
         #expect(Catalog.default.categories[0].displayName == "Adult content")
-        #expect(Catalog.default.categories[1].displayWarning?.hasPrefix("Very large list") == true)
-        #expect(Catalog.library.first?.name == "EasyList (ads, domain rules only)")
+        #expect(Catalog.default.categories.first { $0.id == "adult-ut1" }?.displayWarning?.hasPrefix("Very large list") == true)
+        #expect(Catalog.library.first?.name == "Gambling (UT1)")
+        #expect(Catalog.default.categories[0].listName == "HaGeZi NSFW")
+        #expect(ListGroup.security.title == "Scams, phishing, malware" && ListLevel.strong.title == "Strong")
+    }
+
+    /// Chaque liste proposée a sa fiche ⓘ, traduite dans les deux langues.
+    @Test func everyKnownListHasAnInfoSheet() {
+        defer { Localization.forcedLanguage = "fr" }
+        for lang in ["fr", "en"] {
+            Localization.forcedLanguage = lang
+            for c in Catalog.default.categories + Catalog.library {
+                let info = c.info
+                #expect(info != nil, "fiche manquante : \(c.id)")
+                guard let info else { continue }
+                #expect(info.description != info.descriptionKey, "description manquante (\(lang)) : \(c.id)")
+                #expect(!info.updates.text.hasPrefix("info.") && !info.risk.text.hasPrefix("info."))
+                #expect(L("library." + c.id) != "library." + c.id || c.custom != true)
+                if let g = c.group { #expect(g.title != "group." + g.rawValue && c.listName != c.displayName) }
+            }
+            #expect(ListInfo.Updates.stale("month.2026-07").text.contains("2026"))
+            #expect(Catalog.info(for: "ma-liste") == nil)
+        }
     }
 
     @Test func customNamesAreNotTranslated() {
@@ -806,7 +907,7 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(en.contains("User guide") && en.contains("id=\"uninstall\"") && en.contains("lang=\"en\""))
         // Captures intégrées (une par {{shot:…}}), aucun espace réservé restant.
         for page in [fr, en] {
-            #expect(page.components(separatedBy: "data:image/png;base64,").count - 1 == 11)
+            #expect(page.components(separatedBy: "data:image/png;base64,").count - 1 == 12)
             #expect(!page.contains("{{shot:"))
         }
         // Chaque lien du sommaire pointe vers une section existante.

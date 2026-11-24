@@ -71,13 +71,28 @@
 <div class="split">
 <div>
 <ul>
-<li><strong>Catégories</strong> : adultes, contournement (VPN, proxys), arnaques, jeux d'argent, violence, drogues, rencontres, réseaux sociaux, jeux en ligne, publicité.</li>
-<li><strong>🐢 Tortue</strong> : liste très lourde. Elle peut ralentir la navigation.</li>
-<li><strong>Ajouter une liste</strong> : listes gratuites, adresse web ou fichier du Mac.</li>
+<li><strong>Par thème</strong> : contenus pour adultes, publicité et pistage, arnaques et logiciels malveillants, contournement (VPN, proxys, DNS chiffré). Chaque thème propose une ou plusieurs listes ; au départ, seule HaGeZi NSFW est cochée.</li>
+<li><strong>Niveau</strong> (HaGeZi Pro, HaGeZi Threat Intelligence Feeds) : <em>Léger</em>, <em>Normal</em> ou <em>Renforcé</em>. Plus le niveau est élevé, plus la liste bloque, avec un peu plus de risque de bloquer un site par erreur.</li>
+<li><strong>ⓘ</strong> : la fiche de la liste.</li>
+<li><strong>🐢 Tortue</strong> : liste très lourde (UT1 complète, sécurité au niveau Renforcé). Elle peut ralentir la navigation.</li>
+<li><strong>Ajouter une liste</strong> : <em>Autres thèmes</em> (jeux d'argent, violence, drogues, rencontres, réseaux sociaux, jeux en ligne, téléchargement illégal, raccourcisseurs d'adresses), <em>Autres listes gratuites</em> (StevenBlack, EasyList…), une adresse web ou un fichier du Mac. Une liste ajoutée se supprime avec la corbeille.</li>
 </ul>
 <div class="box ok"><b class="tag">Bon à savoir</b>Bloquer <code>exemple.com</code> bloque aussi <code>www.exemple.com</code> et tous ses sous-domaines.</div>
 </div>
-<figure class="shot">{{shot:lists}}<figcaption>Les catégories et le nombre de domaines bloqués</figcaption></figure>
+<figure class="shot">{{shot:lists}}<figcaption>Les listes par thème, avec leur niveau et leur fiche ⓘ</figcaption></figure>
+</div>
+<h3>Quelle liste choisir ?</h3>
+<div class="split">
+<div>
+<p>La fiche ⓘ indique l'auteur de la liste, ce qu'elle bloque, sa taille, à quelle fréquence son auteur la met à jour, le risque de blocage par erreur, sa licence et son adresse.</p>
+<dl class="kv">
+<dt>HaGeZi</dt><dd>Mise à jour plusieurs fois par jour. La référence actuelle, avec peu de blocages par erreur : un bon choix pour chaque thème.</dd>
+<dt>OISD</dt><dd>Mise à jour toutes les heures. Réputée pour ne rien casser ; complète HaGeZi.</dd>
+<dt>UT1</dt><dd>Mise à jour chaque jour par l'Université Toulouse Capitole, utilisée dans les écoles françaises. La seule à couvrir des thèmes comme la violence ou les drogues.</dd>
+</dl>
+<p>Deux listes d'un même thème se complètent, mais se recoupent en grande partie : une seule suffit souvent.</p>
+</div>
+<figure class="shot small">{{shot:list-info}}<figcaption>La fiche ⓘ d'une liste</figcaption></figure>
 </div>
 <h3>Mise à jour des listes</h3>
 <p>Automatique selon l'intervalle choisi dans <span class="ui">Général</span> (compté depuis la dernière mise à jour, tant que KidSafe est ouvert), ou immédiate avec <span class="ui">Mettre à jour les listes</span>. Pendant la mise à jour, chaque liste affiche son étape : téléchargement, conversion au format de Privoxy, remplacement dans Privoxy.</p>

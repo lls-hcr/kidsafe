@@ -50,7 +50,7 @@ func loadCatalog(_ url: URL) -> Catalog {
     if url == KidSafePaths.user.catalogFile {
         do { return try KidSafeEngine().loadCatalog() } catch { fail(L("cli.catalogUnreadable", "\(error)")) }
     }
-    do { return try Catalog.load(from: url) } catch { fail(L("cli.catalogUnreadable", "\(error)")) }
+    do { var c = try Catalog.load(from: url); c.migrate(); return c } catch { fail(L("cli.catalogUnreadable", "\(error)")) }
 }
 
 let argv = CommandLine.arguments
@@ -123,7 +123,7 @@ case "default-catalog":
     FileHandle.standardOutput.write(try! enc.encode(Catalog.default))
     print()
 
-case "lists", "enable", "disable", "add-list", "remove-list":
+case "lists", "enable", "disable", "level", "add-list", "remove-list":
     let args = Args(argv.dropFirst(2), valued: catalogOptions)
     let catURL = catalogURL(args)
     var catalog = loadCatalog(catURL)
@@ -132,7 +132,8 @@ case "lists", "enable", "disable", "add-list", "remove-list":
         switch argv[1] {
         case "lists":
             for c in catalog.categories {
-                let tags = (c.custom == true ? "  " + L("cli.tag.custom") : "") + (c.warning != nil ? "  ⚠︎ " + L("cli.tag.heavy") : "")
+                let tags = (c.custom == true ? "  " + L("cli.tag.custom") : "") + (c.level.map { "  [\($0.rawValue)]" } ?? "")
+                    + (c.warning != nil ? "  ⚠︎ " + L("cli.tag.heavy") : "")
                 print("\(c.enabled ? "[x]" : "[ ]") \(c.id.padding(toLength: 22, withPad: " ", startingAt: 0)) \(c.displayName)\(tags)")
             }
             exit(0)
@@ -142,6 +143,14 @@ case "lists", "enable", "disable", "add-list", "remove-list":
                 fail("⚠︎ \(w)\n" + L("cli.confirmWithYes"), code: 3)
             }
             try catalog.setEnabled(id, argv[1] == "enable")
+        case "level":
+            guard args.positional.count == 2, let level = ListLevel(rawValue: args.positional[1]) else { fail(L("cli.usage")) }
+            let id = args.positional[0]
+            if let w = Catalog.levelWarning(id, level), catalog.categories.first(where: { $0.id == id })?.enabled == true,
+               !args.flags.contains("--yes") {
+                fail("⚠︎ \(L(w))\n" + L("cli.confirmWithYes"), code: 3)
+            }
+            try catalog.setLevel(id, level)
         case "add-list":
             if let libID = args.values["--from-library"] {
                 guard let preset = Catalog.library.first(where: { $0.id == libID }) else { fail(L("error.unknownID", libID)) }

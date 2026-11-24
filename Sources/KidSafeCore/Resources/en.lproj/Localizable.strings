@@ -11,6 +11,7 @@
 "error.duplicateID" = "A list named “%@” already exists.";
 "error.unknownID" = "Unknown list: %@";
 "error.notCustom" = "“%@” is part of the default catalog: it can be turned off, not removed.";
+"error.noLevels" = "“%@” only comes in one size.";
 "error.localUnreadable" = "Cannot read: %@";
 "error.localNoDomains" = "The file “%@” contains no recognized domain (accepted formats: Adblock, hosts, one domain per line).";
 
@@ -19,34 +20,105 @@
 "warning.previousKept" = "previous file kept";
 "warning.noDomains" = "no domain found";
 "warning.heavy.generic" = "Very large list (%@ domains): Privoxy will use a lot of memory and browsing may slow down.";
-"warning.heavy.ut1" = "Very large list (about 4.6 million domains): Privoxy will use nearly 800 MB of memory, pages may load a little slower and each update pauses filtering for a few seconds. The “Adult content” list (HaGeZi) is enough in most cases.";
+"warning.heavy.ut1" = "Very large list (about 4.6 million domains): Privoxy will use nearly 800 MB of memory, pages may load a little slower and each update pauses filtering for a few seconds. The HaGeZi NSFW list is enough in most cases.";
+"warning.heavy.tif" = "Very large list (about 2.2 million domains): Privoxy will use about 300 MB of memory and each page will load a little slower. The “Normal” level is enough in most cases.";
 
 /* Default catalog categories */
 "category.adult" = "Adult content";
+"category.adult-oisd" = "Adult content (OISD)";
 "category.adult-ut1" = "Adult content, full UT1 list";
 "category.bypass" = "Bypass tools: VPNs, proxies, encrypted DNS";
 "category.security" = "Scams, phishing, malware";
-"category.gambling" = "Gambling";
-"category.violence" = "Violence, hate";
-"category.drugs" = "Drugs";
-"category.dating" = "Dating sites";
-"category.social" = "Social networks";
-"category.games" = "Online games";
 "category.ads" = "Ads and tracking";
+"category.ads-oisd" = "Ads, tracking and malware (OISD)";
+"category.gambling" = "Gambling";
 
-/* Free list library */
-"library.easylist" = "EasyList (ads, domain rules only)";
-"library.easyprivacy" = "EasyPrivacy (tracking)";
-"library.liste-fr" = "Liste FR (ads, French-language sites)";
+/* Lists tab: topics and levels */
+"group.adult" = "Adult content";
+"group.ads" = "Ads and tracking";
+"group.security" = "Scams, phishing, malware";
+"group.bypass" = "Bypass tools: VPNs, proxies, encrypted DNS";
+"level.light" = "Light";
+"level.normal" = "Normal";
+"level.strong" = "Strong";
+"level.help" = "List size: “Light” keeps the most common domains; “Strong” blocks more, with a slightly higher chance of blocking a site by mistake.";
+"list.adult" = "HaGeZi NSFW";
+"list.adult-oisd" = "OISD NSFW";
+"list.adult-ut1" = "UT1: full list";
+"list.ads" = "HaGeZi Pro";
+"list.ads-oisd" = "OISD Big";
+"list.security" = "HaGeZi Threat Intelligence Feeds";
+"list.bypass" = "HaGeZi + UT1";
+
+/* Lists that can be added */
+"library.gambling" = "Gambling (UT1)";
+"library.hagezi-gambling" = "Gambling (HaGeZi)";
+"library.violence" = "Violence, hate (UT1)";
+"library.drugs" = "Drugs (UT1)";
+"library.dating" = "Dating sites (UT1)";
+"library.social" = "Social networks (UT1)";
+"library.games" = "Online games (UT1)";
+"library.ut1-warez" = "Illegal downloads (UT1)";
+"library.ut1-shortener" = "URL shorteners (UT1)";
 "library.stevenblack" = "StevenBlack Unified hosts (ads + malware)";
 "library.stevenblack-porn" = "StevenBlack: adult content";
 "library.stevenblack-gambling" = "StevenBlack: gambling";
-"library.hagezi-gambling" = "HaGeZi: gambling (full)";
+"library.easylist" = "EasyList (ads, domain rules only)";
+"library.easyprivacy" = "EasyPrivacy (tracking, domain rules only)";
+"library.liste-fr" = "Liste FR (ads on French-language sites)";
+"library.hagezi-apple" = "HaGeZi: Apple telemetry";
+"library.hagezi-microsoft" = "HaGeZi: Microsoft telemetry (Office, Windows)";
 "library.blp-drugs" = "Block List Project: drugs";
 "library.blp-scam" = "Block List Project: scams";
 "library.blp-tiktok" = "Block List Project: TikTok";
-"library.ut1-warez" = "UT1: illegal downloads";
-"library.ut1-shortener" = "UT1: URL shorteners";
+
+/* ⓘ sheets */
+"info.button" = "About this list";
+"info.maintainer" = "Maintainer";
+"info.size" = "Size";
+"info.updates" = "Updated";
+"info.risk" = "Blocked by mistake";
+"info.license" = "Licence";
+"info.source" = "List address";
+"info.sources" = "List addresses";
+"info.approx" = "about %@ domains";
+"info.custom" = "A list you added. KidSafe doesn't know how good it is: check who maintains it and how often.";
+"info.updates.hourly" = "every hour";
+"info.updates.severalDaily" = "several times a day";
+"info.updates.daily" = "every day";
+"info.updates.weekly" = "about once a week";
+"info.updates.stale" = "not updated since %@";
+"month.2026-07" = "July 2026";
+"info.risk.low" = "rarely";
+"info.risk.medium" = "sometimes";
+"info.risk.high" = "often";
+"info.adult" = "Pornography and explicit sexual content. HaGeZi's “NSFW” list, built from many sources and cleaned of domains that no longer exist. Recommended: a good balance between coverage and mistakes.";
+"info.adult-oisd" = "Adult content, by OISD, whose motto is “Block. Don't break.”. Larger than HaGeZi NSFW: the two complement each other.";
+"info.adult-ut1" = "The “adult” list of Université Toulouse Capitole, used in French schools. Very thorough but huge: it holds many domains that no longer exist and slows Privoxy down. Only for when the other lists aren't enough.";
+"info.ads" = "Ads, analytics, trackers and common malicious domains. Light: the most common domains. Normal: the “Pro” list recommended by its author. Strong: “Pro++”, stricter, may block a few legitimate services.";
+"info.ads-oisd" = "Ads, tracking, malware and phishing, by OISD. Well known for very few mistakes. Largely overlaps HaGeZi Pro: one or the other is usually enough.";
+"info.security" = "Scams, phishing, malware, cryptomining and virus command servers, from threat-intelligence feeds. Light and Normal are light for Privoxy; Strong (about 2.2 million domains) needs about 300 MB of memory.";
+"info.bypass" = "Services that get around filtering: VPNs, web proxies, encrypted DNS. Combines HaGeZi's list and two UT1 lists (vpn, doh). It also blocks legitimate VPN services: that's intended.";
+"info.gambling" = "Online casinos, sports betting, poker, lotteries. UT1 topic list, used in French schools.";
+"info.hagezi-gambling" = "Online gambling, by HaGeZi: more international than the UT1 list. The two can be combined.";
+"info.violence" = "Violent, hateful or racist sites. UT1 topic list (“agressif”).";
+"info.drugs" = "Sites selling or promoting drugs. UT1 topic list.";
+"info.dating" = "Dating sites and apps. UT1 topic list.";
+"info.social" = "Social networks (UT1 list). To block one network or only at certain times, the Social networks tab is a better fit.";
+"info.games" = "Online gaming sites. UT1 topic list.";
+"info.ut1-warez" = "Illegal downloads, pirate and file-sharing sites. UT1 topic list.";
+"info.ut1-shortener" = "URL shorteners (bit.ly…), which can hide where a link really goes. Sometimes gets in the way of legitimate links.";
+"info.stevenblack" = "A hosts file combining several well-known sources (ads and malware). Reliable, but largely covered by HaGeZi Pro or OISD Big.";
+"info.stevenblack-porn" = "Adult content, by StevenBlack (with its ads + malware base). Largely covered by HaGeZi NSFW.";
+"info.stevenblack-gambling" = "Gambling, by StevenBlack (with its ads + malware base).";
+"info.easylist" = "The reference list of browser ad blockers. KidSafe only keeps its domain rules: most of it (cosmetic rules, URL paths) doesn't apply.";
+"info.easyprivacy" = "The reference anti-tracking list of browser blockers. KidSafe only keeps its domain rules.";
+"info.liste-fr" = "EasyList add-on for French-language sites. KidSafe only keeps its domain rules.";
+"info.hagezi-apple" = "Apple telemetry domains (usage data). May interfere with some features (iCloud, App Store, updates): try it and see.";
+"info.hagezi-microsoft" = "Microsoft Office and Windows telemetry domains. May interfere with Office activation or updates: try it and see.";
+"info.blp-drugs" = "A Block List Project list. It is no longer updated and blocks by mistake fairly often: better to remove it (“Drugs (UT1)” replaces it).";
+"info.blp-scam" = "A Block List Project list. It is no longer updated and blocks by mistake fairly often: better to remove it (HaGeZi Threat Intelligence Feeds replaces it).";
+"info.blp-tiktok" = "A Block List Project list. It is no longer updated: better to remove it and block TikTok in the Social networks tab.";
 
 /* Generated Privoxy files */
 "action.header.category" = "category “%@” (%@)";
@@ -71,6 +143,8 @@
   kidsafe-blocklist lists [--catalog CATALOG.json]
   kidsafe-blocklist enable|disable ID [--catalog CATALOG.json] [--yes]
       Turns a list on or off (--yes: accept the warning for a large list).
+  kidsafe-blocklist level ID light|normal|strong [--catalog CATALOG.json] [--yes]
+      Size of a list that comes in levels (ads, security): light, normal or strong.
   kidsafe-blocklist library
       Extra free lists that can be added.
   kidsafe-blocklist add-list [--catalog CATALOG.json] --from-library ID
@@ -132,12 +206,14 @@ Language: the system's, or KIDSAFE_LANG=fr|en.";
 "app.lists.domains" = "%@ domains";
 "app.lists.localFile" = "Local file: %@";
 "app.lists.remove" = "Remove this list";
-"app.lists.help" = "Tick the categories to block. Changes apply automatically; lists are refreshed at the interval chosen in General.";
+"app.lists.help" = "Tick the lists to use; ⓘ tells you about each one. Changes apply automatically; lists are refreshed at the interval chosen in General.";
 "app.lists.builtin" = "Categories";
 "app.lists.custom" = "Added lists";
 "app.lists.noCustom" = "None yet.";
 "app.add.title" = "Add a list";
-"app.add.library" = "Free lists";
+"app.add.themes" = "More topics";
+"app.add.others" = "Other free lists";
+"app.add.allAdded" = "All already added";
 "app.add.url" = "From a web address…";
 "app.add.file" = "From a file on this Mac…";
 "app.add.name" = "List name";
@@ -209,7 +285,7 @@ Language: the system's, or KIDSAFE_LANG=fr|en.";
 "app.pause.900" = "15 minutes";
 "app.pause.3600" = "1 hour";
 "app.menu.pausedUntil" = "Filtering paused until %@ (%@ left): everything is allowed.";
-"app.menu.categories" = "%d list category(ies)";
+"app.menu.categories" = "%d blocklist(s) on";
 "app.menu.noSocial" = "No social network blocked right now";
 "app.menu.social" = "Blocked right now: %@";
 "app.menu.customDomains" = "%d domain(s) blocked manually";
