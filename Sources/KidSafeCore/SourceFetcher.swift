@@ -116,9 +116,9 @@ public struct SourceFetcher: Sendable {
 
     /// Téléchargement avec progression (tâche de téléchargement : pas de copie en mémoire avant la fin).
     private func download(_ req: URLRequest, progress: Progress?) async throws -> (Data, URLResponse) {
-        guard let progress else { return try await URLSession.shared.data(for: req) }
+        guard let progress else { return try await KidSafeHTTP.session.data(for: req) }
         let delegate = ProgressDelegate(progress)
-        let (file, response) = try await URLSession.shared.download(for: req, delegate: delegate)
+        let (file, response) = try await KidSafeHTTP.session.download(for: req, delegate: delegate)
         defer { try? FileManager.default.removeItem(at: file) }
         return (try Data(contentsOf: file), response)
     }

@@ -17,7 +17,7 @@ public final class BlockNotifier {
     }
 
     /// Catégories dont les blocages ne sont jamais signalés (en arrière-plan sur presque toutes les pages).
-    public static let quietCategoryIDs: Set<String> = ["ads", "easylist", "easyprivacy", "liste-fr", "stevenblack"]
+    public static let quietCategoryIDs: Set<String> = ["ads", "easylist", "easyprivacy", "liste-fr", "adguard-dns", "stevenblack"]
     /// Un même site n'est signalé qu'une fois pendant cette durée.
     public static let repeatInterval: TimeInterval = 10 * 60
 

@@ -59,8 +59,9 @@ public extension Catalog {
     static let heavyUT1Warning = "warning.heavy.ut1"
     static let heavyTIFWarning = "warning.heavy.tif"
 
-    /// Version du format du catalogue : 2 = listes présentées par thème, avec niveaux (0.7.4).
-    static let currentVersion = 2
+    /// Version du format du catalogue : 2 = listes présentées par thème, avec niveaux (0.7.4) ;
+    /// 3 = AdGuard DNS filter parmi les listes principales (0.7.7).
+    static let currentVersion = 3
 
     /// Catalogue installé par défaut : les listes principales, par thème ; seule HaGeZi NSFW est cochée.
     /// Les autres thèmes (jeux d'argent, violence…) s'ajoutent depuis le menu « Ajouter une liste ».
@@ -76,6 +77,9 @@ public extension Catalog {
         .init(id: "ads", name: "Publicité et pistage", enabled: false, sources: levelSources("ads", .light) ?? [],
               group: .ads, level: .light),
         .init(id: "ads-oisd", name: "Publicité, pistage et malware (OISD)", enabled: false, sources: [oisd("big")], group: .ads),
+        .init(id: "adguard-dns", name: "Publicité et pistage (AdGuard)", enabled: false,
+              sources: [Source(url: "https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt", license: "GPL-3.0")],
+              group: .ads),
         .init(id: "security", name: "Arnaques, hameçonnage, logiciels malveillants", enabled: false,
               sources: levelSources("security", .light) ?? [], group: .security, level: .light),
         .init(id: "bypass", name: "Contournement : VPN, proxys, DNS chiffré", enabled: false,
@@ -181,6 +185,7 @@ public extension Catalog {
         case "stevenblack-porn", "stevenblack-gambling": return other("Steven Black", sbHome, .weekly, .low, nil)
         case "easylist", "easyprivacy": return other("EasyList", "https://easylist.to", .severalDaily, .low, nil)
         case "liste-fr": return other("Liste FR", "https://github.com/easylist/listefr", .daily, .low, nil)
+        case "adguard-dns": return other("AdGuard", "https://github.com/AdguardTeam/AdGuardSDNSFilter", .daily, .low, 190_000)
         case "blp-drugs", "blp-scam", "blp-tiktok":
             return other("Block List Project", "https://github.com/blocklistproject/Lists", .stale("month.2026-07"), .high, nil)
         default: return nil
@@ -212,14 +217,36 @@ public extension Catalog {
 
     /// Met à jour un catalogue enregistré par une version précédente. Rien ne se décoche :
     /// - les listes principales gardent leur état (coché ou non) et reçoivent leur thème et leur niveau ;
-    /// - les nouvelles listes principales (OISD) arrivent décochées ;
+    /// - les nouvelles listes principales (OISD, AdGuard DNS filter) arrivent décochées, à leur place dans leur thème ;
     /// - un ancien thème coché (jeux d'argent, violence…) devient une liste ajoutée, toujours cochée ;
     ///   décoché, il disparaît de la fenêtre et reste disponible dans le menu « Ajouter une liste » ;
     /// - les listes ajoutées par le parent restent telles quelles.
     /// Renvoie vrai si le catalogue a changé.
     @discardableResult
     mutating func migrate() -> Bool {
-        guard (version ?? 1) < Self.currentVersion else { return false }
+        let from = version ?? 1
+        guard from < Self.currentVersion else { return false }
+        if from < 2 { migrateToThemes() }
+        addMissingMainLists()
+        version = Self.currentVersion
+        return true
+    }
+
+    /// Nouvelle liste principale absente d'un catalogue récent : insérée décochée après la liste principale
+    /// qui la précède. Si le parent l'avait ajoutée à la main depuis le menu, elle devient principale (même état).
+    private mutating func addMissingMainLists() {
+        var previous: String?
+        for var m in Self.mainLists {
+            defer { previous = m.id }
+            if categories.contains(where: { $0.id == m.id && $0.custom != true }) { continue }
+            if let i = categories.firstIndex(where: { $0.id == m.id }) { m.enabled = categories.remove(at: i).enabled }
+            let at = previous.flatMap { p in categories.firstIndex { $0.id == p } }.map { $0 + 1 } ?? 0
+            categories.insert(m, at: at)
+        }
+    }
+
+    /// Catalogue d'avant la 0.7.4 : listes rangées par thème, avec niveaux.
+    private mutating func migrateToThemes() {
         let old = categories
         var result: [Category] = []
         for var c in Self.mainLists {
@@ -243,7 +270,5 @@ public extension Catalog {
             }
         }
         categories = result
-        version = Self.currentVersion
-        return true
     }
 }

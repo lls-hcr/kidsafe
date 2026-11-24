@@ -49,7 +49,7 @@ to the Trash. If a parent password is set, it is required.
 ## Features
 
 - **Blocklists by topic**: adult content (HaGeZi NSFW on by default, OISD NSFW, full UT1), ads and tracking
-  (HaGeZi Pro, OISD Big), scams and malware (HaGeZi Threat Intelligence Feeds), bypass tools (VPNs, proxies,
+  (HaGeZi Pro, OISD Big, AdGuard DNS filter), scams and malware (HaGeZi Threat Intelligence Feeds), bypass tools (VPNs, proxies,
   encrypted DNS). HaGeZi Pro and Threat Intelligence Feeds come in three levels (Light, Normal, Strong).
   More topics from the Add menu (gambling, violence, drugs, dating, social networks, online games, illegal downloads,
   URL shorteners), other free lists (StevenBlack, EasyList…), any list from a web address, or a file from your Mac

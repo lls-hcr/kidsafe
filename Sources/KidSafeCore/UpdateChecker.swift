@@ -33,7 +33,7 @@ public struct UpdateChecker: Sendable {
         req.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
         req.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         let data: Data, response: URLResponse
-        do { (data, response) = try await URLSession.shared.data(for: req) } catch { throw CheckError.network(error.localizedDescription) }
+        do { (data, response) = try await KidSafeHTTP.session.data(for: req) } catch { throw CheckError.network(error.localizedDescription) }
         if let http = response as? HTTPURLResponse, http.statusCode != 200 { throw CheckError.badResponse }
         return try Self.parse(data)
     }

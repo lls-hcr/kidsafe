@@ -48,7 +48,7 @@ public enum AppUpdater {
         if url.isFileURL {
             try fm.copyItem(at: url, to: dmg)
         } else {
-            let (tmp, response) = try await URLSession.shared.download(from: url)
+            let (tmp, response) = try await KidSafeHTTP.session.download(from: url)
             guard (response as? HTTPURLResponse).map({ (200..<300).contains($0.statusCode) }) ?? false else {
                 throw UpdateError.noDownload
             }

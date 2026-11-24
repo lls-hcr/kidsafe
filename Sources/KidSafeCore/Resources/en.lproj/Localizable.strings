@@ -31,6 +31,7 @@
 "category.security" = "Scams, phishing, malware";
 "category.ads" = "Ads and tracking";
 "category.ads-oisd" = "Ads, tracking and malware (OISD)";
+"category.adguard-dns" = "Ads and tracking (AdGuard)";
 "category.gambling" = "Gambling";
 
 /* Lists tab: topics and levels */
@@ -47,6 +48,7 @@
 "list.adult-ut1" = "UT1: full list";
 "list.ads" = "HaGeZi Pro";
 "list.ads-oisd" = "OISD Big";
+"list.adguard-dns" = "AdGuard DNS filter";
 "list.security" = "HaGeZi Threat Intelligence Feeds";
 "list.bypass" = "HaGeZi + UT1";
 
@@ -114,6 +116,7 @@
 "info.easylist" = "The reference list of browser ad blockers. KidSafe only keeps its domain rules: most of it (cosmetic rules, URL paths) doesn't apply.";
 "info.easyprivacy" = "The reference anti-tracking list of browser blockers. KidSafe only keeps its domain rules.";
 "info.liste-fr" = "EasyList add-on for French-language sites. KidSafe only keeps its domain rules.";
+"info.adguard-dns" = "AdGuard's list made for blocking by domain (domain rules only). A good complement to HaGeZi Pro: a little over half of its domains are not in it.";
 "info.hagezi-apple" = "Apple telemetry domains (usage data). May interfere with some features (iCloud, App Store, updates): try it and see.";
 "info.hagezi-microsoft" = "Microsoft Office and Windows telemetry domains. May interfere with Office activation or updates: try it and see.";
 "info.blp-drugs" = "A Block List Project list. It is no longer updated and blocks by mistake fairly often: better to remove it (“Drugs (UT1)” replaces it).";
