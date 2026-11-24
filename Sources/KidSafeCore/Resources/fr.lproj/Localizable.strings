@@ -31,7 +31,6 @@
 "category.security" = "Arnaques, hameçonnage, logiciels malveillants";
 "category.ads" = "Publicité et pistage";
 "category.ads-oisd" = "Publicité, pistage et logiciels malveillants (OISD)";
-"category.adguard-dns" = "Publicité et pistage (AdGuard)";
 "category.gambling" = "Jeux d'argent";
 
 /* Thèmes et niveaux de l'onglet Listes */
@@ -48,7 +47,6 @@
 "list.adult-ut1" = "UT1 : liste complète";
 "list.ads" = "HaGeZi Pro";
 "list.ads-oisd" = "OISD Big";
-"list.adguard-dns" = "AdGuard DNS filter";
 "list.security" = "HaGeZi Threat Intelligence Feeds";
 "list.bypass" = "HaGeZi + UT1";
 
@@ -68,6 +66,7 @@
 "library.easylist" = "EasyList (publicité, règles de domaine seulement)";
 "library.easyprivacy" = "EasyPrivacy (pistage, règles de domaine seulement)";
 "library.liste-fr" = "Liste FR (publicité sur les sites francophones)";
+"library.adguard-dns" = "AdGuard DNS filter (publicité et pistage)";
 "library.hagezi-apple" = "HaGeZi : télémétrie Apple";
 "library.hagezi-microsoft" = "HaGeZi : télémétrie Microsoft (Office, Windows)";
 "library.blp-drugs" = "Block List Project : drogues";

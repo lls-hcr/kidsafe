@@ -31,7 +31,6 @@
 "category.security" = "Scams, phishing, malware";
 "category.ads" = "Ads and tracking";
 "category.ads-oisd" = "Ads, tracking and malware (OISD)";
-"category.adguard-dns" = "Ads and tracking (AdGuard)";
 "category.gambling" = "Gambling";
 
 /* Lists tab: topics and levels */
@@ -48,7 +47,6 @@
 "list.adult-ut1" = "UT1: full list";
 "list.ads" = "HaGeZi Pro";
 "list.ads-oisd" = "OISD Big";
-"list.adguard-dns" = "AdGuard DNS filter";
 "list.security" = "HaGeZi Threat Intelligence Feeds";
 "list.bypass" = "HaGeZi + UT1";
 
@@ -68,6 +66,7 @@
 "library.easylist" = "EasyList (ads, domain rules only)";
 "library.easyprivacy" = "EasyPrivacy (tracking, domain rules only)";
 "library.liste-fr" = "Liste FR (ads on French-language sites)";
+"library.adguard-dns" = "AdGuard DNS filter (ads and tracking)";
 "library.hagezi-apple" = "HaGeZi: Apple telemetry";
 "library.hagezi-microsoft" = "HaGeZi: Microsoft telemetry (Office, Windows)";
 "library.blp-drugs" = "Block List Project: drugs";

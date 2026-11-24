@@ -69,7 +69,7 @@ Développement : les variables `KIDSAFE_SUPPORT_DIR` et `KIDSAFE_PRIVOXY_CONF` i
   « Réglages… », « Soutenir KidSafe » (si un lien est configuré), « Rechercher des mises à jour », « Quitter ».
 - **Réglages** :
   - **Listes** : listes par thème (adultes : HaGeZi NSFW cochée par défaut, OISD NSFW, UT1 complète ; publicité et
-    pistage : HaGeZi Pro, OISD Big, AdGuard DNS filter ; arnaques et logiciels malveillants : HaGeZi Threat Intelligence Feeds ;
+    pistage : HaGeZi Pro, OISD Big ; arnaques et logiciels malveillants : HaGeZi Threat Intelligence Feeds ;
     contournement), niveau Léger / Normal / Renforcé pour HaGeZi Pro et Threat Intelligence Feeds, fiche ⓘ de chaque
     liste (auteur, fréquence de mise à jour, risque de blocage par erreur, licence) ; autres thèmes (jeux d'argent,
     violence, drogues, rencontres…) et autres listes gratuites dans le menu « Ajouter une liste », ainsi qu'une

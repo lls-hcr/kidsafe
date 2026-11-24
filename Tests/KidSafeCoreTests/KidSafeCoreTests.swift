@@ -268,7 +268,7 @@ import Testing
     @Test func defaultListsAreGroupedWithLevels() {
         let c = Catalog.default
         #expect(c.version == Catalog.currentVersion)
-        #expect(c.categories.map(\.id) == ["adult", "adult-oisd", "adult-ut1", "ads", "ads-oisd", "adguard-dns", "security", "bypass"])
+        #expect(c.categories.map(\.id) == ["adult", "adult-oisd", "adult-ut1", "ads", "ads-oisd", "security", "bypass"])
         #expect(c.categories.allSatisfy { $0.group != nil && $0.custom != true })
         #expect(c.categories.filter { $0.level != nil }.map(\.id) == ["ads", "security"])
         #expect(c.categories.first { $0.id == "ads" }?.sources.first?.url.hasSuffix("/pro.mini-onlydomains.txt") == true)
@@ -316,7 +316,7 @@ import Testing
         let changed = c.migrate()
         #expect(changed)
         #expect(c.version == Catalog.currentVersion && c.allowlist == ["wikipedia.org"])
-        #expect(c.categories.map(\.id) == ["adult", "adult-oisd", "adult-ut1", "ads", "ads-oisd", "adguard-dns", "security", "bypass",
+        #expect(c.categories.map(\.id) == ["adult", "adult-oisd", "adult-ut1", "ads", "ads-oisd", "security", "bypass",
                                            "gambling", "easylist", "blp-scam"])
         #expect(c.categories.filter(\.enabled).map(\.id) == ["adult", "ads", "security", "gambling", "easylist"])
         let gambling = try #require(c.categories.first { $0.id == "gambling" })
@@ -333,28 +333,30 @@ import Testing
         #expect(medium.categories.first { $0.id == "security" }?.level == .normal)
     }
 
-    /// Catalogue de la 0.7.4–0.7.6 (version 2) : AdGuard DNS filter arrive décoché sous OISD Big ;
-    /// ajouté à la main depuis le menu, il devient une liste principale et reste coché.
-    @Test func migratesCatalogFromVersion2() throws {
-        var v2 = Catalog.default
-        v2.categories.removeAll { $0.id == "adguard-dns" }
-        v2.version = 2
-        try v2.setEnabled("ads", true)
-        var c = v2
-        let changed = c.migrate()
-        #expect(changed)
-        #expect(c.version == Catalog.currentVersion)
-        #expect(c.categories.map(\.id) == Catalog.default.categories.map(\.id))
-        #expect(c.categories.first { $0.id == "adguard-dns" }?.enabled == false && c.categories.first { $0.id == "ads" }?.enabled == true)
-        let again = c.migrate()
-        #expect(!again)
+    /// Catalogue de la 0.7.7 (version 3) : AdGuard DNS filter était une liste principale.
+    /// Cochée, elle devient une liste ajoutée (toujours cochée) ; décochée, elle disparaît de la fenêtre.
+    @Test func adGuardLeavesMainListsAfter077() throws {
+        func v3(_ on: Bool) -> Catalog {
+            var c = Catalog.default
+            c.version = 3
+            let i = try! #require(c.categories.firstIndex { $0.id == "ads-oisd" }) + 1
+            c.categories.insert(.init(id: "adguard-dns", name: "Publicité et pistage (AdGuard)", enabled: on,
+                                      sources: [], group: .ads), at: i)
+            return c
+        }
+        var off = v3(false)
+        let changed = off.migrate()
+        #expect(changed && off.version == Catalog.currentVersion && off == Catalog.default)
 
-        var added = v2
-        added.categories.append(.init(id: "adguard-dns", name: "x", enabled: true, sources: [], custom: true))
-        added.migrate()
-        let ag = try #require(added.categories.first { $0.id == "adguard-dns" })
-        #expect(ag.enabled && ag.custom != true && ag.group == .ads && added.categories.filter { $0.id == "adguard-dns" }.count == 1)
-        #expect(added.categories.map(\.id) == Catalog.default.categories.map(\.id))
+        var on = v3(true)
+        on.migrate()
+        let ag = try #require(on.categories.last)
+        #expect(ag.id == "adguard-dns" && ag.enabled && ag.custom == true && ag.group == nil)
+        #expect(ag.sources.first?.url.hasSuffix("/AdGuardSDNSFilter/Filters/filter.txt") == true)
+        #expect(Array(on.categories.dropLast()) == Catalog.default.categories)
+        let again = on.migrate()
+        #expect(!again)
+        #expect(Catalog.otherLibrary.contains { $0.id == "adguard-dns" })
     }
 
     @Test func engineMigratesSavedCatalog() throws {

@@ -60,8 +60,8 @@ public extension Catalog {
     static let heavyTIFWarning = "warning.heavy.tif"
 
     /// Version du format du catalogue : 2 = listes présentées par thème, avec niveaux (0.7.4) ;
-    /// 3 = AdGuard DNS filter parmi les listes principales (0.7.7).
-    static let currentVersion = 3
+    /// 3 = AdGuard DNS filter parmi les listes principales (0.7.7) ; 4 = AdGuard rendu au menu « Ajouter une liste » (0.7.8).
+    static let currentVersion = 4
 
     /// Catalogue installé par défaut : les listes principales, par thème ; seule HaGeZi NSFW est cochée.
     /// Les autres thèmes (jeux d'argent, violence…) s'ajoutent depuis le menu « Ajouter une liste ».
@@ -77,9 +77,6 @@ public extension Catalog {
         .init(id: "ads", name: "Publicité et pistage", enabled: false, sources: levelSources("ads", .light) ?? [],
               group: .ads, level: .light),
         .init(id: "ads-oisd", name: "Publicité, pistage et malware (OISD)", enabled: false, sources: [oisd("big")], group: .ads),
-        .init(id: "adguard-dns", name: "Publicité et pistage (AdGuard)", enabled: false,
-              sources: [Source(url: "https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt", license: "GPL-3.0")],
-              group: .ads),
         .init(id: "security", name: "Arnaques, hameçonnage, logiciels malveillants", enabled: false,
               sources: levelSources("security", .light) ?? [], group: .security, level: .light),
         .init(id: "bypass", name: "Contournement : VPN, proxys, DNS chiffré", enabled: false,
@@ -150,6 +147,8 @@ public extension Catalog {
               sources: [Source(url: "https://easylist.to/easylist/easyprivacy.txt", license: "GPL-3.0 / CC BY-SA 3.0")]),
         .init(id: "liste-fr", name: "Liste FR", enabled: true,
               sources: [Source(url: "https://easylist-downloads.adblockplus.org/liste_fr.txt", license: "GPL-3.0")]),
+        .init(id: "adguard-dns", name: "AdGuard DNS filter", enabled: true,
+              sources: [Source(url: "https://adguardteam.github.io/AdGuardSDNSFilter/Filters/filter.txt", license: "GPL-3.0")]),
         .init(id: "hagezi-apple", name: "HaGeZi : télémétrie Apple", enabled: true, sources: [hz("native.apple-onlydomains.txt")]),
         .init(id: "hagezi-microsoft", name: "HaGeZi : télémétrie Microsoft", enabled: true, sources: [hz("native.winoffice-onlydomains.txt")]),
     ]
@@ -217,7 +216,9 @@ public extension Catalog {
 
     /// Met à jour un catalogue enregistré par une version précédente. Rien ne se décoche :
     /// - les listes principales gardent leur état (coché ou non) et reçoivent leur thème et leur niveau ;
-    /// - les nouvelles listes principales (OISD, AdGuard DNS filter) arrivent décochées, à leur place dans leur thème ;
+    /// - les nouvelles listes principales (OISD) arrivent décochées, à leur place dans leur thème ;
+    /// - une ancienne liste principale (AdGuard DNS filter, 0.7.7) cochée devient une liste ajoutée, toujours cochée ;
+    ///   décochée, elle disparaît de la fenêtre et reste disponible dans le menu « Ajouter une liste » ;
     /// - un ancien thème coché (jeux d'argent, violence…) devient une liste ajoutée, toujours cochée ;
     ///   décoché, il disparaît de la fenêtre et reste disponible dans le menu « Ajouter une liste » ;
     /// - les listes ajoutées par le parent restent telles quelles.
@@ -228,6 +229,7 @@ public extension Catalog {
         guard from < Self.currentVersion else { return false }
         if from < 2 { migrateToThemes() }
         addMissingMainLists()
+        retireOldMainLists()
         version = Self.currentVersion
         return true
     }
@@ -243,6 +245,18 @@ public extension Catalog {
             let at = previous.flatMap { p in categories.firstIndex { $0.id == p } }.map { $0 + 1 } ?? 0
             categories.insert(m, at: at)
         }
+    }
+
+    /// Liste qui n'est plus principale : cochée, elle devient la liste du menu « Ajouter une liste » ; décochée, elle disparaît.
+    private mutating func retireOldMainLists() {
+        let main = Set(Self.mainLists.map(\.id)), library = Self.library
+        var added: [Category] = []
+        categories.removeAll { c in
+            guard c.custom != true, !main.contains(c.id) else { return false }
+            if c.enabled, var l = library.first(where: { $0.id == c.id }) { l.enabled = true; added.append(l) }
+            return true
+        }
+        categories += added   // à la fin, avec les autres listes ajoutées
     }
 
     /// Catalogue d'avant la 0.7.4 : listes rangées par thème, avec niveaux.
