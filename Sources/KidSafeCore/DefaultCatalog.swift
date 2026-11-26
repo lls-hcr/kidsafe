@@ -248,14 +248,30 @@ public extension Catalog {
     }
 
     /// Liste qui n'est plus principale : cochée, elle devient la liste du menu « Ajouter une liste » ; décochée, elle disparaît.
+    /// Cochée mais absente du menu, elle reste telle quelle, comme liste ajoutée (rien ne se décoche).
+    /// Déjà présente comme liste ajoutée (même identifiant), elle n'est pas ajoutée une seconde fois : la liste ajoutée est cochée.
     private mutating func retireOldMainLists() {
         let main = Set(Self.mainLists.map(\.id)), library = Self.library
-        var added: [Category] = []
+        var taken = Set(categories.filter { $0.custom == true }.map(\.id))
+        var added: [Category] = [], tickExisting: Set<String> = []
         categories.removeAll { c in
             guard c.custom != true, !main.contains(c.id) else { return false }
-            if c.enabled, var l = library.first(where: { $0.id == c.id }) { l.enabled = true; added.append(l) }
+            guard c.enabled else { return true }
+            if taken.contains(c.id) { tickExisting.insert(c.id); return true }
+            var l: Category
+            if let fromLibrary = library.first(where: { $0.id == c.id }) {
+                l = fromLibrary
+            } else {
+                l = c
+                l.name = c.displayName   // nom traduit gardé : il n'y a pas de clé « library. » pour cette liste
+                l.custom = true; l.group = nil; l.level = nil
+            }
+            l.enabled = true
+            taken.insert(l.id)
+            added.append(l)
             return true
         }
+        for i in categories.indices where tickExisting.contains(categories[i].id) { categories[i].enabled = true }
         categories += added   // à la fin, avec les autres listes ajoutées
     }
 

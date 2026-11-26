@@ -359,6 +359,71 @@ import Testing
         #expect(Catalog.otherLibrary.contains { $0.id == "adguard-dns" })
     }
 
+    /// Catalogue de la 0.7.4 à 0.7.6 (version 2) : rien ne change, les listes ajoutées restent à la fin, dans l'ordre.
+    @Test func migratesCatalogFrom074() throws {
+        var c = Catalog.default
+        c.version = 2
+        try c.setEnabled("ads", true)
+        try c.setLevel("security", .normal)
+        try c.addCustomList(id: "ma-liste", name: "Ma liste", sources: [.init(url: "https://example.com/liste.txt")])
+        var easylist = try #require(Catalog.otherLibrary.first { $0.id == "easylist" })
+        easylist.enabled = false
+        c.categories.append(easylist)
+        let before = c.categories
+
+        let changed = c.migrate()
+        #expect(changed && c.version == Catalog.currentVersion && c.categories == before)
+        let again = c.migrate()
+        #expect(!again)
+    }
+
+    /// Nouvelle liste principale qu'un parent avait déjà ajoutée depuis le menu : elle devient principale,
+    /// à sa place dans son thème, avec son état, et n'apparaît pas deux fois.
+    @Test func customListBecomesMainList() throws {
+        var c = Catalog.default
+        c.version = 2
+        let i = try #require(c.categories.firstIndex { $0.id == "ads-oisd" })
+        var oisd = c.categories.remove(at: i)
+        oisd.custom = true; oisd.group = nil; oisd.enabled = true
+        c.categories.append(oisd)
+
+        c.migrate()
+        #expect(c.categories.map(\.id) == Catalog.default.categories.map(\.id))
+        let main = try #require(c.categories.first { $0.id == "ads-oisd" })
+        #expect(main.enabled && main.custom == nil && main.group == .ads)
+    }
+
+    /// Liste principale retirée par une version future, cochée : jamais perdue, même absente du menu,
+    /// et jamais en double si le parent l'avait aussi ajoutée.
+    @Test func retiredMainListIsNeverLost() throws {
+        var c = Catalog.default
+        c.version = 3
+        c.categories.append(.init(id: "ancienne", name: "Ancienne liste", enabled: true,
+                                  sources: [.init(url: "https://example.com/ancienne.txt")], group: .ads, level: .light))
+        c.migrate()
+        let kept = try #require(c.categories.last)
+        #expect(kept.id == "ancienne" && kept.enabled && kept.custom == true && kept.group == nil && kept.level == nil)
+        #expect(kept.name == "Ancienne liste" && kept.sources.first?.url == "https://example.com/ancienne.txt")
+
+        // AdGuard cochée comme liste principale (0.7.7) et aussi présente, décochée, comme liste ajoutée.
+        var d = Catalog.default
+        d.version = 3
+        d.categories.append(.init(id: "adguard-dns", name: "AdGuard", enabled: true, sources: [], group: .ads))
+        var added = try #require(Catalog.otherLibrary.first { $0.id == "adguard-dns" })
+        added.enabled = false
+        d.categories.append(added)
+        d.migrate()
+        let ag = d.categories.filter { $0.id == "adguard-dns" }
+        #expect(ag.count == 1 && ag.first?.enabled == true && ag.first?.custom == true)
+    }
+
+    /// Les téléchargements de KidSafe ne passent par aucun proxy (sinon le Privoxy de KidSafe peut les bloquer).
+    /// Dictionnaire vide et non nil : nil voudrait dire « réglages du système ».
+    @Test func ownDownloadsBypassProxy() {
+        let proxies = KidSafeHTTP.session.configuration.connectionProxyDictionary
+        #expect(proxies != nil && proxies?.isEmpty == true)
+    }
+
     @Test func engineMigratesSavedCatalog() throws {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-mig-\(UUID().uuidString)")
         defer { try? FileManager.default.removeItem(at: dir) }
