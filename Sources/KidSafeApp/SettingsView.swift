@@ -89,7 +89,6 @@ struct ListsTab: View {
                     if custom.isEmpty { Text(L("app.lists.noCustom")).foregroundStyle(.secondary) }
                     ForEach(custom, id: \.id) { CategoryToggle(category: $0, compact: false) }
                 }
-                ResetDefaultsRow(scope: .lists)
             }
             .disabled(model.catalog.strictMode)
             HStack {
@@ -105,7 +104,7 @@ struct ListsTab: View {
                 Button(L("app.updateNow")) { model.refreshListsManually() }
                     .disabled(model.isApplying || model.installer == nil || !model.catalog.filteringEnabled)
             }
-            ErrorLine()
+            TabFooter(scope: .lists)
         }
     }
 }
@@ -129,13 +128,11 @@ struct ResetDefaultsButton: View {
     }
 }
 
-/// Même bouton, en dernière ligne d'une liste.
-struct ResetDefaultsRow: View {
+/// Bas d'onglet, toujours visible (sans défilement) : message d'erreur à gauche, « Réglages par défaut… » à droite.
+struct TabFooter: View {
     var scope: AppModel.DefaultsScope
     var body: some View {
-        HStack { Spacer(); ResetDefaultsButton(scope: scope) }
-            .padding(.vertical, 6)
-            .listRowSeparator(.hidden)
+        HStack { ErrorLine(); Spacer(); ResetDefaultsButton(scope: scope) }
     }
 }
 
@@ -159,11 +156,10 @@ struct SocialTab: View {
                 .fixedSize(horizontal: false, vertical: true)
             List {
                 ForEach(SocialService.all) { ServiceRow(service: $0) }
-                ResetDefaultsRow(scope: .social)
             }
             Text(L("app.social.note")).font(.caption).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-            ErrorLine()
+            TabFooter(scope: .social)
         }
     }
 }
@@ -291,7 +287,7 @@ struct DomainsTab: View {
                              tint: .green, entry: allowEntry, domains: model.catalog.allowlist,
                              add: model.addAllowed, remove: model.removeAllowed)
             }
-            HStack { ErrorLine(); Spacer(); ResetDefaultsButton(scope: .domains) }
+            TabFooter(scope: .domains)
         }
     }
 }
@@ -377,12 +373,15 @@ struct GeneralTab: View {
     var scrollTarget: String? = nil
 
     var body: some View {
-        ScrollViewReader { proxy in
-            form.onAppear {
-                guard let scrollTarget else { return }
-                // Après la mise en page du formulaire, sinon le défilement est ignoré.
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { proxy.scrollTo(scrollTarget, anchor: .top) }
+        VStack(spacing: 10) {
+            ScrollViewReader { proxy in
+                form.onAppear {
+                    guard let scrollTarget else { return }
+                    // Après la mise en page du formulaire, sinon le défilement est ignoré.
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { proxy.scrollTo(scrollTarget, anchor: .top) }
+                }
             }
+            TabFooter(scope: .general)
         }
     }
 
@@ -472,10 +471,6 @@ struct GeneralTab: View {
                     Text(L("app.donate.help")).font(.caption).foregroundStyle(.secondary)
                     Button { model.donate() } label: { Label(L("app.donate"), systemImage: "heart.fill") }
                 }
-            }
-            Section(L("reset.section")) {
-                Text(L("reset.general.help")).font(.caption).foregroundStyle(.secondary)
-                ResetDefaultsButton(scope: .general)
             }
         }
         .formStyle(.grouped)
