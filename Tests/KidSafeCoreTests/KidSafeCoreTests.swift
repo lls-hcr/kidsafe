@@ -760,6 +760,123 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(AppUpdater.teamID(of: tool) == nil)
         #expect(AppUpdater.teamID(of: FileManager.default.temporaryDirectory) == nil)
     }
+
+    // MARK: KidSafe devient Yamoxy
+
+    @Test func checksumInNotesForRenamedDmg() throws {
+        let h = String(repeating: "cd", count: 32)
+        let json = #"{"tag_name":"v0.9.0","html_url":"https://g/r","body":"SHA-256 `Yamoxy.dmg` : `"# + h + #"`","assets":[{"name":"Yamoxy.dmg","browser_download_url":"https://g/Yamoxy.dmg"}]}"#
+        let r = try UpdateChecker.parse(Data(json.utf8))
+        #expect(r.dmgSHA256 == h && r.downloadURL?.lastPathComponent == "Yamoxy.dmg")
+    }
+
+    /// Fausse app signée ad hoc (un exécutable, un Info.plist) ; `marker` permet de la reconnaître après une copie.
+    private func fakeApp(_ url: URL, bundleID: String = "app.kidsafe.KidSafe", version: String = "9.9", marker: String) throws {
+        let fm = FileManager.default
+        try fm.createDirectory(at: url.appendingPathComponent("Contents/MacOS"), withIntermediateDirectories: true)
+        try fm.createDirectory(at: url.appendingPathComponent("Contents/Resources"), withIntermediateDirectories: true)
+        let info: NSDictionary = ["CFBundleIdentifier": bundleID, "CFBundleShortVersionString": version,
+                                  "CFBundleExecutable": "app", "CFBundlePackageType": "APPL"]
+        try info.write(to: url.appendingPathComponent("Contents/Info.plist"))
+        try fm.copyItem(at: URL(fileURLWithPath: "/usr/bin/true"), to: url.appendingPathComponent("Contents/MacOS/app"))
+        try marker.write(to: url.appendingPathComponent("Contents/Resources/marker.txt"), atomically: true, encoding: .utf8)
+        try AppUpdater.run("/usr/bin/codesign", ["--force", "--sign", "-", url.path])
+    }
+
+    private func marker(_ app: URL) -> String? { try? String(contentsOf: app.appendingPathComponent("Contents/Resources/marker.txt"), encoding: .utf8) }
+
+    /// Un .dmg qui contient `Yamoxy.app` (même identifiant) est accepté et préparé sous ce nom ;
+    /// une app d'un autre identifiant est refusée.
+    @Test func acceptsRenamedAppInDmg() async throws {
+        let fm = FileManager.default
+        let dir = fm.temporaryDirectory.appendingPathComponent("kidsafe-yamoxy-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: dir) }
+        func dmg(_ name: String, bundleID: String) throws -> (URL, String) {
+            let src = dir.appendingPathComponent("src-\(name)-\(bundleID)")
+            try fakeApp(src.appendingPathComponent(name), bundleID: bundleID, marker: "nouvelle")
+            let out = dir.appendingPathComponent("\(UUID().uuidString).dmg")
+            try AppUpdater.run("/usr/bin/hdiutil", ["create", "-quiet", "-fs", "HFS+", "-srcfolder", src.path, "-format", "UDZO", out.path])
+            let sha = SHA256Hex(try Data(contentsOf: out))
+            return (out, sha)
+        }
+        let page = URL(string: "https://g/r")!
+
+        let (good, sha) = try dmg("Yamoxy.app", bundleID: "app.kidsafe.KidSafe")
+        let staged = try await AppUpdater.prepare(.init(version: "9.9", pageURL: page, downloadURL: good, dmgSHA256: sha),
+                                                  currentVersion: "0.8.0", bundleID: "app.kidsafe.KidSafe",
+                                                  stagingDir: dir.appendingPathComponent("s1"))
+        #expect(staged.lastPathComponent == "Yamoxy.app" && marker(staged) == "nouvelle")
+
+        let (other, sha2) = try dmg("Yamoxy.app", bundleID: "com.example.autre")
+        await #expect(throws: AppUpdater.UpdateError.self) {
+            try await AppUpdater.prepare(.init(version: "9.9", pageURL: page, downloadURL: other, dmgSHA256: sha2),
+                                         currentVersion: "0.8.0", bundleID: "app.kidsafe.KidSafe",
+                                         stagingDir: dir.appendingPathComponent("s2"))
+        }
+    }
+
+    private func SHA256Hex(_ data: Data) -> String {
+        // Même calcul que l'app (CryptoKit), via shasum pour ne pas dépendre d'un import de plus.
+        let file = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-sha-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: file) }
+        try? data.write(to: file)
+        let out = (try? AppUpdater.run("/usr/bin/shasum", ["-a", "256", file.path])) ?? ""
+        return String(out.prefix(64))
+    }
+
+    /// Le vrai script de remplacement, sans relance, dans un dossier temporaire.
+    /// Renvoie le dossier « Applications » une fois le script terminé (il supprime le dossier de préparation en dernier).
+    private func runReplace(current: String, staged: String?, existing: [String: String] = [:]) throws -> URL {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("kidsafe-replace-\(UUID().uuidString)")
+        let apps = root.appendingPathComponent("Applications"), staging = root.appendingPathComponent("staging")
+        try fm.createDirectory(at: staging, withIntermediateDirectories: true)
+        try fakeApp(apps.appendingPathComponent(current), version: "0.8.0", marker: "ancienne")
+        for (name, mark) in existing { try fakeApp(apps.appendingPathComponent(name), marker: mark) }
+        let stagedURL = staging.appendingPathComponent(staged ?? "Yamoxy.app")
+        if staged != nil { try fakeApp(stagedURL, marker: "nouvelle") }   // nil : copie impossible (échec simulé)
+        try AppUpdater.scheduleReplace(current: apps.appendingPathComponent(current), staged: stagedURL, stagingDir: staging,
+                                       pid: Int32.max, relaunch: false)
+        let end = Date().addingTimeInterval(20)
+        while fm.fileExists(atPath: staging.path) && Date() < end { Thread.sleep(forTimeInterval: 0.1) }
+        #expect(!fm.fileExists(atPath: staging.path))
+        return apps
+    }
+
+    private func names(_ dir: URL) -> [String] {
+        ((try? FileManager.default.contentsOfDirectory(atPath: dir.path)) ?? []).sorted()
+    }
+
+    @Test func replaceInstallsUnderNewName() throws {
+        let apps = try runReplace(current: "KidSafe.app", staged: "Yamoxy.app")
+        defer { try? FileManager.default.removeItem(at: apps.deletingLastPathComponent()) }
+        #expect(names(apps) == ["Yamoxy.app"])
+        #expect(marker(apps.appendingPathComponent("Yamoxy.app")) == "nouvelle")
+    }
+
+    @Test func replaceKeepsSameNameAsBefore() throws {
+        let apps = try runReplace(current: "KidSafe.app", staged: "KidSafe.app")
+        defer { try? FileManager.default.removeItem(at: apps.deletingLastPathComponent()) }
+        #expect(names(apps) == ["KidSafe.app"])
+        #expect(marker(apps.appendingPathComponent("KidSafe.app")) == "nouvelle")
+    }
+
+    /// Une app porte déjà le nouveau nom : on n'y touche pas, la mise à jour se fait sous l'ancien nom.
+    @Test func replaceNeverOverwritesAnotherApp() throws {
+        let apps = try runReplace(current: "KidSafe.app", staged: "Yamoxy.app", existing: ["Yamoxy.app": "autre"])
+        defer { try? FileManager.default.removeItem(at: apps.deletingLastPathComponent()) }
+        #expect(names(apps) == ["KidSafe.app", "Yamoxy.app"])
+        #expect(marker(apps.appendingPathComponent("KidSafe.app")) == "nouvelle")
+        #expect(marker(apps.appendingPathComponent("Yamoxy.app")) == "autre")
+    }
+
+    /// Copie impossible : l'ancienne app est remise en place, à son nom, intacte.
+    @Test func replaceRestoresOldAppOnFailure() throws {
+        let apps = try runReplace(current: "KidSafe.app", staged: nil)
+        defer { try? FileManager.default.removeItem(at: apps.deletingLastPathComponent()) }
+        #expect(names(apps) == ["KidSafe.app"])
+        #expect(marker(apps.appendingPathComponent("KidSafe.app")) == "ancienne")
+    }
 }
 
 @Suite struct AdvancedTests {

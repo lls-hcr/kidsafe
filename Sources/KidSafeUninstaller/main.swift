@@ -83,6 +83,11 @@ for candidate in ["/Applications/KidSafe.app", NSHomeDirectory() + "/Application
 where FileManager.default.fileExists(atPath: candidate) {
     apps.insert(URL(fileURLWithPath: candidate).standardizedFileURL)
 }
+// Après le changement de nom (KidSafe devient Yamoxy) : seulement si c'est bien la même app (même identifiant).
+for dir in ["/Applications", NSHomeDirectory() + "/Applications", NSHomeDirectory() + "/Desktop"] {
+    let candidate = URL(fileURLWithPath: dir + "/Yamoxy.app")
+    if Bundle(url: candidate)?.bundleIdentifier == KidSafeUninstaller.bundleID { apps.insert(candidate.standardizedFileURL) }
+}
 let toTrash = apps.filter { !$0.path.hasPrefix("/Volumes/") && !$0.path.contains("/.Trash/") }
 if !toTrash.isEmpty {
     var done = false

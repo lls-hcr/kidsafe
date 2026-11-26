@@ -46,7 +46,7 @@ public struct UpdateChecker: Sendable {
         let dmg = p.assets?.first { $0.name.lowercased().hasSuffix(".dmg") }
         var sha = dmg?.digest.flatMap { $0.hasPrefix("sha256:") ? String($0.dropFirst(7)) : nil }
         if sha == nil, let body = p.body,
-           let r = body.range(of: #"SHA-256 `KidSafe\.dmg`\s*:\s*`([0-9a-fA-F]{64})`"#, options: .regularExpression) {
+           let r = body.range(of: #"SHA-256 `(?:KidSafe|Yamoxy)\.dmg`\s*:\s*`([0-9a-fA-F]{64})`"#, options: .regularExpression) {
             sha = String(body[r].suffix(65).dropLast())
         }
         return Release(version: version, pageURL: p.html_url, downloadURL: dmg?.browser_download_url, dmgSHA256: sha?.lowercased())

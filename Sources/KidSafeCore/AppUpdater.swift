@@ -7,7 +7,7 @@ import Security
 ///
 /// Vérifications avant toute installation :
 /// 1. empreinte SHA-256 du .dmg identique à celle publiée par GitHub ;
-/// 2. le .dmg contient bien KidSafe (même identifiant d'app) dans une version plus récente ;
+/// 2. le .dmg contient bien l'app (KidSafe.app ou Yamoxy.app, même identifiant) dans une version plus récente ;
 /// 3. la signature de l'app copiée est intacte (`codesign --verify`) ;
 /// 4. si l'app en cours est signée avec un Developer ID, la nouvelle doit l'être par le même développeur (Team ID).
 public enum AppUpdater {
@@ -34,7 +34,8 @@ public enum AppUpdater {
             && fm.isWritableFile(atPath: app.deletingLastPathComponent().path) && fm.isWritableFile(atPath: app.path)
     }
 
-    /// Télécharge et vérifie la nouvelle version, puis la copie dans `stagingDir/KidSafe.app`.
+    /// Télécharge et vérifie la nouvelle version, puis la copie dans `stagingDir`, sous son nom du .dmg
+    /// (`KidSafe.app` ou `Yamoxy.app`).
     /// `requiredTeamID` : Team ID de l'app en cours (`nil` pour une app signée ad hoc : pas d'exigence).
     public static func prepare(_ release: UpdateChecker.Release, currentVersion: String, bundleID: String,
                                requiredTeamID: String? = nil, stagingDir: URL) async throws -> URL {
@@ -62,17 +63,29 @@ public enum AppUpdater {
         try run("/usr/bin/hdiutil", ["attach", "-nobrowse", "-readonly", "-noautoopen", "-mountpoint", mount.path, dmg.path])
         defer { _ = try? run("/usr/bin/hdiutil", ["detach", "-force", mount.path]) }
 
-        let newApp = mount.appendingPathComponent("KidSafe.app")
-        guard let info = NSDictionary(contentsOf: newApp.appendingPathComponent("Contents/Info.plist")),
-              info["CFBundleIdentifier"] as? String == bundleID else { throw UpdateError.notKidSafe }
+        guard let (newApp, info) = app(in: mount, bundleID: bundleID) else { throw UpdateError.notKidSafe }
         let newVersion = info["CFBundleShortVersionString"] as? String ?? "?"
         guard UpdateChecker.isNewer(newVersion, than: currentVersion) else { throw UpdateError.notNewer(newVersion) }
 
-        let staged = stagingDir.appendingPathComponent("KidSafe.app")
+        // Même nom que dans le .dmg : `KidSafe.app` aujourd'hui, `Yamoxy.app` après le changement de nom.
+        let staged = stagingDir.appendingPathComponent(newApp.lastPathComponent)
         try run("/usr/bin/ditto", [newApp.path, staged.path])
         try run("/usr/bin/codesign", ["--verify", "--strict", "--deep", staged.path])
         if let requiredTeamID, teamID(of: staged) != requiredTeamID { throw UpdateError.wrongSigner }
         return staged
+    }
+
+    /// Noms d'app acceptés dans le .dmg, dans l'ordre de préférence (KidSafe devient Yamoxy).
+    static let appNames = ["Yamoxy.app", "KidSafe.app"]
+
+    /// L'app du .dmg monté : la première des `appNames` qui porte le même identifiant que l'app en cours.
+    static func app(in mount: URL, bundleID: String) -> (URL, NSDictionary)? {
+        for name in appNames {
+            let candidate = mount.appendingPathComponent(name)
+            if let info = NSDictionary(contentsOf: candidate.appendingPathComponent("Contents/Info.plist")),
+               info["CFBundleIdentifier"] as? String == bundleID { return (candidate, info) }
+        }
+        return nil
     }
 
     /// Team ID du développeur qui a signé l'app (`nil` : signature ad hoc ou absente).
@@ -86,35 +99,53 @@ public enum AppUpdater {
     }
 
     /// Lance, détaché de l'app, le script qui attend la fin de l'app, remplace `current` par `staged`
-    /// et relance KidSafe. En cas d'échec, l'ancienne version est remise en place et relancée.
-    /// `env` : variables KIDSAFE_* à transmettre à l'app relancée (tests).
-    public static func scheduleReplace(current: URL, staged: URL, stagingDir: URL, pid: Int32, env: [String: String] = [:]) throws {
+    /// et relance l'app. En cas d'échec, l'ancienne version est remise en place et relancée.
+    /// `env` : variables KIDSAFE_* à transmettre à l'app relancée (tests). `relaunch` : faux dans les tests.
+    public static func scheduleReplace(current: URL, staged: URL, stagingDir: URL, pid: Int32, env: [String: String] = [:],
+                                       relaunch: Bool = true) throws {
         guard canReplace(current) else { throw UpdateError.notWritable(current.path) }
-        func q(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
-        let envArgs = env.sorted { $0.key < $1.key }.map { "--env " + q("\($0.key)=\($0.value)") }.joined(separator: " ")
-        let script = """
-        #!/bin/sh
-        # KidSafe : remplacement de l'app après sa fermeture, puis relance.
-        CUR=\(q(current.path)); NEW=\(q(staged.path)); OLD="$CUR.kidsafe-old"
-        i=0; while kill -0 \(pid) 2>/dev/null && [ $i -lt 120 ]; do sleep 0.5; i=$((i+1)); done
-        rm -rf "$OLD"
-        if mv "$CUR" "$OLD" && /usr/bin/ditto "$NEW" "$CUR"; then
-          /usr/bin/xattr -dr com.apple.quarantine "$CUR" 2>/dev/null
-          rm -rf "$OLD"
-        else
-          rm -rf "$CUR"; mv "$OLD" "$CUR"
-        fi
-        /usr/bin/open "$CUR" \(envArgs)
-        rm -rf \(q(stagingDir.path))
-        """
+        let script = replaceScript(current: current, staged: staged, stagingDir: stagingDir, pid: pid, env: env, relaunch: relaunch)
         let file = stagingDir.appendingPathComponent("replace.sh")
         try script.write(to: file, atomically: true, encoding: .utf8)
         // Double « fork » via nohup + & : le script survit à la fermeture de l'app.
         let p = Process()
         p.executableURL = URL(fileURLWithPath: "/bin/sh")
-        p.arguments = ["-c", "/usr/bin/nohup /bin/sh \(q(file.path)) >/dev/null 2>&1 &"]
+        p.arguments = ["-c", "/usr/bin/nohup /bin/sh \(shellQuote(file.path)) >/dev/null 2>&1 &"]
         try p.run()
         p.waitUntilExit()
+    }
+
+    static func shellQuote(_ s: String) -> String { "'" + s.replacingOccurrences(of: "'", with: "'\\''") + "'" }
+
+    /// Script de remplacement. La nouvelle app garde son nom du .dmg, dans le même dossier que l'ancienne :
+    /// `/Applications/KidSafe.app` remplacée par `/Applications/Yamoxy.app` (l'ancienne disparaît).
+    /// Si une app porte déjà le nouveau nom à cet endroit, on n'y touche pas : la mise à jour se fait
+    /// sous l'ancien nom, comme avant. En cas d'échec, l'ancienne app est remise en place, à son nom ;
+    /// si elle ne peut même pas être déplacée, rien n'est touché.
+    static func replaceScript(current: URL, staged: URL, stagingDir: URL, pid: Int32, env: [String: String],
+                              relaunch: Bool) -> String {
+        let envArgs = env.sorted { $0.key < $1.key }.map { "--env " + shellQuote("\($0.key)=\($0.value)") }.joined(separator: " ")
+        let dest = current.deletingLastPathComponent().appendingPathComponent(staged.lastPathComponent)
+        return """
+        #!/bin/sh
+        # Remplacement de l'app après sa fermeture, puis relance.
+        CUR=\(shellQuote(current.path)); NEW=\(shellQuote(staged.path)); DEST=\(shellQuote(dest.path)); OLD="$CUR.kidsafe-old"
+        i=0; while kill -0 \(pid) 2>/dev/null && [ $i -lt 120 ]; do sleep 0.5; i=$((i+1)); done
+        [ "$DEST" != "$CUR" ] && [ -e "$DEST" ] && DEST="$CUR"
+        rm -rf "$OLD"
+        APP="$CUR"
+        if mv "$CUR" "$OLD"; then
+          if /usr/bin/ditto "$NEW" "$DEST"; then
+            /usr/bin/xattr -dr com.apple.quarantine "$DEST" 2>/dev/null
+            rm -rf "$OLD"
+            APP="$DEST"
+          else
+            rm -rf "$DEST"; mv "$OLD" "$CUR"
+          fi
+        fi
+        \(relaunch ? "/usr/bin/open \"$APP\" \(envArgs)" : ": pas de relance")
+        rm -rf \(shellQuote(stagingDir.path))
+        """
     }
 
     @discardableResult
