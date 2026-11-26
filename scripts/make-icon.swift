@@ -1,5 +1,6 @@
-// Dessine l'icône de KidSafe (1024 px) : swift scripts/make-icon.swift Resources/AppIcon.png
-// Fond bleu pétrole, bouclier blanc à moitié plein (style « shield.lefthalf.filled »).
+// Dessine l'icône de Yamoxy (1024 px), avec le gecko de l'app :
+//   cat Sources/KidSafeApp/GeckoShape.swift scripts/make-icon.swift | swift - Resources/AppIcon.png
+// Fond bleu pétrole, bouclier blanc (blason), gecko bleu dessus.
 import AppKit
 
 let S: CGFloat = 1024
@@ -37,19 +38,17 @@ func shield(cx: CGFloat, top: CGFloat, w: CGFloat, h: CGFloat) -> CGPath {
     p.closeSubpath()
     return p
 }
-let cx: CGFloat = 512, top: CGFloat = 712, w: CGFloat = 360, h: CGFloat = 420
-let outer = shield(cx: cx, top: top, w: w, h: h)
-// Contour + moitié gauche pleine, dans un seul calque pour une seule ombre (pas de liseré).
+// Bouclier blanc (ombre douce), puis le gecko dans la couleur du fond.
+let sh = shield(cx: 512, top: 836, w: 560, h: 650)
 ctx.saveGState()
 ctx.setShadow(offset: CGSize(width: 0, height: -6), blur: 14, color: rgb(0x0B2E3B, 0.30))
-ctx.beginTransparencyLayer(auxiliaryInfo: nil)
-ctx.setFillColor(rgb(0xFFFFFF)); ctx.setStrokeColor(rgb(0xFFFFFF))
-ctx.addPath(outer); ctx.setLineWidth(34); ctx.setLineJoin(.round); ctx.strokePath()
-ctx.saveGState()
-ctx.addPath(outer); ctx.clip()
-ctx.fill(CGRect(x: cx - w, y: top - h - 40, width: w + 1, height: h + 80))
+ctx.addPath(sh); ctx.setFillColor(rgb(0xFFFFFF)); ctx.fillPath()
 ctx.restoreGState()
-ctx.endTransparencyLayer()
+let gecko = GeckoShape()
+ctx.saveGState()
+GeckoShape.place(ctx, in: CGRect(x: 332, y: 262, width: 360, height: 500))
+gecko.fill(ctx, color: rgb(0x3D839F))
+ctx.setFillColor(rgb(0xFFFFFF)); gecko.fillPupils(ctx)
 ctx.restoreGState()
 
 let img = ctx.makeImage()!

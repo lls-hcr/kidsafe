@@ -1,6 +1,6 @@
 #!/bin/sh
 # Compile Privoxy (universel Apple Silicon + Intel) avec PCRE2 intégré en statique,
-# pour l'embarquer dans KidSafe.app : aucune dépendance à Homebrew chez l'utilisateur.
+# pour l'embarquer dans Yamoxy.app : aucune dépendance à Homebrew chez l'utilisateur.
 # Résultat : build/privoxy/privoxy (binaire) et build/privoxy/conf/ (fichiers par défaut).
 # Outils nécessaires sur la machine de construction : autoconf (brew install autoconf).
 set -eu

@@ -20,7 +20,8 @@ struct KidSafeApp: App {
 struct MenuBarIcon: View {
     @EnvironmentObject var model: AppModel
     var body: some View {
-        Image(systemName: model.isProtected ? "checkmark.shield.fill" : "exclamationmark.shield")
+        // Gecko net : filtrage actif ; estompé (gris) : désactivé, comme WireGuard.
+        Image(nsImage: GeckoShape.symbol(active: model.isProtected))
     }
 }
 
@@ -63,7 +64,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// Liens kidsafe:// (bouton « Actualiser » de la page détaillée) :
     ///   kidsafe://dashboard/refresh → régénère la page sur place ; kidsafe://dashboard → la régénère et l'ouvre.
     func application(_ application: NSApplication, open urls: [URL]) {
-        for url in urls where url.scheme?.lowercased() == "kidsafe" && url.host?.lowercased() == "dashboard" {
+        for url in urls where ["yamoxy", "kidsafe"].contains(url.scheme?.lowercased() ?? "") && url.host?.lowercased() == "dashboard" {
             model.openDashboard(open: url.path != "/refresh")
         }
     }
@@ -220,6 +221,7 @@ struct MenuView: View {
                 Text(model.versionLabel)
                     .font(.caption2)
                     .foregroundStyle(.tertiary)
+                    .help(L("app.nameOrigin").replacingOccurrences(of: "*", with: ""))
                     .frame(maxWidth: .infinity, alignment: .center)
                     .padding(.top, 6)
             }
@@ -338,9 +340,9 @@ struct StatusHeader: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Image(systemName: model.isProtected ? "checkmark.shield.fill" : "exclamationmark.shield.fill")
+                Image(nsImage: GeckoShape.symbol(size: 28))
+                    .renderingMode(.template)
                     .foregroundStyle(model.isProtected ? .green : .orange)
-                    .font(.title2)
                 VStack(alignment: .leading) {
                     Text(model.isProtected ? L("app.status.protected") : L("app.status.notProtected")).font(.headline)
                     if let date = model.status.lastApplied {

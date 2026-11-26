@@ -2,15 +2,28 @@ import Foundation
 
 /// Modifie le fichier `config` de Privoxy de façon idempotente et réversible.
 ///
-/// Tout ce qu'ajoute KidSafe tient dans un bloc délimité ; les directives d'origine
+/// Tout ce qu'ajoute Yamoxy tient dans un bloc délimité ; les directives d'origine
 /// qu'il remplace sont mises en commentaire avec un préfixe reconnaissable,
 /// pour pouvoir être restaurées par `remove`.
 public enum PrivoxyConfigEditor {
 
-    public static let beginMarker = "# >>> KidSafe : bloc géré automatiquement, ne pas modifier >>>"
-    public static let endMarker = "# <<< KidSafe <<<"
-    static let disabledPrefix = "#KidSafe-désactivé# "
-    public static let pausedMarker = "KidSafe : filtrage en pause"
+    public static let beginMarker = "# >>> Yamoxy : bloc géré automatiquement, ne pas modifier >>>"
+    public static let endMarker = "# <<< Yamoxy <<<"
+    static let disabledPrefix = "#Yamoxy-désactivé# "
+    public static let pausedMarker = "Yamoxy : filtrage en pause"
+    /// Repères écrits par KidSafe (ancien nom) : toujours reconnus, pour retirer ou reprendre son bloc.
+    static let legacyBeginMarker = "# >>> KidSafe : bloc géré automatiquement, ne pas modifier >>>"
+    static let legacyEndMarker = "# <<< KidSafe <<<"
+    static let legacyDisabledPrefix = "#KidSafe-désactivé# "
+    static let legacyPausedMarker = "KidSafe : filtrage en pause"
+
+    static func isBegin(_ line: String) -> Bool { line == beginMarker || line == legacyBeginMarker }
+    static func isEnd(_ line: String) -> Bool { line == endMarker || line == legacyEndMarker }
+
+    /// Vrai si la config contient un bloc géré (de Yamoxy ou de KidSafe).
+    public static func hasBlock(_ config: String) -> Bool {
+        config.contains(beginMarker) || config.contains(legacyBeginMarker)
+    }
 
     /// Directives qui empêchent de désactiver le filtrage depuis le navigateur
     /// (http://config.privoxy.org/toggle, éditeur d'actions en ligne).
@@ -27,15 +40,15 @@ public enum PrivoxyConfigEditor {
         public var harden = true
         /// Retire les lignes ajoutées par l'ancien privoxy-blocklist.sh (`*.script.action|filter`).
         public var removeLegacyBlocklist = false
-        /// Faux : les fichiers KidSafe restent sur le disque mais ne sont plus chargés (filtrage en pause).
+        /// Faux : les fichiers de Yamoxy restent sur le disque mais ne sont plus chargés (filtrage en pause).
         public var active = true
         /// Éditeur d'actions de Privoxy (http://p.p) : ouvert seulement à la demande du parent (onglet Avancé).
         public var editActions = false
         /// Journal des requêtes bloquées (`debug 1024`), lu par l'onglet Avancé.
         public var logBlocked = false
-        /// KidSafe est fermé : Privoxy reste allumé en simple relais (`toggle 0`), listes toujours déclarées.
+        /// Yamoxy est fermé : Privoxy reste allumé en simple relais (`toggle 0`), listes toujours déclarées.
         /// Les apps qui ont mémorisé l'adresse du proxy à leur lancement gardent internet ; au lancement
-        /// suivant, KidSafe remet `toggle 1` sans rien réinstaller.
+        /// suivant, Yamoxy remet `toggle 1` sans rien réinstaller.
         public var relay = false
         public init(harden: Bool = true, removeLegacyBlocklist: Bool = false, active: Bool = true,
                     editActions: Bool = false, logBlocked: Bool = false, relay: Bool = false) {
@@ -54,7 +67,7 @@ public enum PrivoxyConfigEditor {
         }
     }
 
-    /// Directives imposées par KidSafe pour ces options.
+    /// Directives imposées par Yamoxy pour ces options.
     /// En pause, `toggle 0` : Privoxy transmet tout sans rien bloquer ni modifier, y compris
     /// ses propres règles (default.action), et http://p.p affiche « disabled ».
     static func directives(_ options: Options) -> [(String, String)] {
@@ -69,7 +82,7 @@ public enum PrivoxyConfigEditor {
         }
     }
 
-    /// Ajoute (ou remplace) le bloc KidSafe. `actionFiles` est dans l'ordre de chargement :
+    /// Ajoute (ou remplace) le bloc géré (celui de KidSafe compris). `actionFiles` est dans l'ordre de chargement :
     /// Privoxy applique les fichiers dans l'ordre, le dernier qui correspond l'emporte.
     public static func apply(actionFiles: [String], to config: String, options: Options = Options()) -> String {
         var lines = splitLines(remove(from: config))
@@ -91,7 +104,7 @@ public enum PrivoxyConfigEditor {
             }
         }
         block += imposed.map { "\($0.0) \($0.1)" }
-        if options.logBlocked { block.append("debug 1024   # KidSafe : journal des requêtes bloquées") }
+        if options.logBlocked { block.append("debug 1024   # Yamoxy : journal des requêtes bloquées") }
         block.append(endMarker)
 
         // Avant `actionsfile user.action` pour que l'utilisateur garde le dernier mot ;
@@ -108,15 +121,17 @@ public enum PrivoxyConfigEditor {
         return joinLines(lines)
     }
 
-    /// Retire le bloc KidSafe et restaure les directives mises en commentaire.
+    /// Retire le bloc géré (de Yamoxy ou de KidSafe) et restaure les directives mises en commentaire.
     public static func remove(from config: String) -> String {
         var out: [String] = []
         var inBlock = false
         for line in splitLines(config) {
-            if line == beginMarker { inBlock = true; continue }
-            if inBlock { if line == endMarker { inBlock = false }; continue }
+            if isBegin(line) { inBlock = true; continue }
+            if inBlock { if isEnd(line) { inBlock = false }; continue }
             if line.hasPrefix(disabledPrefix) {
                 out.append(String(line.dropFirst(disabledPrefix.count)))
+            } else if line.hasPrefix(legacyDisabledPrefix) {
+                out.append(String(line.dropFirst(legacyDisabledPrefix.count)))
             } else {
                 out.append(line)
             }
@@ -124,17 +139,17 @@ public enum PrivoxyConfigEditor {
         return joinLines(out)
     }
 
-    /// Vrai si le bloc KidSafe est présent et en pause.
+    /// Vrai si le bloc géré est présent et en pause.
     public static func isPaused(_ config: String) -> Bool {
-        config.contains("# " + pausedMarker)
+        config.contains("# " + pausedMarker) || config.contains("# " + legacyPausedMarker)
     }
 
-    /// Fichiers `actionsfile` actuellement déclarés dans le bloc KidSafe.
+    /// Fichiers `actionsfile` actuellement déclarés dans le bloc géré.
     public static func managedActionFiles(in config: String) -> [String] {
         var inBlock = false, files: [String] = []
         for line in splitLines(config) {
-            if line == beginMarker { inBlock = true; continue }
-            if line == endMarker { break }
+            if isBegin(line) { inBlock = true; continue }
+            if isEnd(line) { break }
             if inBlock, directiveName(line) == "actionsfile" {
                 files.append(line.split(whereSeparator: \.isWhitespace).dropFirst().joined(separator: " "))
             }

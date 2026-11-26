@@ -40,10 +40,10 @@ public enum Dashboard {
         let dayBars = s.perDay.map { (label: time($0.day, .dateTime.weekday(.abbreviated).day()), value: $0.count) }
 
         let stamp = time(d.generatedAt, .dateTime.day().month(.abbreviated).hour().minute())
-        // Bouton « Actualiser » : demande à KidSafe de réécrire ce fichier (lien kidsafe://), puis recharge la page.
+        // Bouton « Actualiser » : demande à Yamoxy de réécrire ce fichier (lien yamoxy://), puis recharge la page.
         var body = """
         <div class="snap"><span>\(esc(L("mon.snapshot", stamp)))</span>
-        <a class="btn" href="kidsafe://dashboard/refresh" title="\(esc(L("mon.refresh.help")))"
+        <a class="btn" href="yamoxy://dashboard/refresh" title="\(esc(L("mon.refresh.help")))"
            onclick="this.textContent='\(esc(L("mon.refreshing")))';setTimeout(function(){location.reload()},2500)">↻ \(esc(L("mon.refresh")))</a></div>
         <div class="tiles">\(tiles)</div>
         """
@@ -67,10 +67,10 @@ public enum Dashboard {
         return """
         <!doctype html><html lang="\(lang)"><head><meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>KidSafe — \(esc(L("mon.title")))</title>
+        <title>Yamoxy — \(esc(L("mon.title")))</title>
         <style>\(PageStyle.css)</style></head><body>
         \(PageStyle.header(title: esc(L("mon.title")),
-                           meta: esc(L("mon.generated", time(d.generatedAt, .dateTime.day().month().year().hour().minute()))) + " · KidSafe " + esc(d.version)))
+                           meta: esc(L("mon.generated", time(d.generatedAt, .dateTime.day().month().year().hour().minute()))) + " · Yamoxy " + esc(d.version)))
         <main>\(body)</main>
         <footer>\(esc(L("mon.footer")))</footer>
         </body></html>

@@ -84,7 +84,7 @@ public enum FirefoxPolicy {
     /// `defaults import` (ou `delete`) en administrateur : passe par cfprefsd, que Firefox lit au lancement.
     private static func write(_ prefs: [String: Any], prompt: String) -> String? {
         if prefs.isEmpty { return AdminShell.run([["/usr/bin/defaults", "delete", domainPath]], prompt: prompt) }
-        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-firefox-\(UUID().uuidString).plist")
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("yamoxy-firefox-\(UUID().uuidString).plist")
         defer { try? FileManager.default.removeItem(at: tmp) }
         do {
             let data = try PropertyListSerialization.data(fromPropertyList: prefs, format: .xml, options: 0)

@@ -37,7 +37,7 @@ struct MenuBarHint: View {
     @EnvironmentObject var model: AppModel
     var body: some View {
         HStack(spacing: 6) {
-            Image(systemName: model.isProtected ? "checkmark.shield.fill" : "exclamationmark.shield")
+            Image(nsImage: GeckoShape.symbol(active: model.isProtected, size: 14)).renderingMode(.template)
             Text(model.isProtected ? L("app.status.protected") : L("app.status.notProtected")).fontWeight(.semibold)
             Text("·")
             Text(L("app.hint.menuBar"))
@@ -430,6 +430,7 @@ struct GeneralTab: View {
             }
             Section(L("updates.section")) {
                 LabeledContent(L("updates.current")) { Text(model.appVersion) }
+                Text(.init(L("app.nameOrigin"))).font(.caption).foregroundStyle(.secondary)
                 if model.canCheckUpdates {
                     Toggle(L("updates.auto"), isOn: $model.autoUpdateCheck)
                     Toggle(L("autoupdate.toggle"), isOn: $model.autoInstallUpdates)

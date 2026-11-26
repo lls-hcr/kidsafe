@@ -1,4 +1,6 @@
-# KidSafe
+# Yamoxy
+
+*Anciennement KidSafe.* Yamoxy réunit *yamori* (家守), le gardien de la maison en japonais (c'est aussi le nom du gecko), et *proxy*, le relais par lequel passe la navigation.
 
 *[English](README.md)*
 
@@ -7,66 +9,66 @@ Contrôle parental pour macOS basé sur Privoxy : une app dans la barre de menus
 | Cible | Rôle |
 |---|---|
 | `KidSafeCore` | Lecture des listes, génération des fichiers Privoxy, installation avec test et retour arrière, catalogue, traductions |
-| `KidSafeApp` (produit `KidSafe`) | App SwiftUI de la barre de menus et fenêtre de réglages |
-| `kidsafe-blocklist` | CLI, qui remplace `privoxy-blocklist.sh` et `blocklist2privoxy.sh` |
+| `KidSafeApp` (produit `Yamoxy`) | App SwiftUI de la barre de menus et fenêtre de réglages |
+| `kidsafe-blocklist` (produit `yamoxy-blocklist`) | CLI, qui remplace `privoxy-blocklist.sh` et `blocklist2privoxy.sh` |
 
-L'app et la CLI partagent le même catalogue : `~/Library/Application Support/KidSafe/catalog.json`.
+L'app et la CLI partagent le même catalogue : `~/Library/Application Support/Yamoxy/catalog.json`.
 
 ## Installer et désinstaller (utilisateurs)
 
-Tout se fait depuis [`KidSafe.dmg`](https://github.com/lls-hcr/kidsafe/releases/latest/download/KidSafe.dmg), Privoxy est intégré :
+Tout se fait depuis [`Yamoxy.dmg`](https://github.com/lls-hcr/yamoxy/releases/latest/download/Yamoxy.dmg), Privoxy est intégré :
 
-1. Glissez **KidSafe** dans **Applications** et ouvrez-le. macOS demande de confirmer l'ouverture d'une app
-   téléchargée : cliquez sur **Ouvrir**. KidSafe est signé (Developer ID) et notarisé par Apple.
-2. C'est tout : au premier lancement, KidSafe active la protection tout seul (bouclier vert dans la barre de
+1. Glissez **Yamoxy** dans **Applications** et ouvrez-le. macOS demande de confirmer l'ouverture d'une app
+   téléchargée : cliquez sur **Ouvrir**. Yamoxy est signé (Developer ID) et notarisé par Apple.
+2. C'est tout : au premier lancement, Yamoxy active la protection tout seul (gecko dans la barre de
    menus). Sur un compte standard, macOS demande une fois le mot de passe administrateur.
-3. Mises à jour : KidSafe cherche les nouvelles versions chaque semaine (ou via « Rechercher des mises à jour… »)
+3. Mises à jour : Yamoxy cherche les nouvelles versions chaque semaine (ou via « Rechercher des mises à jour… »)
    et peut s'installer tout seul : téléchargement, vérification de l'empreinte SHA-256 publiée par GitHub,
    puis remplacement et relance. Les réglages sont conservés.
-4. Pour tout enlever : double-cliquez sur **Désinstaller KidSafe** dans le `.dmg` (ou Réglages → Général →
-   « Désinstaller KidSafe… »). Le mot de passe parent est demandé s'il existe.
+4. Pour tout enlever : double-cliquez sur **Désinstaller Yamoxy** dans le `.dmg` (ou Réglages → Général →
+   « Désinstaller Yamoxy… »). Le mot de passe parent est demandé s'il existe.
 
-Avec Homebrew : `brew tap lls-hcr/tap && brew trust lls-hcr/tap && brew install --cask kidsafe`.
+Avec Homebrew : `brew tap lls-hcr/tap && brew trust lls-hcr/tap && brew install --cask yamoxy`.
 
 ## Construire et lancer
 
 ```sh
 scripts/test.sh                      # tests (fonctionne avec les seuls Command Line Tools)
-scripts/build-app.sh                 # build/KidSafe.app pour ce Mac
+scripts/build-app.sh                 # build/Yamoxy.app pour ce Mac
 scripts/build-app.sh --universal     # Apple Silicon + Intel
-swift scripts/make-icon.swift Resources/AppIcon.png   # redessine l'icône (puis iconutil, voir l'historique git)
-open build/KidSafe.app
+cat Sources/KidSafeApp/GeckoShape.swift scripts/make-icon.swift | swift - Resources/AppIcon.png   # redessine l'icône (puis iconutil, voir l'historique git)
+open build/Yamoxy.app
 ```
 
 Privoxy intégré : `scripts/build-privoxy.sh` compile Privoxy 4.2.0 et PCRE2 depuis leurs sources (universel,
 `brew install autoconf` nécessaire sur la machine de construction). L'app l'installe dans
-`~/Library/Application Support/KidSafe/privoxy/` et l'écoute se fait sur `127.0.0.1:8128`, un port dédié.
+`~/Library/Application Support/Yamoxy/privoxy/` et l'écoute se fait sur `127.0.0.1:8128`, un port dédié.
 
 **Le Mac ne doit jamais perdre sa connexion** :
-- au lancement, KidSafe démarre son Privoxy intégré, puis remet
+- au lancement, Yamoxy démarre son Privoxy intégré, puis remet
   le proxy si le parent l'avait activé ;
-- en quittant, KidSafe retire d'abord le proxy, puis laisse Privoxy en simple relais (`toggle 0`, rien n'est
+- en quittant, Yamoxy retire d'abord le proxy, puis laisse Privoxy en simple relais (`toggle 0`, rien n'est
   bloqué) jusqu'à la fin de la session : les apps qui ont mémorisé l'adresse du proxy à leur lancement gardent
-  internet. KidSafe le reprend au lancement suivant ; le désinstalleur l'arrête. Si le proxy ne peut pas être
+  internet. Yamoxy le reprend au lancement suivant ; le désinstalleur l'arrête. Si le proxy ne peut pas être
   retiré, Privoxy reste allumé et filtre ;
-- toutes les 5 s, si le proxy pointe vers un Privoxy qui ne répond plus, KidSafe le relance ; s'il ne repart pas,
-  le proxy est retiré (puis remis quand Privoxy revient), sauf si le parent a choisi de couper internet quand KidSafe ne filtre pas ;
+- toutes les 5 s, si le proxy pointe vers un Privoxy qui ne répond plus, Yamoxy le relance ; s'il ne repart pas,
+  le proxy est retiré (puis remis quand Privoxy revient), sauf si le parent a choisi de couper internet quand Yamoxy ne filtre pas ;
 - seul le proxy 127.0.0.1:<port de Privoxy> est retiré : un proxy configuré par ailleurs n'est jamais touché ;
-- Réglages → Général → « Désinstaller KidSafe… » remet le Mac dans son état d'origine.
+- Réglages → Général → « Désinstaller Yamoxy… » remet le Mac dans son état d'origine.
 
 Développement : les variables `KIDSAFE_SUPPORT_DIR` et `KIDSAFE_PRIVOXY_CONF` isolent l'app de la vraie configuration.
 
 ## L'app
 
-- **Message « site bloqué »** : KidSafe affiche au centre de l'écran le site bloqué et la raison, quel que soit le navigateur ;
+- **Message « site bloqué »** : Yamoxy affiche au centre de l'écran le site bloqué et la raison, quel que soit le navigateur ;
   il disparaît au premier clic (publicités et pistage bloqués en arrière-plan non signalés).
-- **Protection contre les contournements** (avec un mot de passe parent) : couper internet quand KidSafe est fermé
+- **Protection contre les contournements** (avec un mot de passe parent) : couper internet quand Yamoxy est fermé
   sans le mot de passe (au lieu d'un accès sans filtre), verrouiller le proxy dans Firefox (règle officielle de Firefox,
-  mot de passe administrateur), proposition de bloquer VPN et proxys, arrêts inattendus de KidSafe signalés dans le moniteur.
+  mot de passe administrateur), proposition de bloquer VPN et proxys, arrêts inattendus de Yamoxy signalés dans le moniteur.
   Le guide d'utilisation détaille les limites et les parades (section « Limites »).
 - **Barre de menus** : état de la protection, interrupteur **Filtrage** (pause sans rien supprimer), **Désactivation temporaire** (30 s à 1 h, reprise automatique),
   résumé (catégories, réseaux sociaux bloqués en ce moment, domaines perso), « Mettre à jour les listes »,
-  « Réglages… », « Soutenir KidSafe » (si un lien est configuré), « Rechercher des mises à jour », « Quitter ».
+  « Réglages… », « Soutenir Yamoxy » (si un lien est configuré), « Rechercher des mises à jour », « Quitter ».
 - **Réglages** :
   - **Listes** : listes par thème (adultes : HaGeZi NSFW cochée par défaut, OISD NSFW, UT1 complète ; publicité et
     pistage : HaGeZi Pro, OISD Big ; arnaques et logiciels malveillants : HaGeZi Threat Intelligence Feeds ;
@@ -82,7 +84,7 @@ Développement : les variables `KIDSAFE_SUPPORT_DIR` et `KIDSAFE_PRIVOXY_CONF` i
     mot de passe parent, Privoxy et proxy, langue, don ;
   - bouton **Réglages par défaut…** dans les onglets Listes, Réseaux sociaux, Domaines et Général
     (le mot de passe et les protections restent).
-- **Moniteur** (menu du bouclier) : petite fenêtre flottante avec les compteurs en direct (requêtes filtrées,
+- **Moniteur** (menu du gecko) : petite fenêtre flottante avec les compteurs en direct (requêtes filtrées,
   bloquées, pourcentage, domaines dans les listes, dernier blocage) et un **mode détaillé** : page HTML locale
   autonome avec tuiles, graphiques par heure et par jour, domaines les plus bloqués, blocages par catégorie et
   derniers blocages. Rien ne tourne quand la fenêtre est fermée.
@@ -105,7 +107,7 @@ La CLI suit la langue du système ; `KIDSAFE_LANG=en` la force.
 ## CLI
 
 ```sh
-B=build/KidSafe.app/Contents/MacOS/kidsafe-blocklist
+B=build/Yamoxy.app/Contents/MacOS/yamoxy-blocklist
 $B lists
 $B enable ads
 $B level security normal                        # light | normal | strong
@@ -134,27 +136,27 @@ $B uninstall
 ## À faire
 
 - Helper root (LaunchDaemon installé par le .pkg) protégé par un mot de passe parent. Le catalogue passera
-  alors dans `/Library/Application Support/KidSafe`, où l'enfant ne peut rien modifier.
+  alors dans `/Library/Application Support/Yamoxy`, où l'enfant ne peut rien modifier.
 - Journal des sites bloqués, page de blocage locale.
 - Protections contre le contournement : compte enfant standard, profil qui verrouille le proxy, mot de passe parent.
 
 ## Publier une version de test
 
 ```sh
-scripts/make-dmg.sh        # build/KidSafe.dmg : app universelle + raccourci Applications + mode d'emploi
+scripts/make-dmg.sh        # build/Yamoxy.dmg : app universelle + raccourci Applications + mode d'emploi
                            # signé et notarisé si un certificat « Developer ID Application » et le profil
                            # notarytool « kidsafe-notary » sont dans le trousseau ; ad hoc sinon
 ```
 
-Joindre `build/KidSafe.dmg` à une Release GitHub. Le nom du fichier ne change pas, donc ce lien pointe
-toujours vers la dernière version : https://github.com/lls-hcr/kidsafe/releases/latest/download/KidSafe.dmg
+Joindre `build/Yamoxy.dmg` à une Release GitHub. Le nom du fichier ne change pas, donc ce lien pointe
+toujours vers la dernière version : https://github.com/lls-hcr/yamoxy/releases/latest/download/Yamoxy.dmg
 
 L'adresse e-mail de « Envoyer un avis… » se règle dans `scripts/local.env` (`KIDSAFE_FEEDBACK_EMAIL=…`),
 un fichier ignoré par git : elle n'apparaît pas dans le dépôt public.
 
 ## Licence
 
-KidSafe est distribué sous licence GNU GPL v3 (voir `LICENSE`). Privoxy est sous GPL v2 ou ultérieure ;
+Yamoxy est distribué sous licence GNU GPL v3 (voir `LICENSE`). Privoxy est sous GPL v2 ou ultérieure ;
 les listes de blocage gardent leur propre licence (indiquée dans le catalogue).
 
-Soutenir le projet : https://github.com/sponsors/lls-hcr · Page du projet : https://mizuki.ch/documentation/kidsafe/
+Soutenir le projet : https://github.com/sponsors/lls-hcr · Page du projet : https://mizuki.ch/documentation/yamoxy/

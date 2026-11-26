@@ -44,7 +44,7 @@ public enum AppUpdater {
         let fm = FileManager.default
         try? fm.removeItem(at: stagingDir)
         try fm.createDirectory(at: stagingDir, withIntermediateDirectories: true)
-        let dmg = stagingDir.appendingPathComponent("KidSafe.dmg")
+        let dmg = stagingDir.appendingPathComponent("Yamoxy.dmg")
 
         if url.isFileURL {
             try fm.copyItem(at: url, to: dmg)
@@ -88,6 +88,24 @@ public enum AppUpdater {
         return nil
     }
 
+    /// Yamoxy installé à la main (glissé depuis le .dmg) : l'ancienne `KidSafe.app` peut rester à côté.
+    /// Renvoie les copies à mettre à la corbeille : même identifiant, version plus ancienne, jamais l'app en cours.
+    public static func leftoverOldApps(current: URL, bundleID: String, version: String, in dirs: [URL]) -> [URL] {
+        let me = current.resolvingSymlinksInPath().standardizedFileURL.path
+        var found: [URL] = [], seen: Set<String> = []
+        for dir in dirs {
+            let candidate = dir.appendingPathComponent("KidSafe.app")
+            let path = candidate.resolvingSymlinksInPath().standardizedFileURL.path
+            guard path != me, seen.insert(path).inserted,
+                  let info = NSDictionary(contentsOf: candidate.appendingPathComponent("Contents/Info.plist")),
+                  info["CFBundleIdentifier"] as? String == bundleID,
+                  let old = info["CFBundleShortVersionString"] as? String,
+                  UpdateChecker.isNewer(version, than: old) else { continue }
+            found.append(candidate)
+        }
+        return found
+    }
+
     /// Team ID du développeur qui a signé l'app (`nil` : signature ad hoc ou absente).
     public static func teamID(of app: URL) -> String? {
         var code: SecStaticCode?
@@ -129,7 +147,7 @@ public enum AppUpdater {
         return """
         #!/bin/sh
         # Remplacement de l'app après sa fermeture, puis relance.
-        CUR=\(shellQuote(current.path)); NEW=\(shellQuote(staged.path)); DEST=\(shellQuote(dest.path)); OLD="$CUR.kidsafe-old"
+        CUR=\(shellQuote(current.path)); NEW=\(shellQuote(staged.path)); DEST=\(shellQuote(dest.path)); OLD="$CUR.yamoxy-old"
         i=0; while kill -0 \(pid) 2>/dev/null && [ $i -lt 120 ]; do sleep 0.5; i=$((i+1)); done
         [ "$DEST" != "$CUR" ] && [ -e "$DEST" ] && DEST="$CUR"
         rm -rf "$OLD"

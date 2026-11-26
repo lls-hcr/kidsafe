@@ -83,7 +83,7 @@
 "info.source" = "Adresse de la liste";
 "info.sources" = "Adresses des listes";
 "info.approx" = "environ %@ domaines";
-"info.custom" = "Liste ajoutée par vous. KidSafe ne connaît pas sa qualité : vérifiez qui la maintient et à quelle fréquence.";
+"info.custom" = "Liste ajoutée par vous. Yamoxy ne connaît pas sa qualité : vérifiez qui la maintient et à quelle fréquence.";
 "info.updates.hourly" = "toutes les heures";
 "info.updates.severalDaily" = "plusieurs fois par jour";
 "info.updates.daily" = "chaque jour";
@@ -112,9 +112,9 @@
 "info.stevenblack" = "Fichier hosts qui réunit plusieurs sources réputées (publicité et logiciels malveillants). Fiable, mais largement couvert par HaGeZi Pro ou OISD Big.";
 "info.stevenblack-porn" = "Contenus pour adultes, par StevenBlack (avec sa base publicité + malware). Couvert en grande partie par HaGeZi NSFW.";
 "info.stevenblack-gambling" = "Jeux d'argent, par StevenBlack (avec sa base publicité + malware).";
-"info.easylist" = "La liste de référence des bloqueurs de publicité de navigateur. KidSafe n'en garde que les règles de domaine : la plus grande partie (règles d'apparence, chemins d'adresse) ne s'applique pas.";
-"info.easyprivacy" = "La liste de référence contre le pistage des bloqueurs de navigateur. KidSafe n'en garde que les règles de domaine.";
-"info.liste-fr" = "Complément d'EasyList pour les sites francophones. KidSafe n'en garde que les règles de domaine.";
+"info.easylist" = "La liste de référence des bloqueurs de publicité de navigateur. Yamoxy n'en garde que les règles de domaine : la plus grande partie (règles d'apparence, chemins d'adresse) ne s'applique pas.";
+"info.easyprivacy" = "La liste de référence contre le pistage des bloqueurs de navigateur. Yamoxy n'en garde que les règles de domaine.";
+"info.liste-fr" = "Complément d'EasyList pour les sites francophones. Yamoxy n'en garde que les règles de domaine.";
 "info.adguard-dns" = "Version de la liste d'AdGuard faite pour bloquer par domaine (règles de domaine seulement). Elle complète bien HaGeZi Pro : un peu plus de la moitié de ses domaines n'y figurent pas.";
 "info.hagezi-apple" = "Domaines de télémétrie d'Apple (envoi de données d'utilisation). Peut gêner certaines fonctions (iCloud, App Store, mises à jour) : à essayer.";
 "info.hagezi-microsoft" = "Domaines de télémétrie de Microsoft Office et Windows. Peut gêner l'activation ou les mises à jour d'Office : à essayer.";
@@ -134,35 +134,35 @@
 
 /* CLI */
 "cli.usage" = "Utilisation :
-  kidsafe-blocklist convert [--id ID] [--name NOM] [-o SORTIE] FICHIER...
+  yamoxy-blocklist convert [--id ID] [--name NOM] [-o SORTIE] FICHIER...
       Convertit des listes locales (Adblock, hosts, domaines) en fichier .action Privoxy.
-  kidsafe-blocklist update [--catalog CATALOGUE.json] [--conf-dir DOSSIER] [--privoxy BINAIRE]
+  yamoxy-blocklist update [--catalog CATALOGUE.json] [--conf-dir DOSSIER] [--privoxy BINAIRE]
                            [--cache-dir DOSSIER] [--dry-run] [--remove-legacy]
       Télécharge les listes cochées, les installe dans Privoxy, teste la configuration
       et revient en arrière en cas d'erreur.
-  kidsafe-blocklist uninstall [--conf-dir DOSSIER]
-      Retire tout ce que KidSafe a ajouté à Privoxy.
-  kidsafe-blocklist lists [--catalog CATALOGUE.json]
-  kidsafe-blocklist enable|disable ID [--catalog CATALOGUE.json] [--yes]
+  yamoxy-blocklist uninstall [--conf-dir DOSSIER]
+      Retire tout ce que Yamoxy a ajouté à Privoxy.
+  yamoxy-blocklist lists [--catalog CATALOGUE.json]
+  yamoxy-blocklist enable|disable ID [--catalog CATALOGUE.json] [--yes]
       Coche ou décoche une liste (--yes : accepte l'avertissement d'une liste lourde).
-  kidsafe-blocklist level ID light|normal|strong [--catalog CATALOGUE.json] [--yes]
+  yamoxy-blocklist level ID light|normal|strong [--catalog CATALOGUE.json] [--yes]
       Taille d'une liste à niveaux (ads, security) : léger, normal ou renforcé.
-  kidsafe-blocklist library
+  yamoxy-blocklist library
       Listes gratuites supplémentaires que l'on peut ajouter.
-  kidsafe-blocklist add-list [--catalog CATALOGUE.json] --from-library ID
-  kidsafe-blocklist add-list [--catalog CATALOGUE.json] --name NOM --url https://… [--member CHEMIN] [--id ID]
-  kidsafe-blocklist add-list [--catalog CATALOGUE.json] --file FICHIER [--name NOM] [--id ID]
-  kidsafe-blocklist remove-list ID [--catalog CATALOGUE.json]
+  yamoxy-blocklist add-list [--catalog CATALOGUE.json] --from-library ID
+  yamoxy-blocklist add-list [--catalog CATALOGUE.json] --name NOM --url https://… [--member CHEMIN] [--id ID]
+  yamoxy-blocklist add-list [--catalog CATALOGUE.json] --file FICHIER [--name NOM] [--id ID]
+  yamoxy-blocklist remove-list ID [--catalog CATALOGUE.json]
       Ajoute ou supprime une liste personnelle ; elle est installée au prochain « update ».
-  kidsafe-blocklist default-catalog
-  kidsafe-blocklist dashboard [--conf-dir DOSSIER] [-o PAGE.html]
+  yamoxy-blocklist default-catalog
+  yamoxy-blocklist dashboard [--conf-dir DOSSIER] [-o PAGE.html]
       Génère la page détaillée du moniteur (statistiques).
-  kidsafe-blocklist pause | resume
+  yamoxy-blocklist pause | resume
       Met le filtrage en pause (sans rien supprimer) ou le reprend.
-  kidsafe-blocklist block DOMAINE | allow DOMAINE
+  yamoxy-blocklist block DOMAINE | allow DOMAINE
       Bloque ou autorise un domaine (pris en compte au prochain « update »).
 
-Sans --catalog, le catalogue de l'app est utilisé (~/Library/Application Support/KidSafe/catalog.json).
+Sans --catalog, le catalogue de l'app est utilisé (~/Library/Application Support/Yamoxy/catalog.json).
 Sans --conf-dir, Privoxy est cherché dans /usr/local/etc/privoxy puis /opt/homebrew/etc/privoxy.
 Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "cli.missingValue" = "Option %@ : valeur manquante.";
@@ -177,7 +177,7 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "cli.update.tested" = "Configuration validée par Privoxy.";
 "cli.update.notTested" = "⚠︎ Binaire Privoxy introuvable : configuration non testée.";
 "cli.update.failed" = "Échec, configuration d'origine restaurée : %@";
-"cli.uninstall.done" = "KidSafe retiré. Fichiers supprimés : %@";
+"cli.uninstall.done" = "Yamoxy retiré. Fichiers supprimés : %@";
 "cli.confirmWithYes" = "Relancez avec --yes pour l'activer quand même.";
 "cli.addList.imported" = "%@ domaines importés.";
 "cli.tag.custom" = "(perso)";
@@ -188,8 +188,8 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "app.add" = "Ajouter";
 "app.yes" = "Oui";
 "app.no" = "Non";
-"app.settings" = "Réglages KidSafe";
-"app.quit" = "Quitter KidSafe";
+"app.settings" = "Réglages Yamoxy";
+"app.quit" = "Quitter Yamoxy";
 "app.checkUpdates" = "Rechercher des mises à jour…";
 "app.updateNow" = "Mettre à jour les listes";
 "app.status.protected" = "Protection active";
@@ -200,7 +200,7 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "app.problem.noProxy" = "Le proxy du Mac n'utilise pas Privoxy.";
 "app.proxy.configure" = "Configurer";
 "app.proxy.remove" = "Retirer le proxy";
-"app.proxy.adminPrompt" = "KidSafe veut régler le proxy du Mac pour activer le filtrage.";
+"app.proxy.adminPrompt" = "Yamoxy veut régler le proxy du Mac pour activer le filtrage.";
 "app.error.noPrivoxy" = "Privoxy est introuvable : installez-le d'abord.";
 "app.error.proxy" = "Le proxy n'a pas pu être réglé : %@";
 "app.strict.active" = "Mode strict : seuls les %d sites de la liste blanche sont autorisés.";
@@ -225,7 +225,7 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "app.addFile.panelMessage" = "Choisissez un fichier texte : Adblock, hosts ou un domaine par ligne.";
 "app.addFile.choose" = "Choisir";
 "app.addFile.nameTitle" = "Nom de la liste";
-"app.addFile.nameMessage" = "Ce nom sera affiché dans KidSafe.";
+"app.addFile.nameMessage" = "Ce nom sera affiché dans Yamoxy.";
 "app.addFile.done" = "%@ domaines importés dans « %@ ». La liste est activée.";
 "app.alert.heavy.title" = "Activer « %@ » ?";
 "app.alert.heavy.enable" = "Activer quand même";
@@ -261,9 +261,9 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "action.header.customCount" = "%d domaines";
 "action.reason.custom" = "site bloqué par le parent";
 "action.header.services" = "réseaux sociaux bloqués en ce moment";
-"action.header.servicesNote" = "Réécrit par l'app KidSafe à chaque changement de plage horaire. Ne pas modifier.";
+"action.header.servicesNote" = "Réécrit par l'app Yamoxy à chaque changement de plage horaire. Ne pas modifier.";
 "app.lock.title" = "Mot de passe parent";
-"app.lock.message" = "Saisissez le mot de passe parent pour modifier KidSafe.";
+"app.lock.message" = "Saisissez le mot de passe parent pour modifier Yamoxy.";
 "app.lock.unlock" = "Déverrouiller";
 "app.lock.lockNow" = "Verrouiller maintenant";
 "app.lock.banner" = "Réglages verrouillés : toute modification demande le mot de passe parent.";
@@ -291,9 +291,9 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "app.menu.noSocial" = "Aucun réseau social bloqué en ce moment";
 "app.menu.social" = "Bloqués en ce moment : %@";
 "app.menu.customDomains" = "%d domaine(s) bloqué(s) à la main";
-"app.donate" = "Soutenir KidSafe (don)";
+"app.donate" = "Soutenir Yamoxy (don)";
 "app.donate.section" = "Soutenir le projet";
-"app.donate.help" = "KidSafe est gratuit. Si l'app vous est utile, vous pouvez aider à son développement par un don.";
+"app.donate.help" = "Yamoxy est gratuit. Si l'app vous est utile, vous pouvez aider à son développement par un don.";
 "app.tab.social" = "Réseaux sociaux";
 "app.tab.domains" = "Domaines";
 "app.social.help" = "Pour chaque réseau : autorisé, toujours bloqué, bloqué pendant certaines plages (par ex. la nuit), ou autorisé seulement pendant certaines plages (par ex. le mercredi après-midi).";
@@ -323,83 +323,84 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "cli.badPassword" = "Mot de passe incorrect.";
 "cli.paused" = "Filtrage en pause.";
 "cli.resumed" = "Filtrage repris.";
-"app.login.toggle" = "Ouvrir KidSafe au démarrage du Mac";
-"app.login.help" = "KidSafe s'ouvre à chaque ouverture de session, avec son filtrage : sans lui, le Mac n'est pas filtré et les plages horaires ne s'appliquent pas.";
+"app.login.toggle" = "Ouvrir Yamoxy au démarrage du Mac";
+"app.login.help" = "Yamoxy s'ouvre à chaque ouverture de session, avec son filtrage : sans lui, le Mac n'est pas filtré et les plages horaires ne s'appliquent pas.";
 "app.general.notify" = "Message à l’écran quand un site est bloqué";
-"app.general.notifyHelp" = "Sur la plupart des sites, le navigateur affiche son propre message d’erreur (« connexion refusée par le serveur proxy »). KidSafe affiche alors au centre de l’écran le site et la raison ; le message disparaît au premier clic. Les publicités et le pistage bloqués en arrière-plan ne sont pas signalés, et un même site au plus une fois toutes les 10 minutes.";
-"splash.title" = "Site bloqué par KidSafe";
+"app.general.notifyHelp" = "Sur la plupart des sites, le navigateur affiche son propre message d’erreur (« connexion refusée par le serveur proxy »). Yamoxy affiche alors au centre de l’écran le site et la raison ; le message disparaît au premier clic. Les publicités et le pistage bloqués en arrière-plan ne sont pas signalés, et un même site au plus une fois toutes les 10 minutes.";
+"splash.title" = "Site bloqué par Yamoxy";
 "splash.reason" = "Raison : %@";
 "splash.dismiss" = "Cliquez n’importe où pour fermer";
 "splash.settingsNote" = "Ces messages peuvent être désactivés dans Réglages → Général.";
 "adv.log.neededByNotifications" = "Toujours activé tant que le message « site bloqué » l’est (onglet Général).";
 "app.login.approvalTitle" = "Autorisation de macOS nécessaire";
-"app.login.approvalMessage" = "macOS demande votre accord : dans Réglages Système → Général → Ouverture, autorisez KidSafe.";
+"app.login.approvalMessage" = "macOS demande votre accord : dans Réglages Système → Général → Ouverture, autorisez Yamoxy.";
 "app.login.openSettings" = "Ouvrir les Réglages Système";
 "app.login.error" = "Impossible de régler l'ouverture au démarrage : %@";
-"app.hint.menuBar" = "KidSafe tourne dans la barre de menus (bouclier). Cette fenêtre peut être fermée ; un double-clic sur l’app la rouvre.";
+"app.hint.menuBar" = "Yamoxy tourne dans la barre de menus (gecko). Cette fenêtre peut être fermée ; un double-clic sur l’app la rouvre.";
 "app.menu.on" = "Activé";
 "app.menu.off" = "En pause";
 "app.menu.testPrivoxy" = "Tester Privoxy (http://p.p)";
 "app.feedback" = "Envoyer un avis…";
 "app.feedback.email" = "Par e-mail";
 "app.feedback.github" = "Sur GitHub (problème ou idée)";
-"app.feedback.subject" = "KidSafe %@ : mon avis";
-"app.feedback.body" = "Bonjour,\n\n(Votre message : ce qui marche, ce qui ne marche pas, vos idées…)\n\n\n---\nKidSafe %@ · macOS %@";
+"app.feedback.subject" = "Yamoxy %@ : mon avis";
+"app.feedback.body" = "Bonjour,\n\n(Votre message : ce qui marche, ce qui ne marche pas, vos idées…)\n\n\n---\nYamoxy %@ · macOS %@";
 "app.menu.website" = "Site du projet (mizuki.ch)";
 "app.menu.source" = "Code source (GitHub)";
-"app.proxy.adminPromptOff" = "KidSafe veut retirer le proxy du Mac pour que la connexion fonctionne sans Privoxy.";
-"app.error.privoxyStart" = "Privoxy n’a pas pu démarrer. Réinstallez KidSafe depuis le .dmg si le problème persiste.";
+"app.proxy.adminPromptOff" = "Yamoxy veut retirer le proxy du Mac pour que la connexion fonctionne sans Privoxy.";
+"app.error.privoxyStart" = "Privoxy n’a pas pu démarrer. Réinstallez Yamoxy depuis le .dmg si le problème persiste.";
 "app.error.proxyAuto" = "Le proxy du Mac n'a pas pu être remis automatiquement : cliquez sur « Configurer ».";
-"app.safety.removed" = "Privoxy ne répondait plus : KidSafe a retiré le proxy du Mac pour que la connexion reste disponible (le filtrage est suspendu). Il sera remis dès que Privoxy redémarrera.";
+"app.safety.removed" = "Privoxy ne répondait plus : Yamoxy a retiré le proxy du Mac pour que la connexion reste disponible (le filtrage est suspendu). Il sera remis dès que Privoxy redémarrera.";
 "app.uninstall.section" = "Désinstaller";
-"app.uninstall.help" = "Retire le proxy du Mac, arrête Privoxy, enlève KidSafe de la configuration de Privoxy et de l'ouverture au démarrage, supprime les réglages et place l'app dans la corbeille. Privoxy lui-même reste installé.";
-"app.uninstall.button" = "Désinstaller KidSafe…";
-"app.uninstall.title" = "Désinstaller KidSafe ?";
-"app.uninstall.message" = "Le filtrage sera arrêté et tous les réglages KidSafe (listes, réseaux sociaux, domaines, mot de passe) seront supprimés. La connexion du Mac redevient normale.";
+"app.uninstall.help" = "Retire le proxy du Mac, arrête Privoxy, enlève Yamoxy de la configuration de Privoxy et de l'ouverture au démarrage, supprime les réglages et place l'app dans la corbeille. Privoxy lui-même reste installé.";
+"app.uninstall.button" = "Désinstaller Yamoxy…";
+"app.uninstall.title" = "Désinstaller Yamoxy ?";
+"app.uninstall.message" = "Le filtrage sera arrêté et tous les réglages Yamoxy (listes, réseaux sociaux, domaines, mot de passe) seront supprimés. La connexion du Mac redevient normale.";
 "app.uninstall.ok" = "Désinstaller";
 "app.uninstall.proxyFailed" = "Le proxy du Mac n'a pas pu être retiré (%@). Rien n'a été désinstallé, pour ne pas couper la connexion.";
-"app.uninstall.done" = "KidSafe est désinstallé et se trouve dans la corbeille. La connexion du Mac fonctionne normalement.";
-"uninstaller.message" = "KidSafe va être entièrement retiré : le filtre est enlevé, Privoxy arrêté, les réglages supprimés et l'app placée dans la corbeille. La connexion du Mac redevient normale.";
-"uninstaller.password" = "Un mot de passe parent protège KidSafe. Saisissez-le pour désinstaller.";
-"uninstaller.badPassword" = "Mot de passe incorrect. KidSafe n'a pas été désinstallé.";
-"uninstaller.doneTitle" = "KidSafe est désinstallé";
-"uninstaller.done" = "Le Mac est revenu à son état d'origine et KidSafe est dans la corbeille. Vous pouvez éjecter le disque KidSafe.";
-"updates.section" = "Mises à jour de KidSafe";
+"app.uninstall.done" = "Yamoxy est désinstallé et se trouve dans la corbeille. La connexion du Mac fonctionne normalement.";
+"uninstaller.message" = "Yamoxy va être entièrement retiré : le filtre est enlevé, Privoxy arrêté, les réglages supprimés et l'app placée dans la corbeille. La connexion du Mac redevient normale.";
+"uninstaller.password" = "Un mot de passe parent protège Yamoxy. Saisissez-le pour désinstaller.";
+"uninstaller.badPassword" = "Mot de passe incorrect. Yamoxy n'a pas été désinstallé.";
+"uninstaller.doneTitle" = "Yamoxy est désinstallé";
+"uninstaller.done" = "Le Mac est revenu à son état d'origine et Yamoxy est dans la corbeille. Vous pouvez éjecter le disque Yamoxy.";
+"app.nameOrigin" = "Yamoxy (anciennement KidSafe) réunit *yamori* (家守), le gardien de la maison en japonais, et *proxy*, le relais par lequel passe la navigation.";
+"updates.section" = "Mises à jour de Yamoxy";
 "updates.current" = "Version installée";
 "updates.auto" = "Rechercher automatiquement les nouvelles versions (une fois par semaine)";
 "updates.checkNow" = "Rechercher maintenant";
 "updates.lastCheck" = "Dernière vérification : %@";
 "updates.menuAvailable" = "Nouvelle version disponible : %@";
-"updates.upToDate" = "KidSafe est à jour (version %@).";
+"updates.upToDate" = "Yamoxy est à jour (version %@).";
 "updates.error" = "Impossible de vérifier les mises à jour pour le moment.\n\n%@";
 "updates.error.response" = "réponse inattendue de GitHub";
-"updates.available.title" = "KidSafe %@ est disponible";
-"updates.available.message" = "Vous utilisez la version %@.\n\nPour mettre à jour : téléchargez le .dmg, quittez KidSafe, puis glissez la nouvelle version dans Applications et choisissez « Remplacer ». Vos réglages sont conservés.";
+"updates.available.title" = "Yamoxy %@ est disponible";
+"updates.available.message" = "Vous utilisez la version %@.\n\nPour mettre à jour : téléchargez le .dmg, quittez Yamoxy, puis glissez la nouvelle version dans Applications et choisissez « Remplacer ». Vos réglages sont conservés.";
 "updates.download" = "Télécharger";
 "updates.notes" = "Notes de version";
 "updates.later" = "Plus tard";
 "autoupdate.install" = "Installer et relancer";
-"autoupdate.message" = "Vous utilisez la version %@.\n\nKidSafe peut se mettre à jour tout seul : il télécharge la nouvelle version, vérifie son empreinte, puis se ferme et se relance. Le filtre est interrompu quelques secondes. Vos réglages sont conservés.";
+"autoupdate.message" = "Vous utilisez la version %@.\n\nYamoxy peut se mettre à jour tout seul : il télécharge la nouvelle version, vérifie son empreinte, puis se ferme et se relance. Le filtre est interrompu quelques secondes. Vos réglages sont conservés.";
 "autoupdate.toggle" = "Installer automatiquement les nouvelles versions";
-"autoupdate.cannot" = "Installation automatique impossible ici : déplacez KidSafe dans le dossier Applications.";
+"autoupdate.cannot" = "Installation automatique impossible ici : déplacez Yamoxy dans le dossier Applications.";
 "autoupdate.installing" = "Installation de la mise à jour…";
 "autoupdate.failed" = "La mise à jour n'a pas pu être installée : %@\n\nVous pouvez la télécharger et l'installer à la main.";
-"autoupdate.done" = "KidSafe a été mis à jour en version %@ (depuis la %@).";
+"autoupdate.done" = "Yamoxy a été mis à jour en version %@ (depuis la %@).";
 "autoupdate.error.noChecksum" = "empreinte de vérification absente de la publication";
 "autoupdate.error.noDownload" = "téléchargement impossible";
 "autoupdate.error.checksum" = "le fichier téléchargé ne correspond pas à l'empreinte publiée (installation annulée par sécurité)";
-"autoupdate.error.notKidSafe" = "le fichier téléchargé ne contient pas KidSafe";
+"autoupdate.error.notYamoxy" = "le fichier téléchargé ne contient pas Yamoxy";
 "autoupdate.error.notNewer" = "la version téléchargée (%@) n'est pas plus récente";
 "autoupdate.error.notWritable" = "impossible de remplacer %@ (droits insuffisants)";
-"autoupdate.error.signer" = "la nouvelle version n'est pas signée par le développeur de KidSafe (installation annulée par sécurité)";
-"app.welcome.enabled" = "Bienvenue dans KidSafe ! La protection est activée : le Mac passe maintenant par le filtre (bouclier vert dans la barre de menus).\n\nPar défaut, les contenus pour adultes sont bloqués. Réglez les catégories, les réseaux sociaux et un mot de passe parent dans Réglages.\n\nPour retirer le filtre : Réglages → Général → « Retirer le proxy », ou quittez KidSafe.";
+"autoupdate.error.signer" = "la nouvelle version n'est pas signée par le développeur de Yamoxy (installation annulée par sécurité)";
+"app.welcome.enabled" = "Bienvenue dans Yamoxy ! La protection est activée : le Mac passe maintenant par le filtre (gecko dans la barre de menus).\n\nPar défaut, les contenus pour adultes sont bloqués. Réglez les catégories, les réseaux sociaux et un mot de passe parent dans Réglages.\n\nPour retirer le filtre : Réglages → Général → « Retirer le proxy », ou quittez Yamoxy.";
 "adv.tab" = "Avancé";
 "adv.warning" = "Réglages pour utilisateurs avertis : une erreur peut couper la connexion du Mac ou désactiver le filtrage. Chaque modification demande le mot de passe parent.";
 "adv.privoxy" = "Privoxy";
 "adv.port" = "Port";
 "adv.apply" = "Appliquer";
-"adv.port.help" = "KidSafe choisit automatiquement un autre port si celui-ci est déjà utilisé par un autre programme. Changer le port redémarre Privoxy et met à jour le proxy du Mac.";
-"adv.port.auto" = "Le port %d était utilisé par un autre programme : KidSafe utilise maintenant le port %d.";
+"adv.port.help" = "Yamoxy choisit automatiquement un autre port si celui-ci est déjà utilisé par un autre programme. Changer le port redémarre Privoxy et met à jour le proxy du Mac.";
+"adv.port.auto" = "Le port %d était utilisé par un autre programme : Yamoxy utilise maintenant le port %d.";
 "adv.port.invalid" = "Port invalide : choisissez un nombre entre 1024 et 65535.";
 "adv.port.busy" = "Le port %d est déjà utilisé par un autre programme.";
 "adv.status" = "État de Privoxy";
@@ -407,19 +408,19 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "adv.restart" = "Redémarrer Privoxy";
 "adv.reset" = "Réinitialiser…";
 "adv.reset.title" = "Réinitialiser la configuration de Privoxy ?";
-"adv.reset.message" = "Les fichiers de Privoxy, dont vos règles personnelles (user.action), reprennent leur état d'origine. Les listes, réseaux sociaux, domaines et réglages de KidSafe sont conservés.";
+"adv.reset.message" = "Les fichiers de Privoxy, dont vos règles personnelles (user.action), reprennent leur état d'origine. Les listes, réseaux sociaux, domaines et réglages de Yamoxy sont conservés.";
 "adv.reset.ok" = "Réinitialiser";
 "adv.reset.done" = "La configuration de Privoxy a été réinitialisée.";
 "adv.editor" = "Éditeur de Privoxy";
 "adv.editor.toggle" = "Autoriser la modification des règles dans le navigateur (http://p.p)";
 "adv.editor.until" = "Ouvert jusqu'à %@, puis refermé automatiquement.";
 "adv.editor.open" = "Ouvrir l'éditeur";
-"adv.editor.help" = "L'éditeur de Privoxy n'a pas de mot de passe : tant qu'il est ouvert, toute personne utilisant ce Mac peut retirer des blocages depuis le navigateur. Il se referme tout seul après une heure. Les fichiers KidSafe (kidsafe-…) sont réécrits à chaque mise à jour des listes : modifiez plutôt user.action.";
+"adv.editor.help" = "L'éditeur de Privoxy n'a pas de mot de passe : tant qu'il est ouvert, toute personne utilisant ce Mac peut retirer des blocages depuis le navigateur. Il se referme tout seul après une heure. Les fichiers Yamoxy (yamoxy-…) sont réécrits à chaque mise à jour des listes : modifiez plutôt user.action.";
 "adv.editor.confirmTitle" = "Ouvrir l'éditeur de Privoxy ?";
-"adv.editor.confirmMessage" = "Pendant une heure, toute personne utilisant ce Mac pourra modifier les règles de filtrage depuis le navigateur, sans mot de passe, et donc contourner KidSafe.";
+"adv.editor.confirmMessage" = "Pendant une heure, toute personne utilisant ce Mac pourra modifier les règles de filtrage depuis le navigateur, sans mot de passe, et donc contourner Yamoxy.";
 "adv.editor.enable" = "Ouvrir pour une heure";
 "adv.userAction" = "Mes règles Privoxy (user.action)";
-"adv.userAction.help" = "Règles personnelles au format Privoxy, appliquées après celles de KidSafe et conservées lors des mises à jour. Une copie de sauvegarde est faite avant chaque modification.";
+"adv.userAction.help" = "Règles personnelles au format Privoxy, appliquées après celles de Yamoxy et conservées lors des mises à jour. Une copie de sauvegarde est faite avant chaque modification.";
 "adv.userAction.edit" = "Modifier user.action…";
 "adv.userAction.check" = "Vérifier et appliquer mes modifications";
 "adv.userAction.ok" = "Vos règles sont valides et appliquées.";
@@ -460,7 +461,7 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "mon.col.freq" = "Fréquence";
 "mon.col.time" = "Heure";
 "mon.generated" = "Généré le %@";
-"mon.footer" = "Page générée par KidSafe sur ce Mac, à partir du journal des sites bloqués. Aucune donnée n'est envoyée.";
+"mon.footer" = "Page générée par Yamoxy sur ce Mac, à partir du journal des sites bloqués. Aucune donnée n'est envoyée.";
 "mon.cat.other" = "Autres (journal antérieur, règles perso)";
 "mon.socialNow" = "Réseaux bloqués maintenant";
 "mon.last" = "Dernier blocage";
@@ -474,12 +475,12 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 "mon.error" = "La page détaillée n'a pas pu être créée.";
 "guide.title" = "Guide d'utilisation";
 "guide.menu" = "Guide d'utilisation";
-"guide.footer" = "Guide de KidSafe, sur ce Mac. Une question ? Menu du bouclier → Envoyer un avis…";
+"guide.footer" = "Guide de Yamoxy, sur ce Mac. Une question ? Menu du gecko → Envoyer un avis…";
 "guide.zoom" = "Cliquer pour agrandir";
 "mon.snapshot" = "Instantané du %@ · les chiffres ne changent pas tout seuls";
 "mon.refresh" = "Actualiser";
 "mon.refreshing" = "Actualisation…";
-"mon.refresh.help" = "Demande à KidSafe de recréer cette page avec les chiffres du moment. Si le navigateur demande d'ouvrir KidSafe, acceptez.";
+"mon.refresh.help" = "Demande à Yamoxy de recréer cette page avec les chiffres du moment. Si le navigateur demande d'ouvrir Yamoxy, acceptez.";
 "mon.logged7" = "Blocages enregistrés (7 jours)";
 "mon.logged7.sub" = "d'après le journal des sites bloqués";
 "mon.fromLog" = "Graphiques et tableaux : d'après le journal des sites bloqués (7 derniers jours). Tuiles « requêtes » : depuis le démarrage de Privoxy.";
@@ -488,45 +489,45 @@ Langue : celle du système, ou KIDSAFE_LANG=fr|en.";
 
 /* 0.7.2 : protection contre les contournements */
 "protect.section" = "Protection contre les contournements";
-"protect.blockWhenClosed" = "Couper internet quand KidSafe est fermé";
-"protect.blockWhenClosedHelp" = "Si KidSafe est fermé sans le mot de passe (ouverture au démarrage désactivée, déconnexion, arrêt forcé), aucun site ne s'ouvre au lieu d'un accès sans filtre. « Quitter » avec le mot de passe rétablit internet. Sur un Mac à plusieurs comptes, les comptes où KidSafe n'est pas ouvert n'ont pas internet tant que le proxy est en place (voir le guide, « Limites »).";
-"protect.needsPassword" = "Nécessite un mot de passe parent : sans lui, n'importe qui peut quitter KidSafe depuis le menu.";
-"protect.limitsNote" = "KidSafe ne peut pas tout empêcher, surtout si l'enfant a un compte administrateur. Le guide d'utilisation détaille les limites et les parades (section « Limites »).";
+"protect.blockWhenClosed" = "Couper internet quand Yamoxy est fermé";
+"protect.blockWhenClosedHelp" = "Si Yamoxy est fermé sans le mot de passe (ouverture au démarrage désactivée, déconnexion, arrêt forcé), aucun site ne s'ouvre au lieu d'un accès sans filtre. « Quitter » avec le mot de passe rétablit internet. Sur un Mac à plusieurs comptes, les comptes où Yamoxy n'est pas ouvert n'ont pas internet tant que le proxy est en place (voir le guide, « Limites »).";
+"protect.needsPassword" = "Nécessite un mot de passe parent : sans lui, n'importe qui peut quitter Yamoxy depuis le menu.";
+"protect.limitsNote" = "Yamoxy ne peut pas tout empêcher, surtout si l'enfant a un compte administrateur. Le guide d'utilisation détaille les limites et les parades (section « Limites »).";
 "protect.offer.title" = "Renforcer la protection ?";
 "protect.offer.message" = "Ces réglages ferment les contournements les plus simples. Vous pourrez les modifier dans Réglages → Général.";
 "protect.offer.bypass" = "Bloquer les moyens de contournement (VPN, proxys, DNS chiffré)";
-"protect.offer.blockWhenClosed" = "Couper internet quand KidSafe est fermé sans le mot de passe";
+"protect.offer.blockWhenClosed" = "Couper internet quand Yamoxy est fermé sans le mot de passe";
 "protect.offer.firefox" = "Verrouiller le proxy dans Firefox (mot de passe administrateur)";
 "protect.offer.apply" = "Appliquer";
 "protect.offer.later" = "Plus tard";
-"app.safety.kept" = "Privoxy ne répond plus et ne redémarre pas. Comme vous avez choisi de couper internet quand KidSafe ne filtre pas, le proxy reste en place : aucun site ne s'ouvre. Pour rétablir internet : Quitter KidSafe (avec le mot de passe), puis le rouvrir.";
+"app.safety.kept" = "Privoxy ne répond plus et ne redémarre pas. Comme vous avez choisi de couper internet quand Yamoxy ne filtre pas, le proxy reste en place : aucun site ne s'ouvre. Pour rétablir internet : Quitter Yamoxy (avec le mot de passe), puis le rouvrir.";
 
 "firefox.lock" = "Verrouiller…";
 "firefox.unlock" = "Retirer la règle…";
 "firefox.locked" = "Proxy verrouillé";
 "firefox.unlocked" = "Non verrouillé";
 "firefox.help" = "Firefox peut ignorer le proxy du Mac (Paramètres → Réseau → « Pas de proxy »). La règle officielle de Firefox l'oblige à utiliser le proxy du système, pour tous les comptes. macOS demande le mot de passe administrateur. Relancez Firefox pour l'appliquer.";
-"firefox.adminPrompt" = "KidSafe veut obliger Firefox à utiliser le proxy du Mac.";
-"firefox.adminPromptOff" = "KidSafe veut retirer sa règle de Firefox.";
+"firefox.adminPrompt" = "Yamoxy veut obliger Firefox à utiliser le proxy du Mac.";
+"firefox.adminPromptOff" = "Yamoxy veut retirer sa règle de Firefox.";
 "firefox.done" = "Firefox utilisera toujours le proxy du Mac. Si Firefox est ouvert, quittez-le et rouvrez-le. La règle est visible à l'adresse about:policies.";
 "firefox.error" = "La règle de Firefox n'a pas pu être modifiée : %@";
 
-"event.unexpectedStop" = "KidSafe s'est arrêté de façon inattendue (vers %@) et a été relancé le %@. Arrêt forcé, plantage ou coupure de courant.";
-"event.loginItemDisabled" = "L'ouverture de KidSafe au démarrage a été désactivée dans Réglages Système (constaté le %@).";
+"event.unexpectedStop" = "Yamoxy s'est arrêté de façon inattendue (vers %@) et a été relancé le %@. Arrêt forcé, plantage ou coupure de courant.";
+"event.loginItemDisabled" = "L'ouverture de Yamoxy au démarrage a été désactivée dans Réglages Système (constaté le %@).";
 "mon.events" = "Événements";
-"mon.events.none" = "Aucun événement : KidSafe ne s'est jamais arrêté de façon inattendue.";
+"mon.events.none" = "Aucun événement : Yamoxy ne s'est jamais arrêté de façon inattendue.";
 "mon.events.more" = "(+ %d autres : voir le mode détaillé)";
 
 /* 0.7.2 : mot de passe oublié, retour au fonctionnement sans mot de passe */
 "app.lock.forgot" = "Mot de passe oublié ?";
-"app.lock.forgotPrompt" = "Pour réinitialiser le mot de passe parent de KidSafe, saisissez le nom et le mot de passe d'un administrateur de ce Mac.";
+"app.lock.forgotPrompt" = "Pour réinitialiser le mot de passe parent de Yamoxy, saisissez le nom et le mot de passe d'un administrateur de ce Mac.";
 "app.lock.forgotFailed" = "L'authentification administrateur a échoué. Le mot de passe parent n'a pas été modifié.";
 "app.lock.resetTitle" = "Réinitialiser le mot de passe parent";
 "app.lock.resetMessage" = "Administrateur vérifié. Choisissez un nouveau mot de passe parent, ou supprimez-le.";
 "app.lock.resetNew" = "Nouveau mot de passe…";
-"uninstaller.forgotPrompt" = "Pour désinstaller KidSafe sans le mot de passe parent, saisissez le nom et le mot de passe d'un administrateur de ce Mac.";
+"uninstaller.forgotPrompt" = "Pour désinstaller Yamoxy sans le mot de passe parent, saisissez le nom et le mot de passe d'un administrateur de ce Mac.";
 "protect.cleanup.title" = "Désactiver aussi les protections ajoutées ?";
-"protect.cleanup.message" = "Sans mot de passe parent, KidSafe retrouve son fonctionnement normal. Décochez ce que vous voulez garder.";
+"protect.cleanup.message" = "Sans mot de passe parent, Yamoxy retrouve son fonctionnement normal. Décochez ce que vous voulez garder.";
 "protect.cleanup.bypass" = "Ne plus bloquer les VPN et proxys (catégorie Contournement)";
 "protect.cleanup.firefox" = "Retirer la règle Firefox (mot de passe administrateur)";
 "protect.cleanup.ok" = "Désactiver";

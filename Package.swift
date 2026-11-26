@@ -7,9 +7,9 @@ let package = Package(
     platforms: [.macOS(.v14)],
     products: [
         .library(name: "KidSafeCore", targets: ["KidSafeCore"]),
-        .executable(name: "kidsafe-blocklist", targets: ["kidsafe-blocklist"]),
-        .executable(name: "KidSafe", targets: ["KidSafeApp"]),
-        .executable(name: "KidSafeUninstaller", targets: ["KidSafeUninstaller"]),
+        .executable(name: "yamoxy-blocklist", targets: ["kidsafe-blocklist"]),
+        .executable(name: "Yamoxy", targets: ["KidSafeApp"]),
+        .executable(name: "YamoxyUninstaller", targets: ["KidSafeUninstaller"]),
     ],
     targets: [
         .target(name: "KidSafeCore", resources: [.process("Resources")]),

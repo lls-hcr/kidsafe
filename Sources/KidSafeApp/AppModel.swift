@@ -126,6 +126,12 @@ final class AppModel: ObservableObject {
         let saved = Language(rawValue: AppModel.prefs.string(forKey: "language") ?? "") ?? .system
         Localization.forcedLanguage = saved == .system ? nil : saved.rawValue
         language = saved
+        // Premier lancement sous le nom Yamoxy : une ancienne copie encore ouverte (KidSafe.app) est quittée
+        // (elle retire son proxy), puis le dossier de KidSafe est déplacé (en cas d'échec, il reste utilisé).
+        if Self.env["KIDSAFE_SUPPORT_DIR"] == nil, Self.env["KIDSAFE_SCREENSHOTS"] == nil {
+            Self.quitOtherCopies()
+            if case .failed(let why) = KidSafePaths.migrateLegacy() { NSLog("Yamoxy : dossier de KidSafe non déplacé (%@)", why) }
+        }
         engine = KidSafeEngine(paths: Self.env["KIDSAFE_SUPPORT_DIR"].map { KidSafePaths(supportDir: URL(fileURLWithPath: $0)) } ?? .user)
         catalog = (try? engine.loadCatalog()) ?? .default
         status = engine.loadStatus()
@@ -383,11 +389,54 @@ final class AppModel: ObservableObject {
         }
         Heartbeat.beat(heartbeatFile)
         heartbeatStarted = true
+        trashLeftoverOldApp()
+        reRegisterLoginItemIfMoved()
         noteLoginItemStatus(SMAppService.mainApp.status)
         loadEvents()
     }
 
     func loadEvents() { recentEvents = EventLog.recent(eventsFile) }
+
+    /// Autre copie de l'app encore ouverte (ex. KidSafe.app à côté de Yamoxy.app, installée à la main) : quittée
+    /// proprement, au plus 10 s d'attente. Deux copies se disputeraient Privoxy et le dossier de l'app.
+    private static func quitOtherCopies() {
+        guard let id = Bundle.main.bundleIdentifier else { return }
+        let me = Bundle.main.bundleURL.standardizedFileURL
+        for other in NSRunningApplication.runningApplications(withBundleIdentifier: id)
+        where other.processIdentifier != getpid() && other.bundleURL?.standardizedFileURL != me {
+            other.terminate()
+            let end = Date().addingTimeInterval(10)
+            while !other.isTerminated && Date() < end { RunLoop.current.run(until: Date().addingTimeInterval(0.2)) }
+        }
+    }
+
+    /// Installation à la main (glissée depuis le .dmg) : l'ancienne KidSafe.app restée dans Applications part à la corbeille,
+    /// seulement si c'est bien la même app (même identifiant) dans une version plus ancienne.
+    private func trashLeftoverOldApp() {
+        guard let id = Bundle.main.bundleIdentifier else { return }
+        let here = Bundle.main.bundleURL
+        let dirs = [here.deletingLastPathComponent(), URL(fileURLWithPath: "/Applications"),
+                    URL(fileURLWithPath: NSHomeDirectory()).appendingPathComponent("Applications")]
+        let old = AppUpdater.leftoverOldApps(current: here, bundleID: id, version: appVersion, in: dirs)
+        guard !old.isEmpty else { return }
+        NSWorkspace.shared.recycle(old) { trashed, error in
+            if let error { NSLog("Yamoxy : ancienne app non mise à la corbeille (%@)", error.localizedDescription) }
+            else { NSLog("Yamoxy : mise à la corbeille : %@", trashed.values.map(\.path).joined(separator: ", ")) }
+        }
+    }
+
+    /// L'app a changé de nom ou d'emplacement (KidSafe.app devenue Yamoxy.app) : macOS peut garder l'ouverture
+    /// au démarrage sur l'ancien chemin. Si elle était activée, elle est réinscrite pour l'app actuelle.
+    private func reRegisterLoginItemIfMoved() {
+        let key = "loginItemAppPath", path = Bundle.main.bundlePath
+        // Seulement l'app installée (pas une copie lancée depuis le .dmg ou un dossier de développement).
+        guard path.hasPrefix("/Applications/") || path.hasPrefix(NSHomeDirectory() + "/Applications/"),
+              Self.prefs.string(forKey: key) != path else { return }
+        Self.prefs.set(path, forKey: key)
+        guard Self.prefs.object(forKey: "lastLoginItemStatus") as? Int == SMAppService.Status.enabled.rawValue else { return }
+        try? SMAppService.mainApp.unregister()
+        try? SMAppService.mainApp.register()
+    }
 
     /// L'ouverture au démarrage désactivée ailleurs que dans KidSafe (Réglages Système) est notée pour le parent.
     private func noteLoginItemStatus(_ new: SMAppService.Status) {
@@ -888,7 +937,7 @@ final class AppModel: ObservableObject {
     /// Étiquette de version (clé `KidSafeReleaseLabel`, ex. « beta » ; vide pour une version finale).
     let releaseLabel = Bundle.main.object(forInfoDictionaryKey: "KidSafeReleaseLabel") as? String ?? ""
     /// « KidSafe 0.3.3 (beta) », affiché en bas du menu.
-    var versionLabel: String { "KidSafe \(appVersion)" + (releaseLabel.isEmpty ? "" : " (\(releaseLabel))") }
+    var versionLabel: String { "\(Brand.name) \(appVersion)" + (releaseLabel.isEmpty ? "" : " (\(releaseLabel))") }
     /// KIDSAFE_UPDATE_API (tests) remplace l'adresse définie à la construction.
     private let updateChecker: UpdateChecker? = (ProcessInfo.processInfo.environment["KIDSAFE_UPDATE_API"]
         ?? Bundle.main.object(forInfoDictionaryKey: "KidSafeUpdateAPI") as? String)
@@ -918,7 +967,7 @@ final class AppModel: ObservableObject {
         let current = appVersion
         Task {
             let result: Result<UpdateChecker.Release, Error>
-            do { result = .success(try await updateChecker.latest(userAgent: "KidSafe/\(current)")) } catch { result = .failure(error) }
+            do { result = .success(try await updateChecker.latest(userAgent: "\(Brand.name)/\(current)")) } catch { result = .failure(error) }
             self.isCheckingUpdates = false
             self.lastUpdateCheck = Date()
             AppModel.prefs.set(self.lastUpdateCheck, forKey: "lastUpdateCheck")
@@ -964,7 +1013,7 @@ final class AppModel: ObservableObject {
         guard !isInstallingUpdate else { return }
         isInstallingUpdate = true
         let current = appVersion, bundleID = Bundle.main.bundleIdentifier ?? KidSafeUninstaller.bundleID
-        let staging = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-update-\(release.version)")
+        let staging = FileManager.default.temporaryDirectory.appendingPathComponent("yamoxy-update-\(release.version)")
         Task {
             do {
                 let staged = try await AppUpdater.prepare(release, currentVersion: current, bundleID: bundleID,
@@ -1098,7 +1147,7 @@ final class AppModel: ObservableObject {
     func notice(_ message: String) {
         NSApp.activate(ignoringOtherApps: true)
         let a = NSAlert()
-        a.messageText = "KidSafe"
+        a.messageText = Brand.name
         a.informativeText = message
         a.addButton(withTitle: "OK")
         a.runModal()

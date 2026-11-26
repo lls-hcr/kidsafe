@@ -45,7 +45,7 @@ public enum Monitor {
         }
         guard ok == 0 else { return nil }
         let hostHeader = URL(string: url)?.host ?? "p.p"
-        let request = "GET \(url) HTTP/1.0\r\nHost: \(hostHeader)\r\nUser-Agent: KidSafe\r\nConnection: close\r\n\r\n"
+        let request = "GET \(url) HTTP/1.0\r\nHost: \(hostHeader)\r\nUser-Agent: Yamoxy\r\nConnection: close\r\n\r\n"
         guard request.withCString({ send(fd, $0, strlen($0), 0) }) > 0 else { return nil }
         var data = Data()
         var buf = [UInt8](repeating: 0, count: 16384)
@@ -89,7 +89,7 @@ public enum Monitor {
 
     // MARK: - Domaines dans les listes, catégories
 
-    /// Index « domaine → catégorie » construit à partir des fichiers kidsafe-*.action (seulement pour la page détaillée).
+    /// Index « domaine → catégorie » construit à partir des fichiers yamoxy-*.action (seulement pour la page détaillée).
     public struct CategoryIndex: Sendable {
         var map: [String: String] = [:]
         public var domainCount: Int { map.count }
@@ -104,9 +104,9 @@ public enum Monitor {
                 for raw in text.split(separator: "\n") {
                     let line = raw.trimmingCharacters(in: .whitespaces)
                     if line.hasPrefix("{") {
-                        // { +block{KidSafe : Contenus pour adultes} }   ou   { -block }
+                        // { +block{Yamoxy : Contenus pour adultes} }   ou   { -block }
                         if let r = line.range(of: #"\+block\{([^}]*)\}"#, options: .regularExpression) {
-                            let name = String(line[r].dropFirst(7).dropLast()).replacingOccurrences(of: "KidSafe : ", with: "")
+                            let name = String(line[r].dropFirst(7).dropLast()).replacingOccurrences(of: "Yamoxy : ", with: "")
                             current = name.prefix(1).uppercased() + name.dropFirst()
                         } else {
                             current = ""   // section { -block } : exceptions

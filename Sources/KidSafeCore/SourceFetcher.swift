@@ -74,7 +74,7 @@ public struct SourceFetcher: Sendable {
                 raw = try Data(contentsOf: url)
             } else {
                 var req = URLRequest(url: url, timeoutInterval: 120)
-                req.setValue("KidSafe-blocklist/1.0", forHTTPHeaderField: "User-Agent")
+                req.setValue("Yamoxy/1.0", forHTTPHeaderField: "User-Agent")
                 if hasCache {   // « inchangé ? » : sans copie en cache, il faut le contenu complet
                     if let e = meta.etag { req.setValue(e, forHTTPHeaderField: "If-None-Match") }
                     if let m = meta.lastModified { req.setValue(m, forHTTPHeaderField: "If-Modified-Since") }
@@ -146,7 +146,7 @@ public struct SourceFetcher: Sendable {
         let isGz = !isTar && path.hasSuffix(".gz")
         guard isTar || isGz else { return raw }
 
-        let work = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-\(UUID().uuidString)")
+        let work = FileManager.default.temporaryDirectory.appendingPathComponent("yamoxy-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: work, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: work) }
         let archive = work.appendingPathComponent(isTar ? "src.tar.gz" : "src.gz")

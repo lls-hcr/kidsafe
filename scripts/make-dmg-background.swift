@@ -1,5 +1,5 @@
 // Fond de la fenêtre du .dmg : swift scripts/make-dmg-background.swift <sortie.png> <échelle 1|2>
-// Fenêtre 640 × 440 points. Icônes : KidSafe (170, 200), Applications (470, 200),
+// Fenêtre 640 × 440 points. Icônes : Yamoxy (170, 200), Applications (470, 200),
 // en bas : désinstalleur (110, 372) et mode d'emploi (530, 372).
 import AppKit
 
@@ -30,8 +30,8 @@ func text(_ s: String, _ x: CGFloat, _ top: CGFloat, size: CGFloat, weight: NSFo
     a.draw(at: NSPoint(x: center ? x - sz.width / 2 : x, y: y(top) - sz.height))
     NSGraphicsContext.restoreGraphicsState()
 }
-text("KidSafe", 320, 13, size: 24, weight: .bold, color: .white)
-text("Glissez KidSafe dans Applications  ·  Drag KidSafe to Applications", 320, 82, size: 13, weight: .medium,
+text("Yamoxy", 320, 13, size: 24, weight: .bold, color: .white)
+text("Glissez Yamoxy dans Applications  ·  Drag Yamoxy to Applications", 320, 82, size: 13, weight: .medium,
      color: NSColor(cgColor: rgb(0x2B5F74))!)
 
 // Flèche entre les deux icônes.

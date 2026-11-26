@@ -96,7 +96,7 @@ extension AppModel {
     // MARK: - user.action
 
     private var userAction: URL? { confDir?.appendingPathComponent("user.action") }
-    private var userActionBackup: URL? { confDir?.appendingPathComponent("user.action.kidsafe-backup") }
+    private var userActionBackup: URL? { confDir?.appendingPathComponent("user.action.yamoxy-backup") }
 
     /// Sauvegarde user.action puis l'ouvre dans TextEdit.
     func editUserAction() {

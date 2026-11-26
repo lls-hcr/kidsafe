@@ -91,13 +91,13 @@ import Testing
         let text = PrivoxyActions.categoryFile(id: "Adult!", title: "Adulte {test}", sources: ["s"], list: list,
                                                date: Date(timeIntervalSince1970: 0))
         let body = text.split(separator: "\n").filter { !$0.hasPrefix("#") }
-        #expect(body == ["{ +block{KidSafe : Adulte (test)} }", ".bad.com", ".evil.org", "9.9.9.9",
+        #expect(body == ["{ +block{Yamoxy : Adulte (test)} }", ".bad.com", ".evil.org", "9.9.9.9",
                          "{ -block }", ".ok.bad.com"])
-        #expect(PrivoxyActions.fileName(forCategory: "Adult!") == "kidsafe-cat-adult-.action")
+        #expect(PrivoxyActions.fileName(forCategory: "Adult!") == "yamoxy-cat-adult-.action")
     }
 
     @Test func strictAndAllow() {
-        #expect(PrivoxyActions.strictFile().hasSuffix("{ +block{KidSafe : mode strict, site non autorisé} }\n/\n"))
+        #expect(PrivoxyActions.strictFile().hasSuffix("{ +block{Yamoxy : mode strict, site non autorisé} }\n/\n"))
         let allow = PrivoxyActions.allowFile(domains: ["Wikipedia.org", "fr.wikipedia.org", "pas valide", "khanacademy.org"])
         let body = allow.split(separator: "\n").filter { !$0.hasPrefix("#") }
         #expect(body == ["{ -block }", ".khanacademy.org", ".wikipedia.org"])
@@ -120,20 +120,20 @@ import Testing
     """
 
     @Test func insertsBeforeUserActionAndHardens() {
-        let out = PrivoxyConfigEditor.apply(actionFiles: ["kidsafe-cat-adult.action", "kidsafe-allow.action"], to: Self.config)
+        let out = PrivoxyConfigEditor.apply(actionFiles: ["yamoxy-cat-adult.action", "yamoxy-allow.action"], to: Self.config)
         let lines = out.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
         let begin = lines.firstIndex(of: PrivoxyConfigEditor.beginMarker)!
         #expect(lines[begin - 1] == "actionsfile default.action")
-        #expect(lines[begin + 1] == "actionsfile kidsafe-cat-adult.action")
-        #expect(lines[begin + 2] == "actionsfile kidsafe-allow.action")
+        #expect(lines[begin + 1] == "actionsfile yamoxy-cat-adult.action")
+        #expect(lines[begin + 2] == "actionsfile yamoxy-allow.action")
         #expect(lines.contains("enable-remote-toggle 0"))
         #expect(lines.contains("enforce-blocks 1"))
-        #expect(lines.contains("#KidSafe-désactivé# enable-remote-toggle 1"))
-        #expect(lines.contains("#KidSafe-désactivé# toggle  1"))
+        #expect(lines.contains("#Yamoxy-désactivé# enable-remote-toggle 1"))
+        #expect(lines.contains("#Yamoxy-désactivé# toggle  1"))
         #expect(lines.contains("#enable-edit-actions 0"))   // commentaire d'origine intact
         let user = lines.firstIndex(of: "actionsfile user.action")!
         #expect(user > begin)
-        #expect(PrivoxyConfigEditor.managedActionFiles(in: out) == ["kidsafe-cat-adult.action", "kidsafe-allow.action"])
+        #expect(PrivoxyConfigEditor.managedActionFiles(in: out) == ["yamoxy-cat-adult.action", "yamoxy-allow.action"])
     }
 
     @Test func idempotentAndReversible() {
@@ -174,27 +174,27 @@ import Testing
         defer { try? FileManager.default.removeItem(at: dir) }
         let inst = PrivoxyInstaller(confDir: dir)
 
-        let r1 = try inst.install(.init(files: [("kidsafe-cat-a.action", "A"), ("kidsafe-cat-b.action", "B")], options: .init()))
-        #expect(r1.written == ["kidsafe-cat-a.action", "kidsafe-cat-b.action"])
-        let perms = try FileManager.default.attributesOfItem(atPath: dir.appendingPathComponent("kidsafe-cat-a.action").path)[.posixPermissions] as? Int
+        let r1 = try inst.install(.init(files: [("yamoxy-cat-a.action", "A"), ("yamoxy-cat-b.action", "B")], options: .init()))
+        #expect(r1.written == ["yamoxy-cat-a.action", "yamoxy-cat-b.action"])
+        let perms = try FileManager.default.attributesOfItem(atPath: dir.appendingPathComponent("yamoxy-cat-a.action").path)[.posixPermissions] as? Int
         #expect(perms == 0o644)
 
         // Catégorie b décochée : son fichier disparaît.
-        let r2 = try inst.install(.init(files: [("kidsafe-cat-a.action", "A2")], options: .init()))
-        #expect(r2.removed == ["kidsafe-cat-b.action"])
-        #expect(!FileManager.default.fileExists(atPath: dir.appendingPathComponent("kidsafe-cat-b.action").path))
+        let r2 = try inst.install(.init(files: [("yamoxy-cat-a.action", "A2")], options: .init()))
+        #expect(r2.removed == ["yamoxy-cat-b.action"])
+        #expect(!FileManager.default.fileExists(atPath: dir.appendingPathComponent("yamoxy-cat-b.action").path))
 
         _ = try inst.uninstall()
         let config = try String(contentsOf: dir.appendingPathComponent("config"), encoding: .utf8)
         #expect(config == ConfigEditorTests.config)
-        let left = try FileManager.default.contentsOfDirectory(atPath: dir.path).filter { $0.hasPrefix("kidsafe") || $0.hasPrefix(".kidsafe") }
+        let left = try FileManager.default.contentsOfDirectory(atPath: dir.path).filter { $0.hasPrefix("yamoxy") || $0.hasPrefix(".yamoxy") || $0.hasPrefix("kidsafe") }
         #expect(left.isEmpty)
     }
 
     @Test func rollbackWhenConfigTestFails() throws {
         let dir = try tempConfDir()
         defer { try? FileManager.default.removeItem(at: dir) }
-        try "ancien".write(to: dir.appendingPathComponent("kidsafe-cat-a.action"), atomically: true, encoding: .utf8)
+        try "ancien".write(to: dir.appendingPathComponent("yamoxy-cat-a.action"), atomically: true, encoding: .utf8)
         // Faux binaire Privoxy qui refuse toute configuration.
         let fake = dir.appendingPathComponent("fake-privoxy")
         try "#!/bin/sh\necho 'Fatal error: bad action'\nexit 1\n".write(to: fake, atomically: true, encoding: .utf8)
@@ -202,11 +202,11 @@ import Testing
 
         let inst = PrivoxyInstaller(confDir: dir, privoxyBinary: fake)
         #expect(throws: KidSafeError.self) {
-            try inst.install(.init(files: [("kidsafe-cat-a.action", "nouveau"), ("kidsafe-cat-c.action", "C")], options: .init()))
+            try inst.install(.init(files: [("yamoxy-cat-a.action", "nouveau"), ("yamoxy-cat-c.action", "C")], options: .init()))
         }
         #expect(try String(contentsOf: dir.appendingPathComponent("config"), encoding: .utf8) == ConfigEditorTests.config)
-        #expect(try String(contentsOf: dir.appendingPathComponent("kidsafe-cat-a.action"), encoding: .utf8) == "ancien")
-        #expect(!FileManager.default.fileExists(atPath: dir.appendingPathComponent("kidsafe-cat-c.action").path))
+        #expect(try String(contentsOf: dir.appendingPathComponent("yamoxy-cat-a.action"), encoding: .utf8) == "ancien")
+        #expect(!FileManager.default.fileExists(atPath: dir.appendingPathComponent("yamoxy-cat-c.action").path))
     }
 }
 
@@ -226,7 +226,7 @@ import Testing
         let updater = BlocklistUpdater(fetcher: SourceFetcher(cacheDir: dir.appendingPathComponent("cache")))
 
         let r = await updater.prepare(catalog, existingConfDir: nil)
-        #expect(r.plan.files.map(\.name) == ["kidsafe-cat-a.action", "kidsafe-block.action", "kidsafe-services.action", "kidsafe-allow.action"])
+        #expect(r.plan.files.map(\.name) == ["yamoxy-cat-a.action", "yamoxy-block.action", "yamoxy-services.action", "yamoxy-allow.action"])
         #expect(r.categories.first?.blockedCount == 2)
         #expect(r.failed.map(\.id) == ["broken"])
 
@@ -241,7 +241,7 @@ import Testing
         let catalog = Catalog(categories: Catalog.default.categories, allowlist: ["wikipedia.org"], strictMode: true)
         let r = await BlocklistUpdater(fetcher: SourceFetcher(cacheDir: FileManager.default.temporaryDirectory))
             .prepare(catalog, existingConfDir: nil)
-        #expect(r.plan.files.map(\.name) == ["kidsafe-strict.action", "kidsafe-block.action", "kidsafe-services.action", "kidsafe-allow.action"])
+        #expect(r.plan.files.map(\.name) == ["yamoxy-strict.action", "yamoxy-block.action", "yamoxy-services.action", "yamoxy-allow.action"])
     }
 }
 
@@ -584,7 +584,7 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(c.blockedServices(at: at(1, 9), calendar: utc).map(\.id) == ["tiktok", "youtube"])
         #expect(c.blockedServices(at: at(1, 13), calendar: utc).map(\.id) == ["tiktok"])
         let text = PrivoxyActions.servicesFile(blocked: c.blockedServices(at: at(1, 13), calendar: utc))
-        #expect(text.contains("{ +block{KidSafe : TikTok} }"))
+        #expect(text.contains("{ +block{Yamoxy : TikTok} }"))
         #expect(text.contains("\n.tiktok.com\n"))
         #expect(!text.contains("youtube"))
         #expect(SocialService.all.allSatisfy { s in s.domains.allSatisfy { DomainName.normalize($0) == $0 } })
@@ -643,26 +643,26 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         c.services["tiktok"] = ServicePolicy(mode: .blocked)
         _ = try await engine.apply(c, installer: inst)
         let cfg = { try String(contentsOf: conf.appendingPathComponent("config"), encoding: .utf8) }
-        #expect(PrivoxyConfigEditor.managedActionFiles(in: try cfg()).contains("kidsafe-services.action"))
+        #expect(PrivoxyConfigEditor.managedActionFiles(in: try cfg()).contains("yamoxy-services.action"))
 
         // Changement de plage : seul le fichier des réseaux change.
         c.services["tiktok"] = ServicePolicy(mode: .allowed)
         #expect(try engine.refreshServices(c, installer: inst))
         #expect(try !engine.refreshServices(c, installer: inst))
-        #expect(!(try String(contentsOf: conf.appendingPathComponent("kidsafe-services.action"), encoding: .utf8)).contains("tiktok"))
+        #expect(!(try String(contentsOf: conf.appendingPathComponent("yamoxy-services.action"), encoding: .utf8)).contains("tiktok"))
 
         c.filteringEnabled = false
         try engine.pause(c, installer: inst)
         #expect(inst.isPaused())
         #expect(PrivoxyConfigEditor.managedActionFiles(in: try cfg()).isEmpty)
         #expect(try cfg().contains("\ntoggle 0\n"))   // Privoxy entièrement désactivé
-        #expect(FileManager.default.fileExists(atPath: conf.appendingPathComponent("kidsafe-cat-a.action").path))
+        #expect(FileManager.default.fileExists(atPath: conf.appendingPathComponent("yamoxy-cat-a.action").path))
         #expect(try !engine.refreshServices(c, installer: inst))
 
         c.filteringEnabled = true
         _ = try await engine.apply(c, installer: inst)
         #expect(!inst.isPaused())
-        #expect(PrivoxyConfigEditor.managedActionFiles(in: try cfg()).first == "kidsafe-cat-a.action")
+        #expect(PrivoxyConfigEditor.managedActionFiles(in: try cfg()).first == "yamoxy-cat-a.action")
         #expect(try cfg().contains("\ntoggle 1\n") && !(try cfg()).contains("\ntoggle 0\n"))
     }
 }
@@ -699,11 +699,11 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         #expect(cfg.contains("listen-address  127.0.0.1:\(BundledPrivoxy.port)"))
 
         // KidSafe installe ses listes, puis une nouvelle version de l'app réinstalle Privoxy.
-        cfg = PrivoxyConfigEditor.apply(actionFiles: ["kidsafe-cat-adult.action"], to: cfg)
+        cfg = PrivoxyConfigEditor.apply(actionFiles: ["yamoxy-cat-adult.action"], to: cfg)
         try cfg.write(to: inst.configFile, atomically: true, encoding: .utf8)
-        try "2".write(to: support.appendingPathComponent("privoxy/.kidsafe-bundle"), atomically: true, encoding: .utf8)
+        try "2".write(to: support.appendingPathComponent("privoxy/.yamoxy-bundle"), atomically: true, encoding: .utf8)
         let again = try #require(try BundledPrivoxy.prepare(bundle: bundle, supportDir: support))
-        #expect(PrivoxyConfigEditor.managedActionFiles(in: try String(contentsOf: again.configFile, encoding: .utf8)) == ["kidsafe-cat-adult.action"])
+        #expect(PrivoxyConfigEditor.managedActionFiles(in: try String(contentsOf: again.configFile, encoding: .utf8)) == ["yamoxy-cat-adult.action"])
     }
 }
 
@@ -781,6 +781,25 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         try fm.copyItem(at: URL(fileURLWithPath: "/usr/bin/true"), to: url.appendingPathComponent("Contents/MacOS/app"))
         try marker.write(to: url.appendingPathComponent("Contents/Resources/marker.txt"), atomically: true, encoding: .utf8)
         try AppUpdater.run("/usr/bin/codesign", ["--force", "--sign", "-", url.path])
+    }
+
+    /// Installation à la main : seule une KidSafe.app plus ancienne, du même identifiant, est à mettre à la corbeille.
+    @Test func findsLeftoverKidSafeApp() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("yamoxy-leftover-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: root) }
+        let apps = root.appendingPathComponent("Applications"), home = root.appendingPathComponent("home")
+        try fakeApp(apps.appendingPathComponent("Yamoxy.app"), version: "0.9.0", marker: "nouvelle")
+        try fakeApp(apps.appendingPathComponent("KidSafe.app"), version: "0.8.0", marker: "ancienne")
+        try fakeApp(home.appendingPathComponent("KidSafe.app"), bundleID: "autre.app", version: "0.1", marker: "autre")
+        let me = apps.appendingPathComponent("Yamoxy.app")
+        let found = AppUpdater.leftoverOldApps(current: me, bundleID: "app.kidsafe.KidSafe", version: "0.9.0", in: [apps, home, apps])
+        #expect(found.map(\.path) == [apps.appendingPathComponent("KidSafe.app").path])
+        // Version égale ou plus récente : on n'y touche pas.
+        #expect(AppUpdater.leftoverOldApps(current: me, bundleID: "app.kidsafe.KidSafe", version: "0.8.0", in: [apps]).isEmpty)
+        // L'app en cours s'appelle encore KidSafe.app : jamais elle-même.
+        #expect(AppUpdater.leftoverOldApps(current: apps.appendingPathComponent("KidSafe.app"), bundleID: "app.kidsafe.KidSafe",
+                                           version: "0.9.0", in: [apps]).isEmpty)
     }
 
     private func marker(_ app: URL) -> String? { try? String(contentsOf: app.appendingPathComponent("Contents/Resources/marker.txt"), encoding: .utf8) }
@@ -1008,7 +1027,7 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
             .write(to: app.appendingPathComponent("Info.plist"), atomically: true, encoding: .utf8)
         let bundle = try #require(Bundle(url: root.appendingPathComponent("KidSafe.app")))
         let inst = try #require(try BundledPrivoxy.prepare(bundle: bundle, supportDir: root.appendingPathComponent("support"), port: 8143))
-        _ = try inst.install(.init(files: [("kidsafe-cat-t.action", "{ +block{test} }\n.bad.example\n")], options: .init()))
+        _ = try inst.install(.init(files: [("yamoxy-cat-t.action", "{ +block{test} }\n.bad.example\n")], options: .init()))
         let ctl = PrivoxyController(binary: inst.privoxyBinary, configFile: inst.configFile, host: "127.0.0.1", port: 8143, useLaunchAgent: false)
         #expect(ctl.start())
         defer { ctl.stop() }
@@ -1046,7 +1065,7 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
 
         // Installation sur le port 8141, une liste bloquant bad.example.
         let inst = try #require(try BundledPrivoxy.prepare(bundle: bundle, supportDir: support, port: 8141))
-        _ = try inst.install(.init(files: [("kidsafe-cat-t.action", "{ +block{test} }\n.bad.example\n")], options: .init()))
+        _ = try inst.install(.init(files: [("yamoxy-cat-t.action", "{ +block{test} }\n.bad.example\n")], options: .init()))
         var ctl = PrivoxyController(binary: inst.privoxyBinary, configFile: inst.configFile, host: "127.0.0.1", port: 8141, useLaunchAgent: false)
         #expect(ctl.start())
         defer { ctl.stop() }
@@ -1083,7 +1102,7 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         try "{ +block } \n.perso.example\n".write(to: inst.confDir.appendingPathComponent("user.action"), atomically: true, encoding: .utf8)
         let reset = try #require(try BundledPrivoxy.reset(bundle: bundle, supportDir: support, port: 8142))
         #expect(!(try String(contentsOf: reset.confDir.appendingPathComponent("user.action"), encoding: .utf8)).contains("perso.example"))
-        #expect(PrivoxyConfigEditor.managedActionFiles(in: try String(contentsOf: reset.configFile, encoding: .utf8)).contains("kidsafe-cat-t.action"))
+        #expect(PrivoxyConfigEditor.managedActionFiles(in: try String(contentsOf: reset.configFile, encoding: .utf8)).contains("yamoxy-cat-t.action"))
         try reset.testConfig()
     }
 }
@@ -1102,9 +1121,9 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         let dir = FileManager.default.temporaryDirectory.appendingPathComponent("kidsafe-mon-\(UUID().uuidString)")
         try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         defer { try? FileManager.default.removeItem(at: dir) }
-        try "# x\n{ +block{KidSafe : Contenus pour adultes} }\n.bad.example\n{ -block }\n.ok.bad.example\n"
-            .write(to: dir.appendingPathComponent("kidsafe-cat-adult.action"), atomically: true, encoding: .utf8)
-        try "{ +block{KidSafe : TikTok} }\n.tiktok.com\n".write(to: dir.appendingPathComponent("kidsafe-services.action"), atomically: true, encoding: .utf8)
+        try "# x\n{ +block{Yamoxy : Contenus pour adultes} }\n.bad.example\n{ -block }\n.ok.bad.example\n"
+            .write(to: dir.appendingPathComponent("yamoxy-cat-adult.action"), atomically: true, encoding: .utf8)
+        try "{ +block{Yamoxy : TikTok} }\n.tiktok.com\n".write(to: dir.appendingPathComponent("yamoxy-services.action"), atomically: true, encoding: .utf8)
         let index = Monitor.CategoryIndex(confDir: dir)
         #expect(index.category(of: "www.bad.example") == "Contenus pour adultes")
         #expect(index.category(of: "ok.bad.example") == nil)       // exception : pas une catégorie de blocage
@@ -1125,7 +1144,7 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
                                         summary: s, logEnabled: true, version: "0.6.0"))
         #expect(html.contains("Requêtes bloquées") && html.contains("12,0 %") && html.contains("www.bad.example"))
         #expect(!html.contains("http://") && !html.contains("https://"))   // page autonome, aucun appel externe
-        #expect(html.contains("kidsafe://dashboard/refresh") && html.contains("Instantané du"))
+        #expect(html.contains("yamoxy://dashboard/refresh") && html.contains("Instantané du"))
         #expect(html.contains("Blocages enregistrés (7 jours)"))
         #expect(Dashboard.esc("<b>&\"") == "&lt;b&gt;&amp;&quot;")
     }
@@ -1160,8 +1179,8 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         defer { try? FileManager.default.removeItem(at: dir) }
         try FileManager.default.createDirectory(at: dir.appendingPathComponent("log"), withIntermediateDirectories: true)
         func write(_ name: String, _ text: String) throws { try text.write(to: dir.appendingPathComponent(name), atomically: true, encoding: .utf8) }
-        try write("kidsafe-cat-adult.action", "# KidSafe\n\n{ +block{KidSafe : Adultes} }\n.pornhub.com\n.xvideos.com\n\n{ -block }\n.safe.xvideos.com\n")
-        try write("kidsafe-cat-ads.action", "# KidSafe\n\n{ +block{KidSafe : Publicité} }\n.doubleclick.net\n")
+        try write("yamoxy-cat-adult.action", "# KidSafe\n\n{ +block{Yamoxy : Adultes} }\n.pornhub.com\n.xvideos.com\n\n{ -block }\n.safe.xvideos.com\n")
+        try write("yamoxy-cat-ads.action", "# KidSafe\n\n{ +block{Yamoxy : Publicité} }\n.doubleclick.net\n")
         try write(PrivoxyActions.customBlockFileName, PrivoxyActions.customBlockFile(domains: ["roblox.com"]))
         let tiktok = try #require(SocialService.all.first { $0.id == "tiktok" })
         try write(PrivoxyActions.servicesFileName, PrivoxyActions.servicesFile(blocked: [tiktok]))
@@ -1331,5 +1350,134 @@ private func at(_ day: Int, _ h: Int, _ m: Int = 0) -> Date {
         // Fichier d'état d'une version précédente : lisible, sans état par liste.
         let old = try JSONDecoder().decode(KidSafeStatus.self, from: Data(#"{"domainCounts":{"t":3},"failures":{},"warnings":{}}"#.utf8))
         #expect(old.lists.isEmpty && old.domainCounts["t"] == 3)
+    }
+}
+
+/// KidSafe devient Yamoxy (0.9.0) : ce qu'a laissé KidSafe est repris, sans rien perdre ni laisser de trace.
+@Suite struct RenameToYamoxyTests {
+    static let legacyConfig = """
+    confdir /old/privoxy
+    actionsfile default.action
+    # >>> KidSafe : bloc géré automatiquement, ne pas modifier >>>
+    actionsfile kidsafe-cat-adult.action
+    actionsfile kidsafe-allow.action
+    toggle 1
+    # <<< KidSafe <<<
+    #KidSafe-désactivé# toggle  1
+    actionsfile user.action
+
+    """
+
+    @Test func configEditorTakesOverKidSafeBlock() {
+        let old = Self.legacyConfig
+        #expect(PrivoxyConfigEditor.hasBlock(old))
+        #expect(PrivoxyConfigEditor.managedActionFiles(in: old) == ["kidsafe-cat-adult.action", "kidsafe-allow.action"])
+        // Retrait : bloc enlevé, directive d'origine restaurée.
+        let removed = PrivoxyConfigEditor.remove(from: old)
+        #expect(!removed.contains("KidSafe") && removed.contains("\ntoggle  1\n"))
+        // Remplacement : un seul bloc, au nouveau nom.
+        let new = PrivoxyConfigEditor.apply(actionFiles: ["yamoxy-cat-adult.action"], to: old)
+        #expect(!new.contains("KidSafe") && new.components(separatedBy: PrivoxyConfigEditor.beginMarker).count == 2)
+        #expect(PrivoxyConfigEditor.managedActionFiles(in: new) == ["yamoxy-cat-adult.action"])
+        // Pause écrite par KidSafe : toujours reconnue.
+        #expect(PrivoxyConfigEditor.isPaused("# >>> KidSafe : bloc géré automatiquement, ne pas modifier >>>\n# KidSafe : filtrage en pause\n# <<< KidSafe <<<\n"))
+    }
+
+    @Test func installerRemovesKidSafeFiles() throws {
+        let dir = FileManager.default.temporaryDirectory.appendingPathComponent("yamoxy-inst-\(UUID().uuidString)")
+        defer { try? FileManager.default.removeItem(at: dir) }
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        try Self.legacyConfig.write(to: dir.appendingPathComponent("config"), atomically: true, encoding: .utf8)
+        try "x".write(to: dir.appendingPathComponent("kidsafe-cat-adult.action"), atomically: true, encoding: .utf8)
+        let r = try PrivoxyInstaller(confDir: dir).install(.init(files: [("yamoxy-cat-adult.action", "A")], options: .init()))
+        #expect(r.removed == ["kidsafe-cat-adult.action"])
+        let left = try FileManager.default.contentsOfDirectory(atPath: dir.path).filter { $0.lowercased().contains("kidsafe") }
+        #expect(left.isEmpty)
+        #expect(!(try String(contentsOf: dir.appendingPathComponent("config"), encoding: .utf8)).contains("KidSafe"))
+    }
+
+    /// Faux .app contenant un Privoxy factice et ses fichiers par défaut.
+    private func fakeBundle(_ root: URL) throws -> Bundle {
+        let app = root.appendingPathComponent("Yamoxy.app/Contents")
+        let conf = app.appendingPathComponent("Resources/privoxy-conf")
+        let fm = FileManager.default
+        try fm.createDirectory(at: conf.appendingPathComponent("templates"), withIntermediateDirectories: true)
+        try fm.createDirectory(at: app.appendingPathComponent("Helpers"), withIntermediateDirectories: true)
+        try "#!/bin/sh\n".write(to: app.appendingPathComponent("Helpers/privoxy"), atomically: true, encoding: .utf8)
+        try fm.setAttributes([.posixPermissions: 0o755], ofItemAtPath: app.appendingPathComponent("Helpers/privoxy").path)
+        try "<?xml version=\"1.0\"?><plist version=\"1.0\"><dict><key>CFBundleVersion</key><string>0.9.0</string></dict></plist>"
+            .write(to: app.appendingPathComponent("Info.plist"), atomically: true, encoding: .utf8)
+        for f in ["match-all.action", "default.action", "default.filter", "trust", "user.action", "user.filter", "VERSION", "templates/blocked"] {
+            try f.write(to: conf.appendingPathComponent(f), atomically: true, encoding: .utf8)
+        }
+        try "confdir .\nlogdir .\nactionsfile default.action\nactionsfile user.action\nlisten-address 127.0.0.1:8118\n"
+            .write(to: conf.appendingPathComponent("config"), atomically: true, encoding: .utf8)
+        return try #require(Bundle(url: root.appendingPathComponent("Yamoxy.app")))
+    }
+
+    @Test func prepareConvertsKidSafeFiles() throws {
+        let fm = FileManager.default
+        let root = fm.temporaryDirectory.appendingPathComponent("yamoxy-prep-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: root) }
+        let bundle = try fakeBundle(root)
+        let support = root.appendingPathComponent("Yamoxy")
+        let dir = BundledPrivoxy.installDir(supportDir: support)
+        try fm.createDirectory(at: dir.appendingPathComponent("bin"), withIntermediateDirectories: true)
+        // État laissé par KidSafe 0.8 : config, deux listes, marque de version, règles de l'utilisateur.
+        try Self.legacyConfig.write(to: dir.appendingPathComponent("config"), atomically: true, encoding: .utf8)
+        try "# KidSafe — Adultes\n\n{ +block{KidSafe : Adultes} }\n.bad.example\n".write(to: dir.appendingPathComponent("kidsafe-cat-adult.action"), atomically: true, encoding: .utf8)
+        try "# KidSafe — Liste blanche\n\n{ -block }\n.ok.example\n".write(to: dir.appendingPathComponent("kidsafe-allow.action"), atomically: true, encoding: .utf8)
+        try "0.8.0/4.2.0".write(to: dir.appendingPathComponent(".kidsafe-bundle"), atomically: true, encoding: .utf8)
+        try "{ +block }\n.mine.example\n".write(to: dir.appendingPathComponent("user.action"), atomically: true, encoding: .utf8)
+
+        let inst = try #require(try BundledPrivoxy.prepare(bundle: bundle, supportDir: support))
+        let cfg = try String(contentsOf: inst.configFile, encoding: .utf8)
+        #expect(PrivoxyConfigEditor.managedActionFiles(in: cfg) == ["yamoxy-cat-adult.action", "yamoxy-allow.action"])
+        #expect(!cfg.contains("KidSafe") && cfg.contains("confdir \(dir.path)"))
+        let names = try fm.contentsOfDirectory(atPath: dir.path)
+        #expect(!names.contains { $0.lowercased().contains("kidsafe") })
+        let adult = try String(contentsOf: dir.appendingPathComponent("yamoxy-cat-adult.action"), encoding: .utf8)
+        #expect(adult == "# Yamoxy — Adultes\n\n{ +block{Yamoxy : Adultes} }\n.bad.example\n", "\(adult.debugDescription)")
+        // Les règles personnelles sont gardées.
+        #expect(try String(contentsOf: dir.appendingPathComponent("user.action"), encoding: .utf8).contains("mine.example"))
+    }
+
+    @Test func movesKidSafeFolder() throws {
+        let fm = FileManager.default
+        let base = fm.temporaryDirectory.appendingPathComponent("yamoxy-move-\(UUID().uuidString)")
+        defer { try? fm.removeItem(at: base) }
+        let old = base.appendingPathComponent("KidSafe"), new = base.appendingPathComponent("Yamoxy")
+        let oldPaths = KidSafePaths(supportDir: old)
+        // Pas encore de dossier : le nouveau nom.
+        try fm.createDirectory(at: base, withIntermediateDirectories: true)
+        #expect(KidSafePaths.resolve(base: base).supportDir.path == new.path)
+        #expect(KidSafePaths.migrateLegacy(base: base, stopPrivoxy: { _ in Issue.record("rien à arrêter") }) == .nothing)
+
+        // Dossier de KidSafe : catalogue avec une liste importée du disque, Privoxy installé.
+        try fm.createDirectory(at: BundledPrivoxy.installDir(supportDir: old), withIntermediateDirectories: true)
+        try "0.8.0/4.2.0".write(to: BundledPrivoxy.installDir(supportDir: old).appendingPathComponent(".kidsafe-bundle"), atomically: true, encoding: .utf8)
+        let src = base.appendingPathComponent("ma-liste.txt")
+        try "bad.example\n".write(to: src, atomically: true, encoding: .utf8)
+        var catalog = Catalog.default
+        try catalog.addLocalList(file: src, id: "perso", name: "Perso", listsDir: oldPaths.listsDir)
+        try catalog.save(to: oldPaths.catalogFile)
+        #expect(KidSafePaths.resolve(base: base).supportDir.path == old.path)   // tant qu'il n'est pas déplacé
+
+        var stopped: URL?
+        #expect(KidSafePaths.migrateLegacy(base: base, stopPrivoxy: { stopped = $0 }) == .moved)
+        #expect(stopped?.path == old.path)
+        #expect(!fm.fileExists(atPath: old.path) && KidSafePaths.resolve(base: base).supportDir.path == new.path)
+        let moved = try Catalog.load(from: KidSafePaths(supportDir: new).catalogFile)
+        let raw = try #require(moved.categories.first { $0.id == "perso" }?.sources.first?.url)
+        let url = try #require(URL(string: raw))
+        #expect(url.path == KidSafePaths(supportDir: new).listsDir.appendingPathComponent("perso.txt").path)
+        #expect(fm.fileExists(atPath: url.path))
+        // Marque de version effacée : la config de Privoxy sera régénérée avec les nouveaux chemins.
+        #expect(!fm.fileExists(atPath: BundledPrivoxy.installDir(supportDir: new).appendingPathComponent(".kidsafe-bundle").path))
+
+        // Les deux dossiers existent (cas improbable) : on ne touche à rien.
+        try fm.createDirectory(at: old, withIntermediateDirectories: true)
+        #expect(KidSafePaths.migrateLegacy(base: base, stopPrivoxy: { _ in Issue.record("rien à arrêter") }) == .nothing)
+        #expect(fm.fileExists(atPath: old.path) && fm.fileExists(atPath: new.path))
     }
 }

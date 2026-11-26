@@ -1,14 +1,25 @@
 import Foundation
 
-/// Génère les fichiers `.action` Privoxy de KidSafe.
+/// Génère les fichiers `.action` Privoxy de Yamoxy.
 ///
 /// Tous les motifs sont des motifs d'hôte : `.exemple.com` bloque `exemple.com`
 /// et tous ses sous-domaines, en HTTP comme en HTTPS (requêtes CONNECT).
 public enum PrivoxyActions {
 
-    public static let filePrefix = "kidsafe-"
-    public static let allowFileName = "kidsafe-allow.action"
-    public static let strictFileName = "kidsafe-strict.action"
+    public static let filePrefix = "yamoxy-"
+    /// Préfixe des fichiers écrits par KidSafe (ancien nom), repris ou supprimés par Yamoxy.
+    public static let legacyFilePrefix = "kidsafe-"
+    public static let allowFileName = "yamoxy-allow.action"
+    public static let strictFileName = "yamoxy-strict.action"
+    /// Début du motif de blocage, affiché par Privoxy (page « Request blocked ») et lu par le message « site bloqué ».
+    public static let reasonPrefix = "+block{Yamoxy : "
+    static let legacyReasonPrefix = "+block{KidSafe : "
+
+    /// Fichier écrit par KidSafe, réécrit aux couleurs de Yamoxy (en-têtes et motifs de blocage).
+    static func rebrand(_ text: String) -> String {
+        text.replacingOccurrences(of: legacyReasonPrefix, with: reasonPrefix)
+            .replacingOccurrences(of: "# KidSafe — ", with: "# Yamoxy — ")
+    }
 
     public static func fileName(forCategory id: String) -> String {
         filePrefix + "cat-" + sanitizeID(id) + ".action"
@@ -24,7 +35,7 @@ public enum PrivoxyActions {
                          extra: [L("action.header.counts", blocked.count, allowed.count)]
                             + sources.map { L("action.header.source", $0) })
         out.reserveCapacity(out.utf8.count + blocked.count * 24)
-        out += "{ +block{KidSafe : \(escapeReason(title))} }\n"
+        out += "{ +block{Yamoxy : \(escapeReason(title))} }\n"
         for d in blocked { out += pattern(d); out += "\n" }
         if !allowed.isEmpty {
             out += "\n{ -block }\n"
@@ -33,21 +44,21 @@ public enum PrivoxyActions {
         return out
     }
 
-    /// Mode strict (liste blanche) : tout est bloqué sauf ce que lève `kidsafe-allow.action`.
+    /// Mode strict (liste blanche) : tout est bloqué sauf ce que lève `yamoxy-allow.action`.
     public static func strictFile(date: Date = Date()) -> String {
         header(title: L("action.header.strict"), date: date, extra: [])
-            + "{ +block{KidSafe : \(escapeReason(L("action.reason.strict")))} }\n/\n"
+            + "{ +block{Yamoxy : \(escapeReason(L("action.reason.strict")))} }\n/\n"
     }
 
-    public static let customBlockFileName = "kidsafe-block.action"
-    public static let servicesFileName = "kidsafe-services.action"
+    public static let customBlockFileName = "yamoxy-block.action"
+    public static let servicesFileName = "yamoxy-services.action"
 
     /// Domaines bloqués à la main par le parent.
     public static func customBlockFile(domains: [String], date: Date = Date()) -> String {
         let valid = DomainName.compact(Set(domains.compactMap(DomainName.normalize)))
         var out = header(title: L("action.header.custom"), date: date, extra: [L("action.header.customCount", valid.count)])
         if !valid.isEmpty {
-            out += "{ +block{KidSafe : \(escapeReason(L("action.reason.custom")))} }\n"
+            out += "{ +block{Yamoxy : \(escapeReason(L("action.reason.custom")))} }\n"
             for d in valid { out += pattern(d); out += "\n" }
         }
         return out
@@ -56,10 +67,10 @@ public enum PrivoxyActions {
     /// Réseaux sociaux bloqués à cet instant (réécrit à chaque changement de plage horaire).
     /// L'en-tête ne contient pas de date : le fichier ne change que si la liste bloquée change.
     public static func servicesFile(blocked: [SocialService]) -> String {
-        var out = "# KidSafe — " + L("action.header.services") + "\n"
+        var out = "# Yamoxy — " + L("action.header.services") + "\n"
         out += "# " + L("action.header.servicesNote") + "\n\n"
         for s in blocked {
-            out += "{ +block{KidSafe : \(escapeReason(s.name))} }\n"
+            out += "{ +block{Yamoxy : \(escapeReason(s.name))} }\n"
             for d in DomainName.compact(Set(s.domains.compactMap(DomainName.normalize))) { out += pattern(d); out += "\n" }
             out += "\n"
         }
@@ -83,7 +94,7 @@ public enum PrivoxyActions {
 
     private static func header(title: String, date: Date, extra: [String]) -> String {
         let stamp = ISO8601DateFormatter().string(from: date)
-        var lines = ["# KidSafe — \(title)",
+        var lines = ["# Yamoxy — \(title)",
                      "# " + L("action.header.generated", stamp)]
         lines += extra.map { "# " + $0.replacingOccurrences(of: "\n", with: " ") }
         return lines.joined(separator: "\n") + "\n\n"

@@ -9,7 +9,7 @@ scripts/build-app.sh >/dev/null
 TMP="$(mktemp -d)"
 for L in fr en; do
   open -W -n --env KIDSAFE_SCREENSHOTS="$TMP/$L" --env KIDSAFE_LANG=$L --env KIDSAFE_SUPPORT_DIR="$TMP/support" \
-       --env KIDSAFE_DEFAULTS_SUITE=app.kidsafe.screenshots build/KidSafe.app
+       --env KIDSAFE_DEFAULTS_SUITE=app.kidsafe.screenshots build/Yamoxy.app
   for f in "$TMP/$L"/*.png; do
     out="Sources/KidSafeCore/Resources/shot-$L-$(basename "$f")"
     [ -f "${out%.png}.jpg" ] && continue

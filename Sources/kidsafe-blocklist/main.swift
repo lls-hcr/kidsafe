@@ -1,7 +1,7 @@
 import Foundation
 import KidSafeCore
 
-// kidsafe-blocklist : remplace privoxy-blocklist.sh et blocklist2privoxy.sh.
+// yamoxy-blocklist : remplace privoxy-blocklist.sh et blocklist2privoxy.sh.
 // Langue : celle du système, ou KIDSAFE_LANG=fr|en.
 
 func fail(_ msg: String, code: Int32 = 1) -> Never {
@@ -220,13 +220,13 @@ case "dashboard":
     let index = Monitor.CategoryIndex(confDir: inst.confDir)
     let html = Dashboard.html(.init(counters: counters, domainsOnLists: index.domainCount, summary: Monitor.summarize(entries, index: index),
                                     logEnabled: !entries.isEmpty || catalog.recordsBlocks, version: "cli"))
-    let out = args.values["-o"] ?? "kidsafe-dashboard.html"
+    let out = args.values["-o"] ?? "yamoxy-dashboard.html"
     do { try html.write(toFile: out, atomically: true, encoding: .utf8); log(out) } catch { fail("\(error)") }
 
 case "guide":
     let args = Args(argv.dropFirst(2), valued: catalogOptions)
     guard let html = UserGuide.html(version: "cli") else { fail("guide") }
-    let out = args.values["-o"] ?? "kidsafe-guide.html"
+    let out = args.values["-o"] ?? "yamoxy-guide.html"
     do { try html.write(toFile: out, atomically: true, encoding: .utf8); log(out) } catch { fail("\(error)") }
 
 case "library":

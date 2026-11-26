@@ -1,6 +1,6 @@
 import Foundation
 
-/// Installe les fichiers KidSafe dans le dossier de configuration de Privoxy,
+/// Installe les fichiers de Yamoxy dans le dossier de configuration de Privoxy,
 /// teste la configuration et revient en arrière si Privoxy la refuse.
 ///
 /// Privoxy relit tout seul les fichiers `.action` et `config` modifiés :
@@ -17,7 +17,7 @@ public struct PrivoxyInstaller: Sendable {
         self.privoxyBinary = privoxyBinary
     }
 
-    /// Privoxy intégré de KidSafe s'il est installé, sinon un Privoxy existant (Homebrew…).
+    /// Privoxy intégré de Yamoxy s'il est installé, sinon un Privoxy existant (Homebrew…).
     public static func detect() -> PrivoxyInstaller? {
         let dir = BundledPrivoxy.installDir(supportDir: KidSafePaths.user.supportDir)
         let bin = dir.appendingPathComponent("bin/privoxy")
@@ -67,7 +67,7 @@ public struct PrivoxyInstaller: Sendable {
         let stale = try existingKidSafeFiles().filter { !wanted.contains($0) }
 
         // Sauvegarde de tout ce qui va changer, pour pouvoir revenir en arrière.
-        let backup = confDir.appendingPathComponent(".kidsafe-backup", isDirectory: true)
+        let backup = confDir.appendingPathComponent(".yamoxy-backup", isDirectory: true)
         try? fm.removeItem(at: backup)
         try fm.createDirectory(at: backup, withIntermediateDirectories: true)
         defer { try? fm.removeItem(at: backup) }
@@ -117,7 +117,7 @@ public struct PrivoxyInstaller: Sendable {
         return report
     }
 
-    /// Met le filtrage en pause sans rien télécharger ni supprimer : le bloc KidSafe de la config
+    /// Met le filtrage en pause sans rien télécharger ni supprimer : le bloc géré de la config
     /// ne charge plus aucun fichier. La reprise se fait par un `install` complet.
     public func pause(options: PrivoxyConfigEditor.Options) throws {
         var opts = options
@@ -138,7 +138,7 @@ public struct PrivoxyInstaller: Sendable {
     /// test de la config, retour arrière si Privoxy la refuse. Privoxy relit la config tout seul.
     public func updateOptions(_ options: PrivoxyConfigEditor.Options) throws {
         let old = try String(contentsOf: configFile, encoding: .utf8)
-        guard old.contains(PrivoxyConfigEditor.beginMarker) else { return }
+        guard PrivoxyConfigEditor.hasBlock(old) else { return }
         var opts = options
         opts.active = !PrivoxyConfigEditor.isPaused(old)
         let new = PrivoxyConfigEditor.apply(actionFiles: PrivoxyConfigEditor.managedActionFiles(in: old), to: old, options: opts)
@@ -171,7 +171,7 @@ public struct PrivoxyInstaller: Sendable {
         return true
     }
 
-    /// Désinstalle complètement KidSafe de la configuration Privoxy.
+    /// Retire complètement Yamoxy (et KidSafe, son ancien nom) de la configuration Privoxy.
     public func uninstall() throws -> Report {
         var report = Report()
         let old = try String(contentsOf: configFile, encoding: .utf8)
@@ -189,9 +189,10 @@ public struct PrivoxyInstaller: Sendable {
 
     // MARK: -
 
+    /// Fichiers de règles de Yamoxy, et ceux laissés par KidSafe (supprimés comme fichiers périmés).
     private func existingKidSafeFiles() throws -> [String] {
         try FileManager.default.contentsOfDirectory(atPath: confDir.path)
-            .filter { $0.hasPrefix(PrivoxyActions.filePrefix) && $0.hasSuffix(".action") }
+            .filter { ($0.hasPrefix(PrivoxyActions.filePrefix) || $0.hasPrefix(PrivoxyActions.legacyFilePrefix)) && $0.hasSuffix(".action") }
             .sorted()
     }
 
@@ -200,7 +201,7 @@ public struct PrivoxyInstaller: Sendable {
     private func writeAtomically(_ content: String, to url: URL, keepAttributesOf original: URL? = nil) throws {
         let fm = FileManager.default
         let previousModification = (try? fm.attributesOfItem(atPath: url.path))?[.modificationDate] as? Date
-        let tmp = url.deletingLastPathComponent().appendingPathComponent(".kidsafe-tmp-\(UUID().uuidString)")
+        let tmp = url.deletingLastPathComponent().appendingPathComponent(".yamoxy-tmp-\(UUID().uuidString)")
         guard fm.createFile(atPath: tmp.path, contents: Data(content.utf8), attributes: [.posixPermissions: 0o644]) else {
             throw KidSafeError.io(L("error.writeDir", url.deletingLastPathComponent().path))
         }

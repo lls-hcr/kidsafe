@@ -1,8 +1,8 @@
 import AppKit
 import KidSafeCore
 
-// « Désinstaller KidSafe » (fourni dans le .dmg) : remet le Mac dans son état d'origine,
-// même si l'app KidSafe a déjà été supprimée ou ne s'ouvre plus.
+// « Désinstaller Yamoxy » (fourni dans le .dmg) : remet le Mac dans son état d'origine,
+// même si l'app a déjà été supprimée ou ne s'ouvre plus. Retire aussi ce qu'a laissé KidSafe (ancien nom).
 
 /// `--yes` (tests, scripts) : pas de confirmation ni de message final. Le mot de passe parent reste exigé.
 let assumeYes = CommandLine.arguments.contains("--yes")
@@ -52,7 +52,7 @@ if let hash = (try? Catalog.load(from: paths.catalogFile))?.parentPassword {
     }
 }
 
-// 3. Quitter KidSafe s'il tourne (le nettoyage ci-dessous retire le proxy et arrête Privoxy dans tous les cas).
+// 3. Quitter Yamoxy s'il tourne (le nettoyage ci-dessous retire le proxy et arrête Privoxy dans tous les cas).
 for running in NSRunningApplication.runningApplications(withBundleIdentifier: KidSafeUninstaller.bundleID) {
     running.terminate()
     let end = Date().addingTimeInterval(10)
@@ -60,8 +60,8 @@ for running in NSRunningApplication.runningApplications(withBundleIdentifier: Ki
     if !running.isTerminated { running.forceTerminate() }
 }
 
-// 4. Nettoyage (proxy de KidSafe, Privoxy intégré, réglages).
-// Port de KidSafe : celui de sa config (il a pu être changé dans l'onglet Avancé), et le port par défaut.
+// 4. Nettoyage (proxy de Yamoxy, Privoxy intégré, réglages).
+// Port de Yamoxy : celui de sa config (il a pu être changé dans l'onglet Avancé), et le port par défaut.
 let bundledConfig = BundledPrivoxy.installDir(supportDir: paths.supportDir).appendingPathComponent("config")
 var endpoints = [SystemStatus.Endpoint(host: "127.0.0.1", port: BundledPrivoxy.port)]
 if FileManager.default.fileExists(atPath: bundledConfig.path) {
@@ -74,19 +74,17 @@ if let err = KidSafeUninstaller.perform(paths: paths, endpoints: endpoints, admi
     exit(1)
 }
 
-// Règle Firefox installée par KidSafe (macOS demande le mot de passe administrateur).
+// Règle Firefox installée par Yamoxy (macOS demande le mot de passe administrateur).
 if FirefoxPolicy.isInstalled { _ = FirefoxPolicy.remove(prompt: L("firefox.adminPromptOff")) }
 
-// 5. KidSafe à la corbeille (sauf la copie du .dmg, en lecture seule).
+// 5. L'app à la corbeille (sauf la copie du .dmg, en lecture seule), sous son nom actuel ou l'ancien (KidSafe) :
+// seulement si c'est bien elle (même identifiant).
 var apps = Set(NSWorkspace.shared.urlsForApplications(withBundleIdentifier: KidSafeUninstaller.bundleID).map(\.standardizedFileURL))
-for candidate in ["/Applications/KidSafe.app", NSHomeDirectory() + "/Applications/KidSafe.app", NSHomeDirectory() + "/Desktop/KidSafe.app"]
-where FileManager.default.fileExists(atPath: candidate) {
-    apps.insert(URL(fileURLWithPath: candidate).standardizedFileURL)
-}
-// Après le changement de nom (KidSafe devient Yamoxy) : seulement si c'est bien la même app (même identifiant).
 for dir in ["/Applications", NSHomeDirectory() + "/Applications", NSHomeDirectory() + "/Desktop"] {
-    let candidate = URL(fileURLWithPath: dir + "/Yamoxy.app")
-    if Bundle(url: candidate)?.bundleIdentifier == KidSafeUninstaller.bundleID { apps.insert(candidate.standardizedFileURL) }
+    for name in ["Yamoxy.app", "KidSafe.app"] {
+        let candidate = URL(fileURLWithPath: dir + "/" + name)
+        if Bundle(url: candidate)?.bundleIdentifier == KidSafeUninstaller.bundleID { apps.insert(candidate.standardizedFileURL) }
+    }
 }
 let toTrash = apps.filter { !$0.path.hasPrefix("/Volumes/") && !$0.path.contains("/.Trash/") }
 if !toTrash.isEmpty {
@@ -97,5 +95,5 @@ if !toTrash.isEmpty {
 }
 
 if !assumeYes { _ = show(L("uninstaller.doneTitle"), L("uninstaller.done"), buttons: ["OK"]) }
-print("KidSafe désinstallé. Mis à la corbeille : \(toTrash.map(\.path).joined(separator: ", "))")
+print("Yamoxy désinstallé. Mis à la corbeille : \(toTrash.map(\.path).joined(separator: ", "))")
 exit(0)

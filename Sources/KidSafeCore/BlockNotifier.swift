@@ -114,9 +114,9 @@ public final class BlockNotifier {
         return out
     }
 
-    /// Raison du dernier bloc `{ +block{KidSafe : …} }` avant la position (en-têtes peu nombreux : recherche vers l'avant).
+    /// Raison du dernier bloc `{ +block{Yamoxy : …} }` avant la position (en-têtes peu nombreux : recherche vers l'avant).
     static func reason(before position: Int, in data: Data) -> String? {
-        let marker = "+block{KidSafe : "
+        let marker = PrivoxyActions.reasonPrefix
         var from = 0, found: Int?
         while let at = find(marker, in: data, from: from), at < position { found = at; from = at + 1 }
         guard let at = found else { return nil }

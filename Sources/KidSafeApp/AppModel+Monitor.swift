@@ -36,7 +36,7 @@ extension AppModel {
         guard let html = UserGuide.html(version: versionLabel),
               (try? FileManager.default.createDirectory(at: engine.paths.supportDir, withIntermediateDirectories: true)) != nil,
               (try? html.write(to: out, atomically: true, encoding: .utf8)) != nil else {
-            if let url = URL(string: "https://github.com/lls-hcr/kidsafe#readme") { NSWorkspace.shared.open(url) }
+            if let url = URL(string: "https://github.com/lls-hcr/yamoxy#readme") { NSWorkspace.shared.open(url) }
             return
         }
         NSWorkspace.shared.open(out)

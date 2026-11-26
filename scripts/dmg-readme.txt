@@ -1,41 +1,41 @@
-KidSafe — contrôle parental pour Mac (version de test)
-=====================================================
+Yamoxy (anciennement KidSafe) — contrôle parental pour Mac (version de test)
+============================================================================
 
-1. Glissez KidSafe dans le dossier Applications.
-2. Ouvrez KidSafe. macOS demande de confirmer l'ouverture d'une app téléchargée :
-   cliquez sur « Ouvrir ». KidSafe est signé et vérifié par Apple.
-3. Au premier lancement, KidSafe active la protection tout seul
-   (bouclier vert dans la barre de menus).
+1. Glissez Yamoxy dans le dossier Applications.
+2. Ouvrez Yamoxy. macOS demande de confirmer l'ouverture d'une app téléchargée :
+   cliquez sur « Ouvrir ». Yamoxy est signé et vérifié par Apple.
+3. Au premier lancement, Yamoxy active la protection tout seul
+   (gecko dans la barre de menus).
 
-Mises à jour : KidSafe les cherche chaque semaine et peut s'installer tout seul
+Mises à jour : Yamoxy les cherche chaque semaine et peut s'installer tout seul
 (Réglages → Général). Vos réglages sont conservés.
 
-Quitter KidSafe retire le filtre et rend au Mac sa connexion normale.
-Rien d'autre à installer : Privoxy est intégré à KidSafe.
+Quitter Yamoxy retire le filtre et rend au Mac sa connexion normale.
+Rien d'autre à installer : Privoxy est intégré à Yamoxy.
 
-Pour tout enlever : double-cliquez sur « Désinstaller KidSafe » (dans ce disque),
-ou Réglages → Général → « Désinstaller KidSafe… ».
+Pour tout enlever : double-cliquez sur « Désinstaller Yamoxy » (dans ce disque),
+ou Réglages → Général → « Désinstaller Yamoxy… ».
 
-Guide complet : https://mizuki.ch/documentation/kidsafe/
-Avis et problèmes : menu du bouclier → « Envoyer un avis… »
+Guide complet : https://mizuki.ch/documentation/yamoxy/
+Avis et problèmes : menu du gecko → « Envoyer un avis… »
 
 
-KidSafe — parental control for Mac (test version)
-================================================
+Yamoxy (formerly KidSafe) — parental control for Mac (test version)
+===================================================================
 
-1. Drag KidSafe to the Applications folder.
-2. Open KidSafe. macOS asks you to confirm opening a downloaded app: click “Open”.
-   KidSafe is signed and checked by Apple.
-3. On first launch, KidSafe turns protection on by itself (green shield in the menu bar).
+1. Drag Yamoxy to the Applications folder.
+2. Open Yamoxy. macOS asks you to confirm opening a downloaded app: click “Open”.
+   Yamoxy is signed and checked by Apple.
+3. On first launch, Yamoxy turns protection on by itself (gecko in the menu bar).
 
-Updates: KidSafe checks every week and can install them by itself
+Updates: Yamoxy checks every week and can install them by itself
 (Settings → General). Your settings are kept.
 
-Quitting KidSafe removes the filter and gives the Mac its normal connection back.
-Nothing else to install: Privoxy is built into KidSafe.
+Quitting Yamoxy removes the filter and gives the Mac its normal connection back.
+Nothing else to install: Privoxy is built into Yamoxy.
 
-To remove everything: double-click “Uninstall KidSafe” (on this disk),
-or Settings → General → “Uninstall KidSafe…”.
+To remove everything: double-click “Uninstall Yamoxy” (on this disk),
+or Settings → General → “Uninstall Yamoxy…”.
 
-Full guide: https://mizuki.ch/documentation/kidsafe/
-Feedback and issues: shield menu → “Send Feedback…”
+Full guide: https://mizuki.ch/documentation/yamoxy/
+Feedback and issues: gecko menu → “Send Feedback…”

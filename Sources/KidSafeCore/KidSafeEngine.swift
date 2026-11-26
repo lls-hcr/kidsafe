@@ -1,6 +1,13 @@
 import Foundation
 
-/// Emplacements des fichiers de KidSafe.
+/// Nom de l'app. Elle s'appelait KidSafe jusqu'à la version 0.8 : l'ancien nom ne sert plus
+/// qu'à reconnaître et reprendre ce que les versions précédentes ont laissé (dossier, fichiers de Privoxy).
+public enum Brand {
+    public static let name = "Yamoxy"
+    public static let legacyName = "KidSafe"
+}
+
+/// Emplacements des fichiers de Yamoxy.
 public struct KidSafePaths: Sendable {
     public var supportDir: URL
     public var catalogFile: URL { supportDir.appendingPathComponent("catalog.json") }
@@ -11,11 +18,68 @@ public struct KidSafePaths: Sendable {
 
     public init(supportDir: URL) { self.supportDir = supportDir }
 
-    /// `~/Library/Application Support/KidSafe` pour l'instant ; le helper root utilisera
-    /// `/Library/Application Support/KidSafe`, que l'enfant ne peut pas modifier.
-    public static var user: KidSafePaths {
-        let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return KidSafePaths(supportDir: base.appendingPathComponent("KidSafe", isDirectory: true))
+    static var applicationSupport: URL {
+        FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+    }
+
+    /// `~/Library/Application Support/Yamoxy`. Tant que l'ancien dossier `…/KidSafe` n'a pas été
+    /// déplacé (voir `migrateLegacy`), c'est lui qui est utilisé : rien n'est perdu si le déplacement échoue.
+    public static var user: KidSafePaths { resolve(base: applicationSupport) }
+
+    static func resolve(base: URL) -> KidSafePaths {
+        let new = base.appendingPathComponent(Brand.name, isDirectory: true)
+        let old = base.appendingPathComponent(Brand.legacyName, isDirectory: true)
+        let fm = FileManager.default
+        if !fm.fileExists(atPath: new.path), fm.fileExists(atPath: old.path) { return KidSafePaths(supportDir: old) }
+        return KidSafePaths(supportDir: new)
+    }
+
+    /// Dossiers de l'app qui existent sur ce Mac (le nouveau et, s'il reste, celui de KidSafe).
+    public static var allExisting: [KidSafePaths] {
+        [Brand.name, Brand.legacyName].map { applicationSupport.appendingPathComponent($0, isDirectory: true) }
+            .filter { FileManager.default.fileExists(atPath: $0.path) }.map(KidSafePaths.init)
+    }
+
+    public enum Migration: Equatable, Sendable { case nothing, moved, failed(String) }
+
+    /// Premier lancement de Yamoxy : déplace `…/KidSafe` vers `…/Yamoxy` (listes, réglages, mot de passe,
+    /// historique, Privoxy intégré). `stopPrivoxy` arrête d'abord le Privoxy lancé depuis l'ancien dossier.
+    /// Ensuite, les chemins complets sont corrigés : listes importées du disque (catalogue) ; la config de
+    /// Privoxy est régénérée par `BundledPrivoxy.prepare` (marque de version effacée).
+    /// En cas d'échec, l'ancien dossier reste en place et continue de servir.
+    public static func migrateLegacy(base: URL? = nil, stopPrivoxy: (URL) -> Void = { BundledPrivoxy.stopRunning(supportDir: $0) }) -> Migration {
+        let base = base ?? applicationSupport
+        let fm = FileManager.default
+        let new = base.appendingPathComponent(Brand.name, isDirectory: true)
+        let old = base.appendingPathComponent(Brand.legacyName, isDirectory: true)
+        guard fm.fileExists(atPath: old.path), !fm.fileExists(atPath: new.path) else { return .nothing }
+        stopPrivoxy(old)
+        do { try fm.moveItem(at: old, to: new) } catch { return .failed(error.localizedDescription) }
+        let paths = KidSafePaths(supportDir: new)
+        if var catalog = try? Catalog.load(from: paths.catalogFile),
+           catalog.relocateLocalLists(from: KidSafePaths(supportDir: old).listsDir, to: paths.listsDir) {
+            try? catalog.save(to: paths.catalogFile)
+        }
+        BundledPrivoxy.forgetStamp(supportDir: new)
+        return .moved
+    }
+}
+
+public extension Catalog {
+    /// Listes importées du disque : chemins de leurs copies après un déplacement du dossier de l'app.
+    mutating func relocateLocalLists(from old: URL, to new: URL) -> Bool {
+        let prefix = old.standardizedFileURL.path + "/"
+        var changed = false
+        for i in categories.indices {
+            for j in categories[i].sources.indices {
+                guard let url = URL(string: categories[i].sources[j].url), url.isFileURL else { continue }
+                let path = url.standardizedFileURL.path
+                guard path.hasPrefix(prefix) else { continue }
+                categories[i].sources[j].url = new.appendingPathComponent(String(path.dropFirst(prefix.count))).absoluteString
+                changed = true
+            }
+        }
+        return changed
     }
 }
 

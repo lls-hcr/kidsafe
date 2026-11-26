@@ -11,10 +11,10 @@ public enum UserGuide {
         return """
         <!doctype html><html lang="\(lang)"><head><meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>KidSafe — \(Dashboard.esc(L("guide.title")))</title>
+        <title>Yamoxy — \(Dashboard.esc(L("guide.title")))</title>
         <style>\(PageStyle.css)</style></head><body class="guide-page">
         \(PageStyle.header(title: Dashboard.esc(L("guide.title")),
-                           meta: Dashboard.esc(version.hasPrefix("KidSafe") ? version : "KidSafe " + version)))
+                           meta: Dashboard.esc(version.hasPrefix(Brand.name) ? version : Brand.name + " " + version)))
         <main class="guide">\(body)</main>
         <footer>\(Dashboard.esc(L("guide.footer")))</footer>
         <div id="zoom" hidden><figure><img alt=""><p></p></figure></div>
